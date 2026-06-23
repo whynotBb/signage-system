@@ -301,7 +301,7 @@
 - [ ] **TASK-028: Vercel 배포 및 운영 환경 구성**
   - [ ] Vercel 프로젝트 연결 및 환경 변수(Supabase 키) 설정
   - [ ] Supabase 프로덕션 인스턴스 마이그레이션 및 Storage 버킷 구성
-  - [ ] Supabase Auth 이메일 인증 콜백 URL(프로덕션 도메인) 설정
+  - [ ] Supabase Auth 이메일 인증 콜백 URL 설정 — Supabase 대시보드 > Authentication > URL Configuration > Redirect URLs에 `https://your-domain.com/admin/auth/callback` 추가 (개발 환경: `http://localhost:3000/admin/auth/callback`은 이미 추가 필요)
   - [ ] 프로덕션 빌드 검증 및 배포, 디스플레이 화면 키오스크 URL 고정 가이드
 
 ---
