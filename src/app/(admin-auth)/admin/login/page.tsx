@@ -1,7 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -23,7 +24,17 @@ import { LoadingButton } from '@/components/composite/loading-button'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const setUser = useAuthStore((state) => state.setUser)
+
+  useEffect(() => {
+    if (searchParams.get('verified') === 'true') {
+      toast.success('이메일 인증 완료', { description: '로그인해주세요' })
+    }
+    if (searchParams.get('error') === 'auth_callback_error') {
+      toast.error('인증 링크 오류', { description: '유효하지 않거나 만료된 링크입니다. 다시 시도해주세요' })
+    }
+  }, [searchParams])
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
