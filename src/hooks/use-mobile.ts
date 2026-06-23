@@ -7,13 +7,12 @@ import { useState, useEffect } from 'react'
 const MOBILE_BREAKPOINT = 768
 
 export function useMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches
-  })
+  // SSR과 초기 클라이언트 렌더링 일치를 위해 false로 고정 (hydration mismatch 방지)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    setIsMobile(mql.matches)
     const onChange = () => setIsMobile(mql.matches)
     mql.addEventListener('change', onChange)
     return () => mql.removeEventListener('change', onChange)
@@ -21,3 +20,6 @@ export function useMobile() {
 
   return isMobile
 }
+
+// shadcn/ui sidebar 컴포넌트 호환용 alias
+export const useIsMobile = useMobile
