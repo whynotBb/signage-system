@@ -2,19 +2,12 @@
 // proxy.ts 또는 레이아웃에서 isAuthenticated를 확인해 미인증 사용자를 /admin/login으로 리다이렉트합니다
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { UserRole } from '@/types'
-
-interface User {
-  id: string
-  email: string
-  name?: string
-  role: UserRole
-}
+import type { Profile } from '@/types'
 
 interface AuthStore {
-  user: User | null
+  user: Profile | null
   isAuthenticated: boolean
-  setUser: (user: User | null) => void
+  setUser: (user: Profile | null) => void
   logout: () => void
 }
 

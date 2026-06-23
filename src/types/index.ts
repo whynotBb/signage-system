@@ -1,4 +1,6 @@
-export type UserRole = 'super_admin' | 'content_admin' | 'editor'
+import type { UserRole } from './database'
+
+export * from './database'
 
 export type NavIconKey =
   | 'LayoutDashboard'
