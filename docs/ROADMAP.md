@@ -64,7 +64,8 @@
 - ✅ **DB 스키마·마이그레이션 완료**: 9개 테이블, updated_at 트리거, handle_new_user Auth 트리거(role=editor 자동 생성), company_intro_config 시드, FK 인덱스 7개
 - ✅ **RLS·Storage 완료**: `current_user_role()` SECURITY DEFINER 헬퍼, 9개 테이블 역할 기반 RLS 정책, Storage 버킷 3종(employees/videos/images), 보안 강화(불필요한 PUBLIC EXECUTE 박탈)
 - ✅ **TASK-006 완료**: 로그인 기능 Supabase Auth 연동 (`auth-errors.ts` + `login/page.tsx` 수정)
-- ⬜ **미완료**: Auth 시스템(TASK-007~009), 모든 페이지 UI 및 기능
+- ✅ **TASK-007 완료**: 회원가입 기능 Supabase Auth 연동 (`register/page.tsx` signUp + 성공 UI, `auth-errors.ts` 에러 코드 보강)
+- ⬜ **미완료**: Auth 시스템(TASK-008~009), 모든 페이지 UI 및 기능
 
 ---
 
@@ -126,11 +127,11 @@
   - [x] 회원가입 페이지 링크 연결
   - [ ] **테스트 체크리스트**: 로그인 성공/실패, 잘못된 형식 입력, 세션 유지 E2E 테스트 (Playwright MCP)
 
-- [ ] **TASK-007: 회원가입 기능 구현** (F026)
-  - [ ] 회원가입 페이지 UI 구현 (이름/이메일/비밀번호 폼, Zod 유효성 검사)
-  - [ ] Supabase Auth `signUp` 연동 및 이메일 인증 메일 발송 트리거
-  - [ ] 가입 신청 완료 안내 메시지 표시 ("인증 메일을 확인하세요")
-  - [ ] **테스트 체크리스트**: 가입 신청 성공, 중복 이메일, 약한 비밀번호 검증 E2E 테스트 (Playwright MCP)
+- [x] **TASK-007: 회원가입 기능 구현** (F026)
+  - [x] 회원가입 페이지 UI 구현 (이름/이메일/비밀번호 폼, Zod 유효성 검사)
+  - [x] Supabase Auth `signUp` 연동 및 이메일 인증 메일 발송 트리거
+  - [x] 가입 신청 완료 안내 메시지 표시 ("인증 메일을 확인하세요")
+  - [x] **테스트 체크리스트**: 가입 신청 성공 UI·폼 유효성 검사 Playwright E2E 확인. 중복 이메일은 Supabase 이메일 인증 모드 기본 동작(이메일 열거 방지를 위해 성공 응답 반환)으로 UI 레벨 검증 생략. `auth-errors.ts`에 `user_already_exists` 에러 코드 처리 추가.
 
 - [ ] **TASK-008: 이메일 인증 완료 흐름 구현** (F027)
   - [ ] 이메일 인증 완료 페이지 라우트 추가 (Supabase Auth 콜백 URL)

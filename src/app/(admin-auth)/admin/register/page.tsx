@@ -1,10 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import { MailCheck } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { registerSchema, type RegisterFormValues } from '@/lib/validations/auth'
+import { createClient } from '@/lib/supabase/client'
+import { mapAuthError } from '@/lib/supabase/auth-errors'
 import {
   Form,
   FormControl,
@@ -18,21 +22,61 @@ import { Input } from '@/components/ui/input'
 import { LoadingButton } from '@/components/composite/loading-button'
 
 export default function RegisterPage() {
+  const [submitted, setSubmitted] = useState(false)
+  const [submittedEmail, setSubmittedEmail] = useState('')
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   })
 
   async function onSubmit(values: RegisterFormValues) {
-    try {
-      // TODO: Supabase Auth 이메일 인증 연동으로 교체
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      toast.success('회원가입 완료', {
-        description: `${values.email}로 인증 메일이 발송되었습니다.`,
-      })
-    } catch {
-      toast.error('회원가입 실패', { description: '잠시 후 다시 시도해주세요.' })
+    const supabase = createClient()
+
+    const { error } = await supabase.auth.signUp({
+      email: values.email,
+      password: values.password,
+      options: {
+        data: { name: values.name },
+        emailRedirectTo: `${window.location.origin}/admin/login`,
+      },
+    })
+
+    if (error) {
+      toast.error('회원가입 실패', { description: mapAuthError(error) })
+      return
     }
+
+    setSubmittedEmail(values.email)
+    setSubmitted(true)
+  }
+
+  if (submitted) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="flex justify-center">
+          <div className="rounded-full bg-primary/10 p-4">
+            <MailCheck className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight">인증 메일을 확인해주세요</h1>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{submittedEmail}</span>로
+            인증 메일이 발송되었습니다.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            메일함의 인증 링크를 클릭하면 가입이 완료됩니다.
+          </p>
+        </div>
+        <Link
+          href="/admin/login"
+          className="inline-block text-sm font-medium text-foreground underline underline-offset-4 hover:text-primary"
+        >
+          로그인 페이지로 이동
+        </Link>
+      </div>
+    )
   }
 
   return (
