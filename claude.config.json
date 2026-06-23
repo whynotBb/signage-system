@@ -1,0 +1,5 @@
+{
+	"agents": {
+		"directories": [".claude/agents/dev", ".claude/agents/docs"]
+	}
+}

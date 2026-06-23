@@ -1,0 +1,1 @@
+- [사이니지 관리 시스템 PRD](project_signage_prd.md) — docs/PRD.md 작성 완료. F001~F025, 9페이지, 역할 3종. Next.js 16.2.9 사용 (템플릿 기본 15 아님)
