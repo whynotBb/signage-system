@@ -63,7 +63,8 @@
 - ✅ **Supabase 클라이언트 연동 완료**: `@supabase/supabase-js` + `@supabase/ssr` 설치, 브라우저/서버 클라이언트 분리(`src/lib/supabase/`), TanStack Query queryKey 컨벤션, 헬스 체크 구현, `.env.local` 실제 키 설정 완료
 - ✅ **DB 스키마·마이그레이션 완료**: 9개 테이블, updated_at 트리거, handle_new_user Auth 트리거(role=editor 자동 생성), company_intro_config 시드, FK 인덱스 7개
 - ✅ **RLS·Storage 완료**: `current_user_role()` SECURITY DEFINER 헬퍼, 9개 테이블 역할 기반 RLS 정책, Storage 버킷 3종(employees/videos/images), 보안 강화(불필요한 PUBLIC EXECUTE 박탈)
-- ⬜ **미완료**: Auth 시스템(TASK-006~009), 모든 페이지 UI 및 기능
+- ✅ **TASK-006 완료**: 로그인 기능 Supabase Auth 연동 (`auth-errors.ts` + `login/page.tsx` 수정)
+- ⬜ **미완료**: Auth 시스템(TASK-007~009), 모든 페이지 UI 및 기능
 
 ---
 
@@ -117,12 +118,12 @@
 
 **완료 기준**: 비로그인 사용자가 회원가입 → 이메일 인증 → editor 권한 자동 부여 → 로그인 → 대시보드 진입까지 전 흐름이 동작하고, 미인증 상태로 `/admin` 진입 시 로그인 페이지로 리디렉션된다.
 
-- [ ] **TASK-006: 로그인 기능 구현** (F001) - 우선순위
-  - [ ] 로그인 페이지 UI 구현 (이메일/비밀번호 폼, Zod 유효성 검사)
-  - [ ] Supabase Auth `signInWithPassword` 연동
-  - [ ] 인증 실패 시 에러 메시지 표시, 성공 시 대시보드 이동
-  - [ ] `auth-store`에 로그인 사용자/역할 상태 반영 (persist)
-  - [ ] 회원가입 페이지 링크 연결
+- [x] **TASK-006: 로그인 기능 구현** (F001) - 우선순위
+  - [x] 로그인 페이지 UI 구현 (이메일/비밀번호 폼, Zod 유효성 검사)
+  - [x] Supabase Auth `signInWithPassword` 연동
+  - [x] 인증 실패 시 에러 메시지 표시, 성공 시 대시보드 이동
+  - [x] `auth-store`에 로그인 사용자/역할 상태 반영 (persist)
+  - [x] 회원가입 페이지 링크 연결
   - [ ] **테스트 체크리스트**: 로그인 성공/실패, 잘못된 형식 입력, 세션 유지 E2E 테스트 (Playwright MCP)
 
 - [ ] **TASK-007: 회원가입 기능 구현** (F026)

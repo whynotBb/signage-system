@@ -1,10 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { loginSchema, type LoginFormValues } from '@/lib/validations/auth'
+import { createClient } from '@/lib/supabase/client'
+import { mapAuthError } from '@/lib/supabase/auth-errors'
+import { useAuthStore } from '@/store/auth-store'
 import {
   Form,
   FormControl,
@@ -18,19 +22,55 @@ import { Separator } from '@/components/ui/separator'
 import { LoadingButton } from '@/components/composite/loading-button'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const setUser = useAuthStore((state) => state.setUser)
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   })
 
   async function onSubmit(values: LoginFormValues) {
-    try {
-      // TODO: Supabase Auth 연동으로 교체
-      await new Promise((resolve) => setTimeout(resolve, 1200))
-      toast.success('로그인 성공', { description: `${values.email}으로 로그인되었습니다.` })
-    } catch {
-      toast.error('로그인 실패', { description: '이메일 또는 비밀번호를 확인해주세요.' })
+    const supabase = createClient()
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    })
+
+    if (error || !data.user) {
+      toast.error('로그인 실패', {
+        description: error ? mapAuthError(error) : '로그인 중 오류가 발생했습니다',
+      })
+      return
     }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single()
+
+    if (profileError || !profile) {
+      await supabase.auth.signOut()
+      toast.error('로그인 실패', {
+        description: '계정 정보를 불러올 수 없습니다. 다시 시도해주세요',
+      })
+      return
+    }
+
+    if (!profile.is_active) {
+      await supabase.auth.signOut()
+      toast.error('로그인 실패', {
+        description: '비활성화된 계정입니다. 관리자에게 문의해주세요',
+      })
+      return
+    }
+
+    setUser(profile)
+    toast.success('로그인 성공', { description: `${profile.name}님, 환영합니다` })
+    router.push('/admin/dashboard')
+    router.refresh()
   }
 
   return (
