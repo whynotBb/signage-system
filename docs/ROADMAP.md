@@ -59,7 +59,11 @@
 ## 현재 상태 요약 (2026-06-23 기준)
 
 - ✅ **프로젝트 스캐폴딩 완료**: 라우트 그룹 구조, 빈 페이지 껍데기, 공통 레이아웃, shadcn/ui + composite 컴포넌트, Zustand 스토어, 인증 폼 검증 스키마
-- ⬜ **미완료**: 도메인 타입 정의, Supabase 연동(Auth/DB/Storage/Realtime), 모든 페이지의 실제 UI 및 기능
+- ✅ **도메인 타입 정의 완료**: 9개 Supabase 테이블 TypeScript 타입(Row/Insert/Update), Database 네임스페이스, `@/types` 일괄 export, auth-store Profile 타입 통합
+- ✅ **Supabase 클라이언트 연동 완료**: `@supabase/supabase-js` + `@supabase/ssr` 설치, 브라우저/서버 클라이언트 분리(`src/lib/supabase/`), TanStack Query queryKey 컨벤션, 헬스 체크 구현, `.env.local` 실제 키 설정 완료
+- ✅ **DB 스키마·마이그레이션 완료**: 9개 테이블, updated_at 트리거, handle_new_user Auth 트리거(role=editor 자동 생성), company_intro_config 시드, FK 인덱스 7개
+- ✅ **RLS·Storage 완료**: `current_user_role()` SECURITY DEFINER 헬퍼, 9개 테이블 역할 기반 RLS 정책, Storage 버킷 3종(employees/videos/images), 보안 강화(불필요한 PUBLIC EXECUTE 박탈)
+- ⬜ **미완료**: Auth 시스템(TASK-006~009), 모든 페이지 UI 및 기능
 
 ---
 
@@ -79,30 +83,30 @@
   - [x] shadcn/ui 기본 컴포넌트 및 composite 컴포넌트(PageHeader, LoadingButton, ConfirmDialog, EmptyState 등) 구비
   - [x] Zustand 스토어(`ui-store`, `auth-store`) 및 인증 폼 검증 스키마(`validations/auth.ts`) 작성
 
-- [ ] **TASK-002: 도메인 타입 및 인터페이스 정의** (인프라) - 우선순위
-  - [ ] `profiles`, `divisions`, `teams`, `employees` 타입 정의
-  - [ ] `news_contents`, `visitor_contents`, `company_intro_config` 타입 정의
-  - [ ] `video_contents`, `image_contents` 타입 정의
-  - [ ] `UserRole` enum 및 콘텐츠 활성 상태/게시 스케줄 관련 공용 타입 정의
-  - [ ] Supabase Database 타입(`Database`) 정의 및 `@/types`에서 일괄 export
+- [x] **TASK-002: 도메인 타입 및 인터페이스 정의** (인프라) - 우선순위
+  - [x] `profiles`, `divisions`, `teams`, `employees` 타입 정의
+  - [x] `news_contents`, `visitor_contents`, `company_intro_config` 타입 정의
+  - [x] `video_contents`, `image_contents` 타입 정의
+  - [x] `UserRole` union 타입 및 콘텐츠 활성 상태/게시 스케줄 관련 공용 타입 정의
+  - [x] Supabase `Database` 네임스페이스 타입 정의 및 `@/types`에서 일괄 export
 
-- [ ] **TASK-003: Supabase 클라이언트 및 환경 설정** (인프라)
-  - [ ] `@supabase/supabase-js` / `@supabase/ssr` 설치 및 환경 변수(`.env.local`) 구성
-  - [ ] 브라우저 클라이언트 / 서버 클라이언트 분리 생성 (`src/lib/supabase/`)
-  - [ ] TanStack Query와 Supabase 연동 패턴(쿼리 키 컨벤션) 정립
-  - [ ] 연결 검증용 헬스 체크 쿼리 작성
+- [x] **TASK-003: Supabase 클라이언트 및 환경 설정** (인프라)
+  - [x] `@supabase/supabase-js` / `@supabase/ssr` 설치 및 환경 변수(`.env.local`) 구성
+  - [x] 브라우저 클라이언트 / 서버 클라이언트 분리 생성 (`src/lib/supabase/`)
+  - [x] TanStack Query와 Supabase 연동 패턴(쿼리 키 컨벤션) 정립 (`src/lib/supabase/query-keys.ts`)
+  - [x] 연결 검증용 헬스 체크 쿼리 작성 (`src/lib/supabase/health.ts`)
 
-- [ ] **TASK-004: 데이터베이스 스키마 및 마이그레이션** (인프라)
-  - [ ] 9개 테이블 마이그레이션 SQL 작성 (`profiles`, `divisions`, `teams`, `employees`, `news_contents`, `visitor_contents`, `company_intro_config`, `video_contents`, `image_contents`)
-  - [ ] 외래키 관계 설정 (teams→divisions, employees→divisions/teams, contents→profiles)
-  - [ ] `company_intro_config` 단일 행 시드 데이터 삽입 (is_enabled 초기값)
-  - [ ] `auth.users` → `profiles` 동기화 트리거 작성 (회원가입 시 role=editor 자동 생성)
+- [x] **TASK-004: 데이터베이스 스키마 및 마이그레이션** (인프라)
+  - [x] 9개 테이블 마이그레이션 SQL 작성 (`profiles`, `divisions`, `teams`, `employees`, `news_contents`, `visitor_contents`, `company_intro_config`, `video_contents`, `image_contents`)
+  - [x] 외래키 관계 설정 (teams→divisions, employees→divisions/teams, contents→profiles)
+  - [x] `company_intro_config` 단일 행 시드 데이터 삽입 (is_enabled 초기값)
+  - [x] `auth.users` → `profiles` 동기화 트리거 작성 (회원가입 시 role=editor 자동 생성)
 
-- [ ] **TASK-005: RLS 보안 정책 및 Storage 버킷 설정** (인프라)
-  - [ ] 테이블별 Row Level Security 정책 작성 (역할 기반 SELECT/INSERT/UPDATE/DELETE)
-  - [ ] editor "본인 등록 콘텐츠만 수정/삭제" 정책 (`created_by = auth.uid()`) — 뉴스·방문자 대상
-  - [ ] 디스플레이 화면 공개 읽기 정책 (익명 SELECT 허용)
-  - [ ] Storage 버킷 3종 생성 및 접근 정책: 직원 프로필 사진 / 동영상 / 이미지
+- [x] **TASK-005: RLS 보안 정책 및 Storage 버킷 설정** (인프라)
+  - [x] 테이블별 Row Level Security 정책 작성 (역할 기반 SELECT/INSERT/UPDATE/DELETE)
+  - [x] editor "본인 등록 콘텐츠만 수정/삭제" 정책 (`created_by = auth.uid()`) — 뉴스·방문자 대상
+  - [x] 디스플레이 화면 공개 읽기 정책 (익명 SELECT 허용)
+  - [x] Storage 버킷 3종 생성 및 접근 정책: 직원 프로필 사진 / 동영상 / 이미지
   - [ ] **테스트 체크리스트**: 역할별 SQL 권한 시나리오 검증 (super_admin/content_admin/editor/anon)
 
 ---
