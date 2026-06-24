@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar"
 import { ChevronsUpDownIcon, LogOutIcon, ShieldIcon } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
+import { createClient } from "@/lib/supabase/client"
 import type { UserRole } from "@/types"
 
 const ROLE_LABEL: Record<UserRole, string> = {
@@ -45,7 +46,10 @@ export function NavUser() {
       .toUpperCase()
       .slice(0, 2) || "U"
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Supabase 세션 파기 후 클라이언트 상태 초기화
+    const supabase = createClient()
+    await supabase.auth.signOut()
     logout()
     router.push("/admin/login")
   }
