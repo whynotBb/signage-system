@@ -67,7 +67,8 @@
 - ✅ **TASK-007 완료**: 회원가입 기능 Supabase Auth 연동 (`register/page.tsx` signUp + 성공 UI, `auth-errors.ts` 에러 코드 보강)
 - ✅ **TASK-008 완료**: 이메일 인증 콜백 라우트 (`/admin/auth/callback/route.ts`), `verified=true`/`error=` 쿼리 파라미터 toast 처리
 - ✅ **TASK-009 완료**: `proxy.ts` 라우트 가드 구현 (`/admin/**` 비로그인 차단 → `/admin/login` 리디렉션), `nav-user.tsx` 로그아웃 `supabase.auth.signOut()` 연동, Playwright E2E 검증
-- ⬜ **미완료**: TASK-010 이후 — 대시보드·콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
+- ✅ **TASK-010 완료**: 대시보드 현황 개요 구현 — `dashboard-stats.tsx` 클라이언트 컴포넌트 신규 생성, 5개 카테고리별 TanStack Query count 쿼리(`query-keys.ts` activeCount 키 추가), 현재 사용자 역할 표시, Playwright E2E 검증
+- ⬜ **미완료**: TASK-011 이후 — 조직도·콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
 
 ---
 
@@ -156,12 +157,12 @@
 
 **완료 기준**: 각 페이지에서 목록 조회·등록·수정·삭제가 Supabase DB/Storage와 연동되어 동작하고, 모든 변경 사항이 데이터베이스에 정상 반영된다.
 
-- [ ] **TASK-010: 대시보드 현황 개요 구현** (F002) - 우선순위
-  - [ ] 카테고리별 활성 건수 요약 카드 (뉴스, 방문자, 동영상, 이미지, 직원)
-  - [ ] 각 카드에서 해당 관리 페이지로 빠른 이동 링크
-  - [ ] 현재 로그인 사용자 역할 표시
-  - [ ] TanStack Query로 카테고리별 count 집계 쿼리 연동
-  - [ ] **테스트 체크리스트**: 집계 수치 정확성, 카드 클릭 네비게이션 (Playwright MCP)
+- [x] **TASK-010: 대시보드 현황 개요 구현** (F002) - 우선순위
+  - [x] 카테고리별 활성 건수 요약 카드 (뉴스, 방문자, 동영상, 이미지, 직원)
+  - [x] 각 카드에서 해당 관리 페이지로 빠른 이동 링크
+  - [x] 현재 로그인 사용자 역할 표시
+  - [x] TanStack Query로 카테고리별 count 집계 쿼리 연동
+  - [x] **테스트 체크리스트**: 수치 렌더링(NaN/undefined 없음), 카드 클릭 네비게이션 (Playwright MCP) — 집계 정확성은 TASK-011~017 CRUD 구현 후 실데이터로 재검증
 
 - [ ] **TASK-011: 조직도 관리 — 실/팀 구조 관리** (F007, F008)
   - [ ] 실(Division) 생성/수정/삭제 모달 및 표시 순서(display_order) 관리 (F007)
