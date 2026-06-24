@@ -43,3 +43,6 @@ next-env.d.ts
 # playwright
 .playwright-mcp/
 *.png
+
+# shrimp task manager (로컬 전용)
+/shrimp_data
