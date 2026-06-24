@@ -24,7 +24,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
 import { useAuthStore } from '@/store/auth-store'
-import { GripVertical, Plus, Pencil, Trash2, Users } from 'lucide-react'
+import { GripVertical, Plus, Trash, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -126,12 +126,10 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: EmployeeRo
       </Avatar>
       <span className="min-w-0 flex-1 truncate text-sm font-medium">{employee.name}</span>
       {employee.position && (
-        <Badge variant="secondary" className="shrink-0 text-[10px]">
-          {employee.position}
-        </Badge>
+        <span className="shrink-0 text-xs text-muted-foreground">{employee.position}</span>
       )}
       {employee.title && (
-        <Badge variant="outline" className="shrink-0 text-[10px]">
+        <Badge className="shrink-0 border-0 bg-indigo-100 text-[10px] text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
           {employee.title}
         </Badge>
       )}
@@ -139,11 +137,11 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: EmployeeRo
         <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100">
           <Button
             variant="ghost"
-            size="icon"
-            className="h-6 w-6"
+            size="sm"
+            className="h-6 px-2 text-xs"
             onClick={() => onEdit?.(employee)}
           >
-            <Pencil className="h-3 w-3" />
+            편집
           </Button>
           <Button
             variant="ghost"
@@ -151,7 +149,7 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: EmployeeRo
             className="h-6 w-6 text-destructive hover:text-destructive"
             onClick={() => onDelete?.(employee)}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash className="h-3 w-3" />
           </Button>
         </div>
       )}
@@ -267,10 +265,10 @@ function TeamBlockContent({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-7 px-2 text-xs"
               onClick={() => onEditTeam?.(team)}
             >
-              <Pencil className="h-3 w-3" />편집
+              편집
             </Button>
             <Button
               variant="ghost"
@@ -278,7 +276,7 @@ function TeamBlockContent({
               className="h-7 w-7 text-destructive hover:text-destructive"
               onClick={() => onDeleteTeam?.(team)}
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash className="h-3 w-3" />
             </Button>
           </div>
         )}
@@ -461,10 +459,10 @@ function DivisionCardContent({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-7 px-2 text-xs"
               onClick={() => onEditDivision?.(division)}
             >
-              <Pencil className="h-3 w-3" />편집
+              편집
             </Button>
             <Button
               variant="ghost"
@@ -472,7 +470,7 @@ function DivisionCardContent({
               className="h-7 w-7 text-destructive hover:text-destructive"
               onClick={() => onDeleteDivision?.(division)}
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash className="h-3 w-3" />
             </Button>
           </div>
         )}
@@ -588,7 +586,7 @@ function RepresentativeCard({
 
   if (!employee) {
     return (
-      <div className="flex flex-1 items-center gap-4 rounded-lg border border-dashed border-border p-3">
+      <div className="flex w-full max-w-[260px] items-center gap-4 rounded-lg border border-dashed border-border p-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted">
           <span className="text-xs text-muted-foreground/50">미지정</span>
         </div>
@@ -610,7 +608,7 @@ function RepresentativeCard({
   }
 
   return (
-    <div className="flex flex-1 items-center gap-4 rounded-lg border border-border bg-card p-3 shadow-sm">
+    <div className="flex w-full max-w-[260px] items-center gap-4 rounded-lg border border-border bg-card p-3 shadow-sm">
       <Avatar className="h-12 w-12 shrink-0">
         <AvatarImage src={employee.profile_image_url ?? undefined} alt={employee.name} />
         <AvatarFallback className="text-base">{getInitials(employee.name)}</AvatarFallback>
@@ -625,10 +623,10 @@ function RepresentativeCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 gap-1 px-2 text-xs"
+              className="h-6 px-2 text-xs"
               onClick={() => onEdit?.(employee)}
             >
-              <Pencil className="h-3 w-3" />편집
+              편집
             </Button>
           )}
         </div>
