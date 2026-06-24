@@ -68,7 +68,8 @@
 - ✅ **TASK-008 완료**: 이메일 인증 콜백 라우트 (`/admin/auth/callback/route.ts`), `verified=true`/`error=` 쿼리 파라미터 toast 처리
 - ✅ **TASK-009 완료**: `proxy.ts` 라우트 가드 구현 (`/admin/**` 비로그인 차단 → `/admin/login` 리디렉션), `nav-user.tsx` 로그아웃 `supabase.auth.signOut()` 연동, Playwright E2E 검증
 - ✅ **TASK-010 완료**: 대시보드 현황 개요 구현 — `dashboard-stats.tsx` 클라이언트 컴포넌트 신규 생성, 5개 카테고리별 TanStack Query count 쿼리(`query-keys.ts` activeCount 키 추가), 현재 사용자 역할 표시, Playwright E2E 검증
-- ⬜ **미완료**: TASK-011 이후 — 조직도·콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
+- ✅ **TASK-011 완료**: 조직도 관리 실/팀 구조 관리 — DivisionSection/TeamSection 클라이언트 컴포넌트 구현, 실/팀 CRUD(생성/수정/삭제), display_order 관리, editor 역할 액션 버튼 비노출, Playwright E2E 검증
+- ⬜ **미완료**: TASK-012 이후 — 직원 CRUD, 콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
 
 ---
 
@@ -164,11 +165,11 @@
   - [x] TanStack Query로 카테고리별 count 집계 쿼리 연동
   - [x] **테스트 체크리스트**: 수치 렌더링(NaN/undefined 없음), 카드 클릭 네비게이션 (Playwright MCP) — 집계 정확성은 TASK-011~017 CRUD 구현 후 실데이터로 재검증
 
-- [ ] **TASK-011: 조직도 관리 — 실/팀 구조 관리** (F007, F008)
-  - [ ] 실(Division) 생성/수정/삭제 모달 및 표시 순서(display_order) 관리 (F007)
-  - [ ] 팀(Team) 생성/수정/삭제 모달, 소속 실 지정 (F008)
-  - [ ] 실/팀 CRUD를 Supabase DB와 연동
-  - [ ] **테스트 체크리스트**: 실 생성→팀 소속 지정→삭제 시 직원 처리 검증 (Playwright MCP)
+- [x] **TASK-011: 조직도 관리 — 실/팀 구조 관리** (F007, F008)
+  - [x] 실(Division) 생성/수정/삭제 모달 및 표시 순서(display_order) 관리 (F007)
+  - [x] 팀(Team) 생성/수정/삭제 모달, 소속 실 지정 (F008)
+  - [x] 실/팀 CRUD를 Supabase DB와 연동
+  - [x] **테스트 체크리스트**: 실 생성→팀 소속 지정→삭제 시 직원 처리 검증 (Playwright MCP)
 
 - [ ] **TASK-012: 조직도 관리 — 직원 CRUD 및 상태 처리** (F003, F004, F005, F006)
   - [ ] 직원 목록 테이블 조회 (실/팀별 필터 포함) (F003)
