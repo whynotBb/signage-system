@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -9,9 +9,11 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
+  useDroppable,
   closestCenter,
   type DragEndEvent,
   type DragStartEvent,
+  type DragOverEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -29,14 +31,31 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/composite/empty-state'
 import { PageHeader } from '@/components/composite/page-header'
 import { DivisionFormDialog } from './division-form-dialog'
 import { TeamFormDialog } from './team-form-dialog'
 import { EmployeeFormDialog } from './employee-form-dialog'
+import { DeleteDivisionDialog } from './delete-division-dialog'
+import { DeleteTeamDialog } from './delete-team-dialog'
 import type { Division, Team, Employee } from '@/types'
 
-// ── Supabase 쿼리 함수 ────────────────────────────────────────────────────────
+// ── 타입 ─────────────────────────────────────────────────────────────────────
+
+type ContainerId = string // 'team:{teamId}' | 'div-direct:{divisionId}'
+
+type ActiveItem =
+  | { type: 'DIVISION'; data: Division }
+  | { type: 'TEAM'; data: Team }
+  | { type: 'EMPLOYEE'; data: Employee }
+
+type DragHandle = {
+  attributes: ReturnType<typeof useSortable>['attributes']
+  listeners: ReturnType<typeof useSortable>['listeners']
+}
+
+// ── Supabase 쿼리 ─────────────────────────────────────────────────────────────
 
 async function fetchDivisions(): Promise<Division[]> {
   const supabase = createClient()
@@ -70,7 +89,7 @@ async function fetchActiveEmployees(): Promise<Employee[]> {
   return data ?? []
 }
 
-// ── display_order 일괄 업데이트 ───────────────────────────────────────────────
+// ── display_order 업데이트 ────────────────────────────────────────────────────
 
 async function updateDivisionOrders(items: Division[]): Promise<void> {
   const supabase = createClient()
@@ -96,28 +115,47 @@ async function updateEmployeeOrders(items: Employee[]): Promise<void> {
   if (error) throw error
 }
 
+async function moveEmployeeToContainer(
+  employeeId: string,
+  teamId: string | null,
+  divisionId: string | null
+): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('employees')
+    .update({ team_id: teamId, division_id: divisionId })
+    .eq('id', employeeId)
+  if (error) throw error
+}
+
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
 
 function getInitials(name: string): string {
   return name.slice(0, 2)
 }
 
-// dragHandle prop 타입
-type DragHandle = {
-  attributes: ReturnType<typeof useSortable>['attributes']
-  listeners: ReturnType<typeof useSortable>['listeners']
+function findContainer(
+  id: string,
+  containers: Record<string, Employee[]>
+): ContainerId | null {
+  if (id in containers) return id
+  for (const [containerId, emps] of Object.entries(containers)) {
+    if (emps.some((e) => e.id === id)) return containerId
+  }
+  return null
 }
 
-// ── EmployeeRow (정렬 가능) ───────────────────────────────────────────────────
+// ── EmployeeRow ───────────────────────────────────────────────────────────────
 
 interface EmployeeRowProps {
   employee: Employee
+  containerId: ContainerId
   isEditor: boolean
   onEdit?: (employee: Employee) => void
   onDelete?: (employee: Employee) => void
 }
 
-function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: EmployeeRowProps) {
+function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: Omit<EmployeeRowProps, 'containerId'>) {
   return (
     <>
       <Avatar className="h-7 w-7 shrink-0">
@@ -157,9 +195,10 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: EmployeeRo
   )
 }
 
-function SortableEmployeeRow(props: EmployeeRowProps) {
+function SortableEmployeeRow({ employee, containerId, isEditor, onEdit, onDelete }: EmployeeRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: props.employee.id,
+    id: employee.id,
+    data: { type: 'EMPLOYEE', containerId },
   })
 
   const style = {
@@ -174,23 +213,25 @@ function SortableEmployeeRow(props: EmployeeRowProps) {
       style={style}
       className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent/50"
     >
-      <div
-        className="flex cursor-grab touch-none items-center"
-        {...attributes}
-        {...listeners}
-      >
+      <div className="flex cursor-grab touch-none items-center" {...attributes} {...listeners}>
         <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground" />
       </div>
-      <EmployeeRowContent {...props} />
+      <EmployeeRowContent
+        employee={employee}
+        isEditor={isEditor}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </div>
   )
 }
 
-// ── TeamBlock (정렬 가능) ─────────────────────────────────────────────────────
+// ── TeamBlock ─────────────────────────────────────────────────────────────────
 
 interface TeamBlockProps {
   team: Team
   employees: Employee[]
+  containerId: ContainerId
   isEditor: boolean
   dragHandle?: DragHandle
   onAddEmployee?: (teamId: string) => void
@@ -203,6 +244,7 @@ interface TeamBlockProps {
 function TeamBlockContent({
   team,
   employees,
+  containerId,
   isEditor,
   dragHandle,
   onAddEmployee,
@@ -211,36 +253,10 @@ function TeamBlockContent({
   onEditEmployee,
   onDeleteEmployee,
 }: TeamBlockProps) {
-  const queryClient = useQueryClient()
-  const [localEmployees, setLocalEmployees] = useState<Employee[]>(employees)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  if (
-    localEmployees.length !== employees.length ||
-    localEmployees.some((e, i) => e.id !== employees[i]?.id)
-  ) {
-    setLocalEmployees(employees)
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = localEmployees.findIndex((e) => e.id === active.id)
-    const newIndex = localEmployees.findIndex((e) => e.id === over.id)
-    const reordered = arrayMove(localEmployees, oldIndex, newIndex)
-    setLocalEmployees(reordered)
-    updateEmployeeOrders(reordered).then(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.all })
-    })
-  }
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: containerId })
 
   return (
     <div className="rounded-md border border-border/60 bg-background/80">
-      {/* 팀 헤더 */}
       <div className="flex items-center gap-2 px-3 py-2">
         {dragHandle && (
           <div
@@ -257,7 +273,7 @@ function TeamBlockContent({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-7 px-2 text-xs"
               onClick={() => onAddEmployee?.(team.id)}
             >
               <Plus className="h-3 w-3" />직원
@@ -282,30 +298,39 @@ function TeamBlockContent({
         )}
       </div>
 
-      {localEmployees.length > 0 ? (
-        <div className="border-t border-border/40 px-2 py-1">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={localEmployees.map((e) => e.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {localEmployees.map((employee) => (
-                <SortableEmployeeRow
-                  key={employee.id}
-                  employee={employee}
-                  isEditor={isEditor}
-                  onEdit={onEditEmployee}
-                  onDelete={onDeleteEmployee}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-        </div>
-      ) : (
-        <div className="border-t border-border/40 px-3 py-2 text-xs text-muted-foreground">
-          직원이 없습니다
-        </div>
-      )}
+      <div
+        ref={setDropRef}
+        className={cn(
+          'min-h-[32px] border-t border-border/40 px-2 py-1 transition-colors',
+          isOver && 'bg-primary/5 ring-1 ring-inset ring-primary/30'
+        )}
+      >
+        <SortableContext
+          items={employees.map((e) => e.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {employees.map((employee) => (
+            <SortableEmployeeRow
+              key={employee.id}
+              employee={employee}
+              containerId={containerId}
+              isEditor={isEditor}
+              onEdit={onEditEmployee}
+              onDelete={onDeleteEmployee}
+            />
+          ))}
+        </SortableContext>
+        {employees.length === 0 && (
+          <div
+            className={cn(
+              'py-1.5 text-center text-xs text-muted-foreground/50 transition-colors',
+              isOver && 'text-primary/60'
+            )}
+          >
+            {isOver ? '여기에 드롭' : '직원 없음'}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -313,6 +338,7 @@ function TeamBlockContent({
 function SortableTeamBlock(props: TeamBlockProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.team.id,
+    data: { type: 'TEAM', divisionId: props.team.division_id },
   })
 
   const style = {
@@ -331,15 +357,15 @@ function SortableTeamBlock(props: TeamBlockProps) {
   )
 }
 
-// ── DivisionCard (정렬 가능) ──────────────────────────────────────────────────
+// ── DivisionCard ──────────────────────────────────────────────────────────────
 
 interface DivisionCardProps {
   division: Division
   teams: Team[]
-  directEmployees: Employee[]
-  employees: Employee[]
   isEditor: boolean
   dragHandle?: DragHandle
+  employeeContainers: Record<string, Employee[]>
+  isDraggingEmployee: boolean
   onAddTeam?: (divisionId: string) => void
   onAddEmployee?: (divisionId: string, teamId?: string) => void
   onEditDivision?: (division: Division) => void
@@ -353,10 +379,10 @@ interface DivisionCardProps {
 function DivisionCardContent({
   division,
   teams,
-  directEmployees,
-  employees,
   isEditor,
   dragHandle,
+  employeeContainers,
+  isDraggingEmployee,
   onAddTeam,
   onAddEmployee,
   onEditDivision,
@@ -366,59 +392,16 @@ function DivisionCardContent({
   onEditEmployee,
   onDeleteEmployee,
 }: DivisionCardProps) {
-  const queryClient = useQueryClient()
-  const [localTeams, setLocalTeams] = useState<Team[]>(teams)
-  const [localDirectEmployees, setLocalDirectEmployees] = useState<Employee[]>(directEmployees)
-
-  if (
-    localTeams.length !== teams.length ||
-    localTeams.some((t, i) => t.id !== teams[i]?.id)
-  ) {
-    setLocalTeams(teams)
-  }
-  if (
-    localDirectEmployees.length !== directEmployees.length ||
-    localDirectEmployees.some((e, i) => e.id !== directEmployees[i]?.id)
-  ) {
-    setLocalDirectEmployees(directEmployees)
-  }
-
-  const teamSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-  const directEmpSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  function handleTeamDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = localTeams.findIndex((t) => t.id === active.id)
-    const newIndex = localTeams.findIndex((t) => t.id === over.id)
-    const reordered = arrayMove(localTeams, oldIndex, newIndex)
-    setLocalTeams(reordered)
-    updateTeamOrders(reordered).then(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all })
-    })
-  }
-
-  function handleDirectEmpDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = localDirectEmployees.findIndex((e) => e.id === active.id)
-    const newIndex = localDirectEmployees.findIndex((e) => e.id === over.id)
-    const reordered = arrayMove(localDirectEmployees, oldIndex, newIndex)
-    setLocalDirectEmployees(reordered)
-    updateEmployeeOrders(reordered).then(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.all })
-    })
-  }
+  const directContainerId: ContainerId = `div-direct:${division.id}`
+  const directEmployees = employeeContainers[directContainerId] ?? []
+  const { setNodeRef: setDirectDropRef, isOver: isDirectOver } = useDroppable({
+    id: directContainerId,
+  })
 
   const color = division.color ?? '#6366f1'
-  // 실 대표색상 기반 5% 불투명도 배경 틴트
   const bgTint = color + '0d'
+
+  const showDirectSection = directEmployees.length > 0 || isDraggingEmployee || isDirectOver
 
   return (
     <div
@@ -443,7 +426,7 @@ function DivisionCardContent({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-7 px-2 text-xs"
               onClick={() => onAddTeam?.(division.id)}
             >
               <Plus className="h-3 w-3" />팀
@@ -451,7 +434,7 @@ function DivisionCardContent({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-7 px-2 text-xs"
               onClick={() => onAddEmployee?.(division.id)}
             >
               <Plus className="h-3 w-3" />직원
@@ -476,67 +459,70 @@ function DivisionCardContent({
         )}
       </div>
 
-      {/* 팀 블록 + 실 직속 직원 */}
-      {(localTeams.length > 0 || localDirectEmployees.length > 0) && (
+      {/* 팀 블록 + 직속 직원 */}
+      {(teams.length > 0 || showDirectSection) && (
         <div className="flex flex-col gap-2 px-4 pb-3">
-          {localTeams.length > 0 && (
-            <DndContext
-              sensors={teamSensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleTeamDragEnd}
+          {teams.length > 0 && (
+            <SortableContext
+              items={teams.map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={localTeams.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {localTeams.map((team) => {
-                  const teamEmployees = employees.filter((e) => e.team_id === team.id)
-                  return (
-                    <SortableTeamBlock
-                      key={team.id}
-                      team={team}
-                      employees={teamEmployees}
-                      isEditor={isEditor}
-                      onAddEmployee={(teamId) => onAddEmployee?.(division.id, teamId)}
-                      onEditTeam={onEditTeam}
-                      onDeleteTeam={onDeleteTeam}
-                      onEditEmployee={onEditEmployee}
-                      onDeleteEmployee={onDeleteEmployee}
-                    />
-                  )
-                })}
-              </SortableContext>
-            </DndContext>
+              {teams.map((team) => (
+                <SortableTeamBlock
+                  key={team.id}
+                  team={team}
+                  employees={employeeContainers[`team:${team.id}`] ?? []}
+                  containerId={`team:${team.id}`}
+                  isEditor={isEditor}
+                  onAddEmployee={(teamId) => onAddEmployee?.(division.id, teamId)}
+                  onEditTeam={onEditTeam}
+                  onDeleteTeam={onDeleteTeam}
+                  onEditEmployee={onEditEmployee}
+                  onDeleteEmployee={onDeleteEmployee}
+                />
+              ))}
+            </SortableContext>
           )}
 
-          {localDirectEmployees.length > 0 && (
-            <div className="rounded-md border border-dashed border-border/60 bg-background/50">
+          {showDirectSection && (
+            <div
+              ref={setDirectDropRef}
+              className={cn(
+                'rounded-md border border-dashed border-border/60 bg-background/50 transition-colors',
+                isDirectOver && 'border-primary/40 bg-primary/5'
+              )}
+            >
               <div className="px-3 py-1.5">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                   실 직속
                 </span>
               </div>
               <div className="border-t border-border/40 px-2 py-1">
-                <DndContext
-                  sensors={directEmpSensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDirectEmpDragEnd}
+                <SortableContext
+                  items={directEmployees.map((e) => e.id)}
+                  strategy={verticalListSortingStrategy}
                 >
-                  <SortableContext
-                    items={localDirectEmployees.map((e) => e.id)}
-                    strategy={verticalListSortingStrategy}
+                  {directEmployees.map((employee) => (
+                    <SortableEmployeeRow
+                      key={employee.id}
+                      employee={employee}
+                      containerId={directContainerId}
+                      isEditor={isEditor}
+                      onEdit={onEditEmployee}
+                      onDelete={onDeleteEmployee}
+                    />
+                  ))}
+                </SortableContext>
+                {directEmployees.length === 0 && (
+                  <div
+                    className={cn(
+                      'py-1.5 text-center text-xs text-muted-foreground/50 transition-colors',
+                      isDirectOver && 'text-primary/60'
+                    )}
                   >
-                    {localDirectEmployees.map((employee) => (
-                      <SortableEmployeeRow
-                        key={employee.id}
-                        employee={employee}
-                        isEditor={isEditor}
-                        onEdit={onEditEmployee}
-                        onDelete={onDeleteEmployee}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
+                    {isDirectOver ? '여기에 드롭' : '직원을 드래그해 추가'}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -549,6 +535,7 @@ function DivisionCardContent({
 function SortableDivisionCard(props: DivisionCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.division.id,
+    data: { type: 'DIVISION' },
   })
 
   const style = {
@@ -593,12 +580,7 @@ function RepresentativeCard({
         <div className="flex flex-1 flex-col gap-1">
           <span className="text-sm font-semibold text-muted-foreground">{label}</span>
           {!isEditor && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-fit text-xs"
-              onClick={onAssign}
-            >
+            <Button variant="outline" size="sm" className="h-7 w-fit text-xs" onClick={onAssign}>
               <Plus className="mr-1 h-3 w-3" />지정
             </Button>
           )}
@@ -681,6 +663,7 @@ export function OrgBoard() {
 
   const isLoading = divisionsLoading || teamsLoading || employeesLoading
 
+  // ── 낙관적 순서 상태 ─────────────────────────────────────────────────────
   const [localDivisions, setLocalDivisions] = useState<Division[]>(divisions)
   if (
     localDivisions.length !== divisions.length ||
@@ -689,7 +672,41 @@ export function OrgBoard() {
     setLocalDivisions(divisions)
   }
 
-  // ── 다이얼로그 상태 ───────────────────────────────────────────────────────
+  const [localTeams, setLocalTeams] = useState<Team[]>(teams)
+  if (
+    localTeams.length !== teams.length ||
+    localTeams.some((t, i) => t.id !== teams[i]?.id)
+  ) {
+    setLocalTeams(teams)
+  }
+
+  // ── 직원 컨테이너 상태 (크로스 컨테이너 DnD) ─────────────────────────────
+  const [employeeContainers, setEmployeeContainers] = useState<Record<string, Employee[]>>({})
+  const [activeItem, setActiveItem] = useState<ActiveItem | null>(null)
+
+  useEffect(() => {
+    // 직원 드래그 중에는 서버 데이터로 리셋하지 않음
+    if (activeItem?.type === 'EMPLOYEE') return
+    const containers: Record<string, Employee[]> = {}
+    teams.forEach((t) => {
+      containers[`team:${t.id}`] = []
+    })
+    divisions.forEach((d) => {
+      containers[`div-direct:${d.id}`] = []
+    })
+    employees
+      .filter((e) => e.org_role === 'member')
+      .forEach((e) => {
+        if (e.team_id && `team:${e.team_id}` in containers) {
+          containers[`team:${e.team_id}`].push(e)
+        } else if (e.division_id && `div-direct:${e.division_id}` in containers) {
+          containers[`div-direct:${e.division_id}`].push(e)
+        }
+      })
+    setEmployeeContainers(containers)
+  }, [employees, teams, divisions, activeItem])
+
+  // ── 다이얼로그 상태 (CRUD) ───────────────────────────────────────────────
   const [divisionDialogOpen, setDivisionDialogOpen] = useState(false)
   const [editingDivision, setEditingDivision] = useState<Division | null>(null)
 
@@ -702,7 +719,13 @@ export function OrgBoard() {
   const [employeeDefaultDivisionId, setEmployeeDefaultDivisionId] = useState<string | null>(null)
   const [employeeDefaultTeamId, setEmployeeDefaultTeamId] = useState<string | null>(null)
 
-  // ── 다이얼로그 핸들러 ─────────────────────────────────────────────────────
+  // ── 다이얼로그 상태 (삭제) ────────────────────────────────────────────────
+  const [deletingDivision, setDeletingDivision] = useState<Division | null>(null)
+  const [divisionDeleteOpen, setDivisionDeleteOpen] = useState(false)
+  const [deletingTeam, setDeletingTeam] = useState<Team | null>(null)
+  const [teamDeleteOpen, setTeamDeleteOpen] = useState(false)
+
+  // ── CRUD 핸들러 ──────────────────────────────────────────────────────────
   function openAddDivision() {
     setEditingDivision(null)
     setDivisionDialogOpen(true)
@@ -710,6 +733,10 @@ export function OrgBoard() {
   function openEditDivision(division: Division) {
     setEditingDivision(division)
     setDivisionDialogOpen(true)
+  }
+  function openDeleteDivision(division: Division) {
+    setDeletingDivision(division)
+    setDivisionDeleteOpen(true)
   }
   function openAddTeam(divisionId?: string | null) {
     setEditingTeam(null)
@@ -720,6 +747,10 @@ export function OrgBoard() {
     setEditingTeam(team)
     setTeamDefaultDivisionId(null)
     setTeamDialogOpen(true)
+  }
+  function openDeleteTeam(team: Team) {
+    setDeletingTeam(team)
+    setTeamDeleteOpen(true)
   }
   function openAddEmployee(divisionId?: string | null, teamId?: string | null) {
     setEditingEmployee(null)
@@ -734,41 +765,144 @@ export function OrgBoard() {
     setEmployeeDialogOpen(true)
   }
 
-  // ── DnD (실 레벨) ─────────────────────────────────────────────────────────
-  const divisionSensors = useSensors(
+  // ── DnD 센서 ─────────────────────────────────────────────────────────────
+  const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
-  const [activeDivisionId, setActiveDivisionId] = useState<string | null>(null)
 
-  function handleDivisionDragStart(event: DragStartEvent) {
-    setActiveDivisionId(event.active.id as string)
+  // ── DnD 핸들러 ───────────────────────────────────────────────────────────
+  function handleDragStart(event: DragStartEvent) {
+    const { active } = event
+    const type = active.data.current?.type as string | undefined
+    if (type === 'DIVISION') {
+      const div = localDivisions.find((d) => d.id === active.id)
+      if (div) setActiveItem({ type: 'DIVISION', data: div })
+    } else if (type === 'TEAM') {
+      const team = localTeams.find((t) => t.id === active.id)
+      if (team) setActiveItem({ type: 'TEAM', data: team })
+    } else if (type === 'EMPLOYEE') {
+      const containerId = active.data.current?.containerId as string
+      const emp = employeeContainers[containerId]?.find((e) => e.id === active.id)
+      if (emp) setActiveItem({ type: 'EMPLOYEE', data: emp })
+    }
   }
-  function handleDivisionDragEnd(event: DragEndEvent) {
-    setActiveDivisionId(null)
+
+  function handleDragOver(event: DragOverEvent) {
     const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = localDivisions.findIndex((d) => d.id === active.id)
-    const newIndex = localDivisions.findIndex((d) => d.id === over.id)
-    const reordered = arrayMove(localDivisions, oldIndex, newIndex)
-    setLocalDivisions(reordered)
-    updateDivisionOrders(reordered).then(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.divisions.all })
+    if (!over) return
+    if (active.data.current?.type !== 'EMPLOYEE') return
+
+    const fromContainer = active.data.current.containerId as string
+    const toContainer = findContainer(over.id as string, employeeContainers)
+    if (!toContainer || fromContainer === toContainer) return
+
+    setEmployeeContainers((prev) => {
+      const employee = prev[fromContainer]?.find((e) => e.id === active.id)
+      if (!employee) return prev
+      return {
+        ...prev,
+        [fromContainer]: prev[fromContainer].filter((e) => e.id !== active.id),
+        [toContainer]: [...(prev[toContainer] ?? []), employee],
+      }
     })
+
+    // activeItem의 containerId를 업데이트하여 다음 dragOver에서 올바른 from을 사용
+    if (activeItem?.type === 'EMPLOYEE') {
+      setActiveItem((prev) =>
+        prev?.type === 'EMPLOYEE' ? prev : prev
+      )
+      // useSortable data는 불변이므로 active.data.current.containerId 직접 수정 불가
+      // → onDragEnd에서 최종 컨테이너를 employeeContainers에서 다시 조회
+    }
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setActiveItem(null)
+    if (!over) return
+
+    const activeType = active.data.current?.type as string | undefined
+
+    if (activeType === 'DIVISION') {
+      const oldIndex = localDivisions.findIndex((d) => d.id === active.id)
+      const newIndex = localDivisions.findIndex((d) => d.id === over.id)
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
+      const reordered = arrayMove(localDivisions, oldIndex, newIndex)
+      setLocalDivisions(reordered)
+      updateDivisionOrders(reordered).then(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.divisions.all })
+      })
+      return
+    }
+
+    if (activeType === 'TEAM') {
+      const divisionId = active.data.current?.divisionId as string | null
+      const divTeams = localTeams.filter((t) => t.division_id === divisionId)
+      const oldIndex = divTeams.findIndex((t) => t.id === active.id)
+      const newIndex = divTeams.findIndex((t) => t.id === over.id)
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
+      const reordered = arrayMove(divTeams, oldIndex, newIndex)
+      const updatedLocalTeams = [
+        ...localTeams.filter((t) => t.division_id !== divisionId),
+        ...reordered,
+      ]
+      setLocalTeams(updatedLocalTeams)
+      updateTeamOrders(reordered).then(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.teams.all })
+      })
+      return
+    }
+
+    if (activeType === 'EMPLOYEE') {
+      // onDragOver에서 이미 낙관적 이동 완료 → 최종 컨테이너 확인
+      const toContainer = findContainer(over.id as string, employeeContainers)
+      if (!toContainer) return
+
+      const fromContainer = active.data.current?.containerId as string
+
+      if (fromContainer === toContainer) {
+        // 같은 컨테이너 내 정렬
+        const containerEmps = employeeContainers[toContainer] ?? []
+        const oldIndex = containerEmps.findIndex((e) => e.id === active.id)
+        const newIndex = containerEmps.findIndex((e) => e.id === over.id)
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
+        const reordered = arrayMove(containerEmps, oldIndex, newIndex)
+        setEmployeeContainers((prev) => ({ ...prev, [toContainer]: reordered }))
+        updateEmployeeOrders(reordered).then(() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.employees.all })
+        })
+      } else {
+        // 컨테이너 간 이동 (onDragOver에서 UI 이미 업데이트됨)
+        let newTeamId: string | null = null
+        let newDivisionId: string | null = null
+
+        if (toContainer.startsWith('team:')) {
+          newTeamId = toContainer.slice(5)
+          newDivisionId = localTeams.find((t) => t.id === newTeamId)?.division_id ?? null
+        } else if (toContainer.startsWith('div-direct:')) {
+          newTeamId = null
+          newDivisionId = toContainer.slice(11)
+        }
+
+        moveEmployeeToContainer(active.id as string, newTeamId, newDivisionId).then(() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.employees.all })
+        })
+      }
+    }
+  }
+
+  // ── 파생 데이터 ──────────────────────────────────────────────────────────
   const representative = employees.find((e) => e.org_role === 'representative') ?? null
   const viceRepresentative = employees.find((e) => e.org_role === 'vice_representative') ?? null
-  const independentTeams = teams.filter((t) => !t.division_id)
-  const activeDivision = activeDivisionId
-    ? localDivisions.find((d) => d.id === activeDivisionId)
-    : null
+  const independentTeams = localTeams.filter((t) => !t.division_id)
+  const isDraggingEmployee = activeItem?.type === 'EMPLOYEE'
 
   if (isLoading) return <OrgBoardSkeleton />
 
   return (
     <div className="flex flex-col gap-6">
-      {/* PageHeader — 우측에 액션 버튼 */}
+      {/* PageHeader */}
       <PageHeader title="조직도 관리" description="사이니지에 표시할 조직도를 관리합니다.">
         {!isEditor && (
           <div className="flex items-center gap-2">
@@ -808,7 +942,7 @@ export function OrgBoard() {
         </div>
       </div>
 
-      {/* 조직 구조 */}
+      {/* 조직 구조 — 단일 DndContext */}
       <div className="flex flex-col gap-4">
         {localDivisions.length === 0 && independentTeams.length === 0 ? (
           <EmptyState
@@ -817,58 +951,41 @@ export function OrgBoard() {
             description="실을 추가하여 조직도를 구성해보세요."
           />
         ) : (
-          <>
-            <DndContext
-              sensors={divisionSensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDivisionDragStart}
-              onDragEnd={handleDivisionDragEnd}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={localDivisions.map((d) => d.id)}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={localDivisions.map((d) => d.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {localDivisions.map((division) => {
-                  const divisionTeams = teams.filter((t) => t.division_id === division.id)
-                  const directEmployees = employees.filter(
-                    (e) => e.division_id === division.id && !e.team_id && e.org_role === 'member'
-                  )
-                  return (
-                    <SortableDivisionCard
-                      key={division.id}
-                      division={division}
-                      teams={divisionTeams}
-                      directEmployees={directEmployees}
-                      employees={employees}
-                      isEditor={isEditor}
-                      onAddTeam={(divId) => openAddTeam(divId)}
-                      onAddEmployee={(divId, teamId) => openAddEmployee(divId, teamId)}
-                      onEditDivision={openEditDivision}
-                      onDeleteDivision={openEditDivision}
-                      onEditTeam={openEditTeam}
-                      onDeleteTeam={openEditTeam}
-                      onEditEmployee={openEditEmployee}
-                      onDeleteEmployee={openEditEmployee}
-                    />
-                  )
-                })}
-              </SortableContext>
-
-              <DragOverlay>
-                {activeDivision && (
-                  <div
-                    className="rounded-lg border border-border px-4 py-3 shadow-lg opacity-90"
-                    style={{
-                      borderLeftWidth: 4,
-                      borderLeftColor: activeDivision.color ?? '#6366f1',
-                      backgroundColor: (activeDivision.color ?? '#6366f1') + '0d',
-                    }}
-                  >
-                    <span className="font-bold">{activeDivision.name}</span>
-                  </div>
-                )}
-              </DragOverlay>
-            </DndContext>
+              {localDivisions.map((division) => {
+                const divisionTeams = localTeams.filter(
+                  (t) => t.division_id === division.id
+                )
+                return (
+                  <SortableDivisionCard
+                    key={division.id}
+                    division={division}
+                    teams={divisionTeams}
+                    isEditor={isEditor}
+                    employeeContainers={employeeContainers}
+                    isDraggingEmployee={isDraggingEmployee}
+                    onAddTeam={(divId) => openAddTeam(divId)}
+                    onAddEmployee={(divId, teamId) => openAddEmployee(divId, teamId)}
+                    onEditDivision={openEditDivision}
+                    onDeleteDivision={openDeleteDivision}
+                    onEditTeam={openEditTeam}
+                    onDeleteTeam={openDeleteTeam}
+                    onEditEmployee={openEditEmployee}
+                    onDeleteEmployee={openEditEmployee}
+                  />
+                )
+              })}
+            </SortableContext>
 
             {/* 독립 팀 */}
             {independentTeams.length > 0 && (
@@ -880,25 +997,57 @@ export function OrgBoard() {
                   </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
-                {independentTeams.map((team) => {
-                  const teamEmployees = employees.filter((e) => e.team_id === team.id)
-                  return (
-                    <TeamBlockContent
-                      key={team.id}
-                      team={team}
-                      employees={teamEmployees}
-                      isEditor={isEditor}
-                      onAddEmployee={(teamId) => openAddEmployee(null, teamId)}
-                      onEditTeam={openEditTeam}
-                      onDeleteTeam={openEditTeam}
-                      onEditEmployee={openEditEmployee}
-                      onDeleteEmployee={openEditEmployee}
-                    />
-                  )
-                })}
+                {independentTeams.map((team) => (
+                  <TeamBlockContent
+                    key={team.id}
+                    team={team}
+                    employees={employeeContainers[`team:${team.id}`] ?? []}
+                    containerId={`team:${team.id}`}
+                    isEditor={isEditor}
+                    onAddEmployee={(teamId) => openAddEmployee(null, teamId)}
+                    onEditTeam={openEditTeam}
+                    onDeleteTeam={openDeleteTeam}
+                    onEditEmployee={openEditEmployee}
+                    onDeleteEmployee={openEditEmployee}
+                  />
+                ))}
               </div>
             )}
-          </>
+
+            <DragOverlay>
+              {activeItem?.type === 'DIVISION' && (
+                <div
+                  className="rounded-lg border border-border px-4 py-3 shadow-lg opacity-90"
+                  style={{
+                    borderLeftWidth: 4,
+                    borderLeftColor: activeItem.data.color ?? '#6366f1',
+                    backgroundColor: (activeItem.data.color ?? '#6366f1') + '0d',
+                  }}
+                >
+                  <span className="font-bold">{activeItem.data.name}</span>
+                </div>
+              )}
+              {activeItem?.type === 'TEAM' && (
+                <div className="rounded-md border border-border bg-background/95 px-3 py-2 shadow-lg opacity-90">
+                  <span className="text-sm font-semibold">{activeItem.data.name}</span>
+                </div>
+              )}
+              {activeItem?.type === 'EMPLOYEE' && (
+                <div className="flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 shadow-lg opacity-90">
+                  <Avatar className="h-7 w-7 shrink-0">
+                    <AvatarImage
+                      src={activeItem.data.profile_image_url ?? undefined}
+                      alt={activeItem.data.name}
+                    />
+                    <AvatarFallback className="text-[10px]">
+                      {getInitials(activeItem.data.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">{activeItem.data.name}</span>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
 
@@ -922,6 +1071,24 @@ export function OrgBoard() {
         defaultTeamId={employeeDefaultTeamId}
         allEmployees={employees}
         canManageOrgRole={!isEditor}
+      />
+
+      {/* 삭제 다이얼로그 */}
+      <DeleteDivisionDialog
+        open={divisionDeleteOpen}
+        onOpenChange={setDivisionDeleteOpen}
+        division={deletingDivision}
+        affectedEmployees={employees.filter(
+          (e) => deletingDivision && e.division_id === deletingDivision.id
+        )}
+      />
+      <DeleteTeamDialog
+        open={teamDeleteOpen}
+        onOpenChange={setTeamDeleteOpen}
+        team={deletingTeam}
+        affectedEmployees={employees.filter(
+          (e) => deletingTeam && e.team_id === deletingTeam.id
+        )}
       />
     </div>
   )
