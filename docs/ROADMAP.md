@@ -68,8 +68,9 @@
 - ✅ **TASK-008 완료**: 이메일 인증 콜백 라우트 (`/admin/auth/callback/route.ts`), `verified=true`/`error=` 쿼리 파라미터 toast 처리
 - ✅ **TASK-009 완료**: `proxy.ts` 라우트 가드 구현 (`/admin/**` 비로그인 차단 → `/admin/login` 리디렉션), `nav-user.tsx` 로그아웃 `supabase.auth.signOut()` 연동, Playwright E2E 검증
 - ✅ **TASK-010 완료**: 대시보드 현황 개요 구현 — `dashboard-stats.tsx` 클라이언트 컴포넌트 신규 생성, 5개 카테고리별 TanStack Query count 쿼리(`query-keys.ts` activeCount 키 추가), 현재 사용자 역할 표시, Playwright E2E 검증
-- ✅ **TASK-011 완료**: 조직도 관리 실/팀 구조 관리 — DivisionSection/TeamSection 클라이언트 컴포넌트 구현, 실/팀 CRUD(생성/수정/삭제), display_order 관리, editor 역할 액션 버튼 비노출, Playwright E2E 검증
-- ⬜ **미완료**: TASK-012 이후 — 직원 CRUD, 콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
+- ✅ **TASK-011 완료**: 조직도 UI/UX 설계 + DB 마이그레이션(divisions.color, employees.position/org_role) + @dnd-kit/react-easy-crop 설치, TypeScript 타입 반영
+- ✅ **TASK-012 완료**: OrgBoard 드래그 앤 드롭 전체 UI — 대표/부대표 섹션, 실-팀-직원 계층 카드, 독립 팀 지원, CRUD 다이얼로그(실/팀/직원) 연동, 프로필 사진 원형 크롭(react-easy-crop), Supabase Storage 업로드, display_order 낙관적 업데이트
+- ⬜ **미완료**: TASK-013 이후 — 콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
 
 ---
 
@@ -165,19 +166,28 @@
   - [x] TanStack Query로 카테고리별 count 집계 쿼리 연동
   - [x] **테스트 체크리스트**: 수치 렌더링(NaN/undefined 없음), 카드 클릭 네비게이션 (Playwright MCP) — 집계 정확성은 TASK-011~017 CRUD 구현 후 실데이터로 재검증
 
-- [x] **TASK-011: 조직도 관리 — 실/팀 구조 관리** (F007, F008)
-  - [x] 실(Division) 생성/수정/삭제 모달 및 표시 순서(display_order) 관리 (F007)
-  - [x] 팀(Team) 생성/수정/삭제 모달, 소속 실 지정 (F008)
-  - [x] 실/팀 CRUD를 Supabase DB와 연동
-  - [x] **테스트 체크리스트**: 실 생성→팀 소속 지정→삭제 시 직원 처리 검증 (Playwright MCP)
+- [x] **TASK-011: 조직도 UI/UX 설계 및 DB 스키마 확장** ✅ (F003~F008)
+  - [x] ui-ux-designer 에이전트로 조직도 관리 페이지 레이아웃 설계 및 Artifact 목업 생성
+  - [x] DB 마이그레이션: `divisions.color` (실 대표 색상, `TEXT DEFAULT '#6366f1'`)
+  - [x] DB 마이그레이션: `employees.position` (직위, `TEXT NULLABLE`)
+  - [x] DB 마이그레이션: `employees.org_role` (`TEXT DEFAULT 'member'`)
+  - [x] TypeScript 타입(`src/types/database.ts`) 신규 컬럼 반영
+  - [x] `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` 패키지 설치
+  - [x] `react-easy-crop` 패키지 설치 (프로필 사진 원형 크롭용)
+  - [x] 기존 DivisionSection/TeamSection 삭제 → OrgBoard 컴포넌트로 전면 대체
 
-- [ ] **TASK-012: 조직도 관리 — 직원 CRUD 및 상태 처리** (F003, F004, F005, F006)
-  - [ ] 직원 목록 테이블 조회 (실/팀별 필터 포함) (F003)
-  - [ ] 직원 등록 폼 — 이름, 직책, 소속 실/팀, 프로필 사진 업로드(Supabase Storage), 입사일 (F004)
-  - [ ] 직원 정보 수정 폼 — 프로필 사진 교체 포함 (F005)
-  - [ ] 파견/퇴사 상태(is_dispatched / is_resigned) 토글 버튼 (F006)
-  - [ ] 페이지 접근 제어: super_admin, content_admin만 (메뉴 렌더 + 라우트 가드)
-  - [ ] **테스트 체크리스트**: 직원 등록(사진 업로드 포함)/수정/상태 토글, 권한 없는 역할 접근 차단 (Playwright MCP)
+- [x] **TASK-012: 조직도 관리 — 드래그 앤 드롭 전체 UI 구현** ✅ (F003~F008)
+  - [x] 대표/부대표 섹션 카드 (페이지 최상단, `org_role` 기반 지정)
+  - [x] 실-팀-직원 계층 카드 그룹 (실 좌측 색상 배지, 팀 블록, 직원 목록)
+  - [x] 예외 처리: `division_id=NULL` 독립 팀, `team_id=NULL` 실 직속 직원
+  - [x] `@dnd-kit` 3중 DndContext — 실/팀/직원 독립 순서 변경
+  - [x] `display_order` 낙관적 업데이트 → Supabase upsert 반영
+  - [x] 실 CRUD 모달 — 이름 + 네이티브 컬러 피커
+  - [x] 팀 CRUD 모달 — 이름 + 소속 실 선택 (NULL 독립 팀 옵션)
+  - [x] 직원 CRUD — 이름/직위/직책/프로필 사진(react-easy-crop 원형 크롭+Storage)/소속 실·팀/org_role/파견·퇴사 토글
+  - [x] `src/lib/image-utils.ts` getCroppedImg 유틸, `crop-dialog.tsx` 컴포넌트
+  - [x] Zod 스키마(`src/lib/validations/org.ts`) 3종 + TypeScript 타입 export
+  - [ ] **테스트 체크리스트**: 드래그 앤 드롭, 직원 등록/수정/삭제, 대표 지정, 실/팀 CRUD (Playwright MCP — 추후 진행)
 
 - [ ] **TASK-013: 뉴스 관리 CRUD 구현** (F009, F010, F011, F012)
   - [ ] 뉴스 목록 테이블 조회 — 제목, 활성 상태, 게시 기간, 등록자 (F009)

@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type UserRole = 'super_admin' | 'content_admin' | 'editor'
+export type OrgRole = 'member' | 'representative' | 'vice_representative'
+export type EmployeePosition = '사원' | '주임' | '대리' | '과장' | '차장' | '부장'
 
 export type Database = {
   __InternalSupabase: {
@@ -34,6 +36,7 @@ export type Database = {
       }
       divisions: {
         Row: {
+          color: string
           created_at: string
           display_order: number
           id: string
@@ -41,6 +44,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color?: string
           created_at?: string
           display_order?: number
           id?: string
@@ -48,6 +52,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color?: string
           created_at?: string
           display_order?: number
           id?: string
@@ -66,6 +71,8 @@ export type Database = {
           is_dispatched: boolean
           is_resigned: boolean
           name: string
+          org_role: string
+          position: string | null
           profile_image_url: string | null
           team_id: string | null
           title: string
@@ -80,6 +87,8 @@ export type Database = {
           is_dispatched?: boolean
           is_resigned?: boolean
           name: string
+          org_role?: string
+          position?: string | null
           profile_image_url?: string | null
           team_id?: string | null
           title: string
@@ -94,6 +103,8 @@ export type Database = {
           is_dispatched?: boolean
           is_resigned?: boolean
           name?: string
+          org_role?: string
+          position?: string | null
           profile_image_url?: string | null
           team_id?: string | null
           title?: string
