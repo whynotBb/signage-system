@@ -56,16 +56,18 @@
 
 ---
 
-## 현재 상태 요약 (2026-06-23 기준)
+## 현재 상태 요약 (2026-06-24 기준)
 
 - ✅ **프로젝트 스캐폴딩 완료**: 라우트 그룹 구조, 빈 페이지 껍데기, 공통 레이아웃, shadcn/ui + composite 컴포넌트, Zustand 스토어, 인증 폼 검증 스키마
 - ✅ **도메인 타입 정의 완료**: 9개 Supabase 테이블 TypeScript 타입(Row/Insert/Update), Database 네임스페이스, `@/types` 일괄 export, auth-store Profile 타입 통합
 - ✅ **Supabase 클라이언트 연동 완료**: `@supabase/supabase-js` + `@supabase/ssr` 설치, 브라우저/서버 클라이언트 분리(`src/lib/supabase/`), TanStack Query queryKey 컨벤션, 헬스 체크 구현, `.env.local` 실제 키 설정 완료
 - ✅ **DB 스키마·마이그레이션 완료**: 9개 테이블, updated_at 트리거, handle_new_user Auth 트리거(role=editor 자동 생성), company_intro_config 시드, FK 인덱스 7개
 - ✅ **RLS·Storage 완료**: `current_user_role()` SECURITY DEFINER 헬퍼, 9개 테이블 역할 기반 RLS 정책, Storage 버킷 3종(employees/videos/images), 보안 강화(불필요한 PUBLIC EXECUTE 박탈)
-- ✅ **TASK-006 완료**: 로그인 기능 Supabase Auth 연동 (`auth-errors.ts` + `login/page.tsx` 수정)
+- ✅ **TASK-006 완료**: 로그인 기능 Supabase Auth 연동 (`auth-errors.ts` + `login/page.tsx` 수정), Playwright E2E 검증
 - ✅ **TASK-007 완료**: 회원가입 기능 Supabase Auth 연동 (`register/page.tsx` signUp + 성공 UI, `auth-errors.ts` 에러 코드 보강)
-- ⬜ **미완료**: Auth 시스템(TASK-008~009), 모든 페이지 UI 및 기능
+- ✅ **TASK-008 완료**: 이메일 인증 콜백 라우트 (`/admin/auth/callback/route.ts`), `verified=true`/`error=` 쿼리 파라미터 toast 처리
+- ✅ **TASK-009 완료**: `proxy.ts` 라우트 가드 구현 (`/admin/**` 비로그인 차단 → `/admin/login` 리디렉션), `nav-user.tsx` 로그아웃 `supabase.auth.signOut()` 연동, Playwright E2E 검증
+- ⬜ **미완료**: TASK-010 이후 — 대시보드·콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
 
 ---
 
@@ -125,7 +127,7 @@
   - [x] 인증 실패 시 에러 메시지 표시, 성공 시 대시보드 이동
   - [x] `auth-store`에 로그인 사용자/역할 상태 반영 (persist)
   - [x] 회원가입 페이지 링크 연결
-  - [ ] **테스트 체크리스트**: 로그인 성공/실패, 잘못된 형식 입력, 세션 유지 E2E 테스트 (Playwright MCP)
+  - [x] **테스트 체크리스트**: 로그인 성공/실패, 잘못된 형식 입력, 세션 유지 E2E 테스트 (Playwright MCP)
 
 - [x] **TASK-007: 회원가입 기능 구현** (F026)
   - [x] 회원가입 페이지 UI 구현 (이름/이메일/비밀번호 폼, Zod 유효성 검사)
@@ -133,18 +135,18 @@
   - [x] 가입 신청 완료 안내 메시지 표시 ("인증 메일을 확인하세요")
   - [x] **테스트 체크리스트**: 가입 신청 성공 UI·폼 유효성 검사 Playwright E2E 확인. 중복 이메일은 Supabase 이메일 인증 모드 기본 동작(이메일 열거 방지를 위해 성공 응답 반환)으로 UI 레벨 검증 생략. `auth-errors.ts`에 `user_already_exists` 에러 코드 처리 추가.
 
-- [ ] **TASK-008: 이메일 인증 완료 흐름 구현** (F027)
-  - [ ] 이메일 인증 완료 페이지 라우트 추가 (Supabase Auth 콜백 URL)
-  - [ ] 인증 토큰 유효성 검사 및 가입 완료 처리
-  - [ ] `profiles` 테이블 레코드 생성 확인 (role=editor 자동 부여 — TASK-004 트리거 연동)
-  - [ ] 인증 성공/실패 상태 메시지 및 로그인 페이지 이동 버튼
+- [x] **TASK-008: 이메일 인증 완료 흐름 구현** (F027)
+  - [x] 이메일 인증 완료 페이지 라우트 추가 (Supabase Auth 콜백 URL)
+  - [x] 인증 토큰 유효성 검사 및 가입 완료 처리
+  - [x] `profiles` 테이블 레코드 생성 확인 (role=editor 자동 부여 — TASK-004 트리거 연동)
+  - [x] 인증 성공/실패 상태 메시지 및 로그인 페이지 이동 버튼
   - [ ] **테스트 체크리스트**: 유효/만료/잘못된 토큰 시나리오, profiles 레코드 생성 검증 (Playwright MCP)
 
-- [ ] **TASK-009: 라우트 가드 및 인증 미들웨어 구현** (F001)
-  - [ ] `proxy.ts`(Next.js 16) 또는 서버 컴포넌트 가드로 `/admin` 비로그인 접근 차단 및 로그인 리디렉션
-  - [ ] 세션 갱신/만료 처리 및 로그아웃 기능
-  - [ ] 디스플레이 화면(`/`)은 공개 접근 유지 (가드 제외)
-  - [ ] **테스트 체크리스트**: 비로그인 `/admin` 진입 → 리디렉션, 로그아웃 후 보호 페이지 접근 차단 (Playwright MCP)
+- [x] **TASK-009: 라우트 가드 및 인증 미들웨어 구현** (F001)
+  - [x] `proxy.ts`(Next.js 16) 또는 서버 컴포넌트 가드로 `/admin` 비로그인 접근 차단 및 로그인 리디렉션
+  - [x] 세션 갱신/만료 처리 및 로그아웃 기능
+  - [x] 디스플레이 화면(`/`)은 공개 접근 유지 (가드 제외)
+  - [x] **테스트 체크리스트**: 비로그인 `/admin` 진입 → 리디렉션, 로그아웃 후 보호 페이지 접근 차단 (Playwright MCP)
 
 ---
 
