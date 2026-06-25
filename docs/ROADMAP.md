@@ -56,7 +56,7 @@
 
 ---
 
-## 현재 상태 요약 (2026-06-24 기준)
+## 현재 상태 요약 (2026-06-25 기준)
 
 - ✅ **프로젝트 스캐폴딩 완료**: 라우트 그룹 구조, 빈 페이지 껍데기, 공통 레이아웃, shadcn/ui + composite 컴포넌트, Zustand 스토어, 인증 폼 검증 스키마
 - ✅ **도메인 타입 정의 완료**: 9개 Supabase 테이블 TypeScript 타입(Row/Insert/Update), Database 네임스페이스, `@/types` 일괄 export, auth-store Profile 타입 통합
@@ -70,7 +70,8 @@
 - ✅ **TASK-010 완료**: 대시보드 현황 개요 구현 — `dashboard-stats.tsx` 클라이언트 컴포넌트 신규 생성, 5개 카테고리별 TanStack Query count 쿼리(`query-keys.ts` activeCount 키 추가), 현재 사용자 역할 표시, Playwright E2E 검증
 - ✅ **TASK-011 완료**: 조직도 UI/UX 설계 + DB 마이그레이션(divisions.color, employees.position/org_role) + @dnd-kit/react-easy-crop 설치, TypeScript 타입 반영
 - ✅ **TASK-012 완료**: OrgBoard DnD 전체 UI + 파견 Badge·org_role 연동·독립 팀 컬러·퇴사자 관리 서브메뉴·DnD 애니메이션 개선 포함 전체 구현 완료
-- ⬜ **미완료**: TASK-013 이후 — 콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
+- ✅ **TASK-013 완료**: 뉴스 관리 CRUD — Zod 스키마(`validations/news.ts`), 목록 테이블(`news-table.tsx`, TanStack Query + @dnd-kit 순서 변경 + 인라인 Switch 토글 + editor 권한 제어), 등록/수정 폼(`news-form-dialog.tsx`, react-easy-crop 16:9 크롭 + Storage 업로드), 삭제 모달(`delete-news-dialog.tsx`, Storage 이미지 동시 삭제), DB 마이그레이션(`news_contents.display_order`), Playwright E2E 검증 완료
+- ⬜ **미완료**: TASK-014 이후 — 방문자·회사소개·동영상·이미지 관리 CRUD, Realtime 연동, 사용자 관리, RBAC 통합
 
 ---
 
@@ -198,13 +199,16 @@
   - [x] **[개선]** DnD 드래그 애니메이션 자연스럽게 개선 (CSS transition/transform 튜닝, 드롭 스냅 동작 부드럽게)
   - [x] **테스트 체크리스트 (추가)**: 파견 직원 조직도 표시 및 Badge 확인, 대표/부대표 직위 선택 시 org_role 자동 설정·소속 비활성화, 독립 팀 컬러 저장 및 카드 반영, 퇴사자 관리 CRUD·퇴사 취소 (Playwright MCP)
 
-- [ ] **TASK-013: 뉴스 관리 CRUD 구현** (F009, F010, F011, F012)
-  - [ ] 뉴스 목록 테이블 조회 — 제목, 활성 상태, 게시 기간, 등록자 (F009)
-  - [ ] 뉴스 등록 폼 — 제목, 부제목, 이미지 업로드, 게시 시작/종료 일시 (F010)
-  - [ ] 뉴스 수정 폼 — editor는 본인 등록 건만 접근 (F011)
-  - [ ] 뉴스 삭제 확인 모달 — editor는 본인 등록 건만 접근 (F012)
-  - [ ] 전 역할 접근 + editor 본인 콘텐츠 한정 수정/삭제 UI 조건 처리 (RLS 연동)
-  - [ ] **테스트 체크리스트**: 등록/수정/삭제, editor의 타인 콘텐츠 수정 차단, 게시 스케줄 저장 (Playwright MCP)
+- [x] **TASK-013: 뉴스 관리 CRUD 구현** ✅ (F009, F010, F011, F012) — 완료 (2026-06-25)
+  - [x] 뉴스 목록 테이블 조회 — 제목, 활성 상태, 게시 기간, 등록자 (F009) — `news-table.tsx` TanStack Query 연동
+  - [x] 뉴스 등록 폼 — 제목, 부제목, 이미지 업로드, 게시 시작/종료 일시 (F010) — `news-form-dialog.tsx` react-easy-crop 16:9 크롭 + Supabase Storage 업로드
+  - [x] 뉴스 수정 폼 — editor는 본인 등록 건만 접근 (F011) — `news-form-dialog.tsx` 수정 모드
+  - [x] 뉴스 삭제 확인 모달 — editor는 본인 등록 건만 접근 (F012) — `delete-news-dialog.tsx` Storage 이미지 동시 삭제
+  - [x] 전 역할 접근 + editor 본인 콘텐츠 한정 수정/삭제 UI 조건 처리 (RLS 연동) — editor 역할 권한 제어 적용
+  - [x] **[기능 추가]** 뉴스 목록 드래그 순서 변경(@dnd-kit) — DB 마이그레이션: `news_contents.display_order` 컬럼 추가
+  - [x] **[기능 추가]** 인라인 Switch 활성 토글 — 목록 테이블에서 즉시 활성/비활성 전환
+  - [x] **[추가]** Zod 스키마/타입 정의 (`src/lib/validations/news.ts`)
+  - [x] **테스트 체크리스트**: 등록/수정/삭제, editor의 타인 콘텐츠 수정 차단, 게시 스케줄 저장, 인라인 토글 (Playwright MCP) — E2E 검증 완료
 
 - [ ] **TASK-014: 방문자 관리 CRUD 구현** (F013, F014, F015, F016)
   - [ ] 방문자 목록 테이블 조회 — 방문 조직, 이름, 직책, 방문 장소, 게시 기간 (F013)
