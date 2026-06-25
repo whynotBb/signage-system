@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, DragOverlay, useDroppable, closestCenter, type DragEndEvent, type DragStartEvent, type DragOverEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
@@ -408,6 +408,11 @@ function OrgBoardSkeleton() {
 	);
 }
 
+// ── 안정적인 빈 배열 참조 (= [] 기본값은 매 렌더마다 새 참조를 생성해 useEffect 무한 루프 유발) ──
+const EMPTY_DIVISIONS: Division[] = [];
+const EMPTY_TEAMS: Team[] = [];
+const EMPTY_EMPLOYEES: Employee[] = [];
+
 // ── OrgBoard 메인 컴포넌트 ───────────────────────────────────────────────────
 
 export function OrgBoard() {
@@ -415,15 +420,15 @@ export function OrgBoard() {
 	const queryClient = useQueryClient();
 	const isEditor = user?.role === "editor";
 
-	const { data: divisions = [], isLoading: divisionsLoading } = useQuery({
+	const { data: divisions = EMPTY_DIVISIONS, isLoading: divisionsLoading } = useQuery({
 		queryKey: queryKeys.divisions.all,
 		queryFn: fetchDivisions,
 	});
-	const { data: teams = [], isLoading: teamsLoading } = useQuery({
+	const { data: teams = EMPTY_TEAMS, isLoading: teamsLoading } = useQuery({
 		queryKey: queryKeys.teams.all,
 		queryFn: fetchTeams,
 	});
-	const { data: employees = [], isLoading: employeesLoading } = useQuery({
+	const { data: employees = EMPTY_EMPLOYEES, isLoading: employeesLoading } = useQuery({
 		queryKey: queryKeys.employees.all,
 		queryFn: fetchActiveEmployees,
 	});
@@ -435,41 +440,27 @@ export function OrgBoard() {
 	const [localTeams, setLocalTeams] = useState<Team[]>(teams);
 
 	// ── 직원 컨테이너 상태 (크로스 컨테이너 DnD) ─────────────────────────────
-	const [employeeContainers, setEmployeeContainers] = useState<Record<string, Employee[]>>({});
 	const [activeItem, setActiveItem] = useState<ActiveItem | null>(null);
 	// onDragOver 낙관적 업데이트로 active.data가 바뀌기 전 원래 컨테이너 ID 보존
 	const dragStartContainerRef = useRef<ContainerId | null>(null);
 
-	// DnD 중이 아닐 때만 서버 데이터로 동기화
-	// useEffect(() => {
-	// 	if (!activeItem) setLocalDivisions(divisions);
-	// }, [divisions, activeItem]);
-
-	// useEffect(() => {
-	// 	if (!activeItem) setLocalTeams(teams);
-	// }, [teams, activeItem]);
-
-	// [수정] 위 코드 빨간줄 오류로 : DnD 중이 아닐 때, 원본 props가 변경되면 그 즉시 로컬 상태 동기화 (useEffect 대체)
-	if (!activeItem) {
-		// 현재 로컬 상태와 새로 들어온 props의 실제 내용이 다를 때만 업데이트
-		if (JSON.stringify(localDivisions) !== JSON.stringify(divisions)) {
-			setLocalDivisions(divisions);
-		}
-		if (JSON.stringify(localTeams) !== JSON.stringify(teams)) {
-			setLocalTeams(teams);
-		}
+	// DnD 중이 아닐 때 서버 데이터와 동기화 (render-time 파생 상태 패턴 — react-hooks/set-state-in-effect 회피)
+	const [prevDivisions, setPrevDivisions] = useState(divisions);
+	const [prevTeams, setPrevTeams] = useState(teams);
+	if (!activeItem && prevDivisions !== divisions) {
+		setPrevDivisions(divisions);
+		setLocalDivisions(divisions);
+	}
+	if (!activeItem && prevTeams !== teams) {
+		setPrevTeams(teams);
+		setLocalTeams(teams);
 	}
 
-	useEffect(() => {
-		// 직원 드래그 중에는 서버 데이터로 리셋하지 않음
-		if (activeItem?.type === "EMPLOYEE") return;
+	// 서버 데이터로부터 직원 컨테이너 구조 계산 (순수 파생값 — 부수 효과 없음)
+	const baseContainers = useMemo<Record<string, Employee[]>>(() => {
 		const containers: Record<string, Employee[]> = {};
-		teams.forEach((t) => {
-			containers[`team:${t.id}`] = [];
-		});
-		divisions.forEach((d) => {
-			containers[`div-direct:${d.id}`] = [];
-		});
+		teams.forEach((t) => { containers[`team:${t.id}`] = []; });
+		divisions.forEach((d) => { containers[`div-direct:${d.id}`] = []; });
 		employees
 			.filter((e) => e.org_role === "member")
 			.forEach((e) => {
@@ -479,8 +470,18 @@ export function OrgBoard() {
 					containers[`div-direct:${e.division_id}`].push(e);
 				}
 			});
-		setEmployeeContainers(containers);
-	}, [employees, teams, divisions, activeItem]);
+		return containers;
+	}, [employees, teams, divisions]);
+
+	// DnD 낙관적 업데이트용 상태 (직원 드래그 중에만 non-null)
+	const [dndContainers, setDndContainers] = useState<Record<string, Employee[]> | null>(null);
+	// 서버 데이터가 새로 도착하면 DnD 상태 초기화 (render-time 파생 상태 패턴)
+	const [prevBaseContainers, setPrevBaseContainers] = useState(baseContainers);
+	if (prevBaseContainers !== baseContainers) {
+		setPrevBaseContainers(baseContainers);
+		setDndContainers(null);
+	}
+	const employeeContainers = dndContainers ?? baseContainers;
 
 	// ── 다이얼로그 상태 (CRUD) ───────────────────────────────────────────────
 	const [divisionDialogOpen, setDivisionDialogOpen] = useState(false);
@@ -571,28 +572,27 @@ export function OrgBoard() {
 		const toContainer = findContainer(over.id as string, employeeContainers);
 		if (!toContainer || fromContainer === toContainer) return;
 
-		setEmployeeContainers((prev) => {
-			const employee = prev[fromContainer]?.find((e) => e.id === active.id);
+		// useSortable data는 불변이므로 active.data.current.containerId 직접 수정 불가
+		// → onDragEnd에서 최종 컨테이너를 employeeContainers에서 다시 조회
+		setDndContainers((prev) => {
+			const current = prev ?? baseContainers;
+			const employee = current[fromContainer]?.find((e) => e.id === active.id);
 			if (!employee) return prev;
 			return {
-				...prev,
-				[fromContainer]: prev[fromContainer].filter((e) => e.id !== active.id),
-				[toContainer]: [...(prev[toContainer] ?? []), employee],
+				...current,
+				[fromContainer]: current[fromContainer].filter((e) => e.id !== active.id),
+				[toContainer]: [...(current[toContainer] ?? []), employee],
 			};
 		});
-
-		// activeItem의 containerId를 업데이트하여 다음 dragOver에서 올바른 from을 사용
-		if (activeItem?.type === "EMPLOYEE") {
-			setActiveItem((prev) => (prev?.type === "EMPLOYEE" ? prev : prev));
-			// useSortable data는 불변이므로 active.data.current.containerId 직접 수정 불가
-			// → onDragEnd에서 최종 컨테이너를 employeeContainers에서 다시 조회
-		}
 	}
 
 	function handleDragEnd(event: DragEndEvent) {
 		const { active, over } = event;
 		setActiveItem(null);
-		if (!over) return;
+		if (!over) {
+			if (active.data.current?.type === "EMPLOYEE") setDndContainers(null);
+			return;
+		}
 
 		const activeType = active.data.current?.type as string | undefined;
 
@@ -626,7 +626,10 @@ export function OrgBoard() {
 		if (activeType === "EMPLOYEE") {
 			// onDragOver에서 이미 낙관적 이동 완료 → 최종 컨테이너 확인
 			const toContainer = findContainer(over.id as string, employeeContainers);
-			if (!toContainer) return;
+			if (!toContainer) {
+				setDndContainers(null);
+				return;
+			}
 
 			// dragStartContainerRef 사용: onDragOver 낙관적 업데이트 후 active.data가 바뀌기 때문
 			const fromContainer = (dragStartContainerRef.current ?? active.data.current?.containerId) as string;
@@ -637,9 +640,12 @@ export function OrgBoard() {
 				const containerEmps = employeeContainers[toContainer] ?? [];
 				const oldIndex = containerEmps.findIndex((e) => e.id === active.id);
 				const newIndex = containerEmps.findIndex((e) => e.id === over.id);
-				if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+				if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+					setDndContainers(null);
+					return;
+				}
 				const reordered = arrayMove(containerEmps, oldIndex, newIndex);
-				setEmployeeContainers((prev) => ({ ...prev, [toContainer]: reordered }));
+				setDndContainers((prev) => ({ ...(prev ?? baseContainers), [toContainer]: reordered }));
 				updateEmployeeOrders(reordered).then(() => {
 					queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
 				});
