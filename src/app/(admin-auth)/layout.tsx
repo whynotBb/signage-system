@@ -26,8 +26,8 @@ export default function AdminAuthLayout({ children }: { children: React.ReactNod
         <div className="w-full max-w-sm">
           {/* 모바일에서만 보이는 로고 */}
           <Link href="/admin/dashboard" className="mb-8 flex items-center gap-2 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-              S
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg">
+              <Image src="/logo_icon.png" alt="로고" width={32} height={32} className="object-contain" />
             </div>
             <span className="font-semibold">{SITE_CONFIG.name}</span>
           </Link>
