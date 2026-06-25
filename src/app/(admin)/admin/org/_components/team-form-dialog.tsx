@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -29,16 +29,19 @@ async function fetchDivisions(): Promise<Division[]> {
 
 async function insertTeam(values: TeamFormValues): Promise<void> {
 	const supabase = createClient();
+	const isIndependent = !values.division_id;
 	const { error } = await supabase.from("teams").insert({
 		name: values.name,
 		division_id: values.division_id,
+		color: isIndependent ? values.color : null,
 	});
 	if (error) throw error;
 }
 
 async function updateTeam(id: string, values: TeamFormValues): Promise<void> {
 	const supabase = createClient();
-	const { error } = await supabase.from("teams").update({ name: values.name, division_id: values.division_id }).eq("id", id);
+	const isIndependent = !values.division_id;
+	const { error } = await supabase.from("teams").update({ name: values.name, division_id: values.division_id, color: isIndependent ? values.color : null }).eq("id", id);
 	if (error) throw error;
 }
 
@@ -73,14 +76,19 @@ export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId }: 
 		defaultValues: {
 			name: "",
 			division_id: null,
+			color: "#6366f1",
 		},
 	});
+
+	const watchedDivisionId = useWatch({ control: form.control, name: "division_id" });
+	const isIndependent = !watchedDivisionId;
 
 	useEffect(() => {
 		if (open) {
 			form.reset({
 				name: team?.name ?? "",
 				division_id: team?.division_id ?? defaultDivisionId ?? null,
+				color: team?.color ?? "#6366f1",
 			});
 		}
 	}, [open, team, defaultDivisionId, form]);
@@ -174,6 +182,36 @@ export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId }: 
 								</FormItem>
 							)}
 						/>
+
+						{isIndependent && (
+							<FormField
+								control={form.control}
+								name="color"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>대표 색상</FormLabel>
+										<FormControl>
+											<div className="flex items-center gap-3">
+												<input
+													type="color"
+													value={field.value}
+													onChange={field.onChange}
+													className="h-9 w-14 cursor-pointer rounded-md border border-input bg-transparent p-1"
+												/>
+												<Input
+													value={field.value}
+													onChange={(e) => field.onChange(e.target.value)}
+													placeholder="#6366f1"
+													className="font-mono text-sm"
+													maxLength={7}
+												/>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						<DialogFooter className="flex-row gap-2 pt-2">
 							{isEdit && (

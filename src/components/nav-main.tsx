@@ -8,7 +8,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+
+interface NavSubItem {
+  title: string
+  url: string
+  icon?: LucideIcon
+  isActive?: boolean
+}
 
 interface NavGroup {
   label?: string
@@ -17,6 +27,7 @@ interface NavGroup {
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    children?: NavSubItem[]
   }[]
 }
 
@@ -35,6 +46,20 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
+                {item.children && item.children.length > 0 && (
+                  <SidebarMenuSub>
+                    {item.children.map((child) => (
+                      <SidebarMenuSubItem key={child.title}>
+                        <SidebarMenuSubButton asChild isActive={child.isActive}>
+                          <Link href={child.url}>
+                            {child.icon && <child.icon />}
+                            <span>{child.title}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

@@ -5,6 +5,7 @@ export * from './database'
 export type NavIconKey =
   | 'LayoutDashboard'
   | 'Users'
+  | 'UserMinus'
   | 'Newspaper'
   | 'UserCheck'
   | 'Building2'
@@ -20,6 +21,7 @@ export interface NavItem {
   roles?: UserRole[]  // undefined이면 전 역할 접근 가능
   disabled?: boolean
   external?: boolean
+  children?: Omit<NavItem, 'children' | 'group'>[]
 }
 
 export interface SiteConfig {

@@ -10,6 +10,7 @@ export const divisionSchema = z.object({
 export const teamSchema = z.object({
   name: z.string().min(1, '팀 이름을 입력해주세요').max(50, '50자 이하로 입력해주세요'),
   division_id: z.string().nullable(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, '올바른 색상 코드를 입력해주세요'),
 })
 
 // 직원(Employee) 폼 유효성 스키마

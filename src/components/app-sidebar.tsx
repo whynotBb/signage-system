@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Users,
+  UserMinus,
   Newspaper,
   UserCheck,
   Building2,
@@ -32,6 +33,7 @@ import type { NavIconKey } from "@/types"
 const iconMap: Record<NavIconKey, LucideIcon> = {
   LayoutDashboard,
   Users,
+  UserMinus,
   Newspaper,
   UserCheck,
   Building2,
@@ -69,6 +71,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: item.href,
         icon: item.icon ? iconMap[item.icon] : undefined,
         isActive: pathname === item.href || pathname.startsWith(item.href + "/"),
+        children: item.children
+          ?.filter((child) => !child.roles || (role && child.roles.includes(role)))
+          .map((child) => ({
+            title: child.title,
+            url: child.href,
+            icon: child.icon ? iconMap[child.icon] : undefined,
+            isActive: pathname === child.href || pathname.startsWith(child.href + "/"),
+          })),
       })),
     }))
 

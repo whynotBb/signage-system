@@ -1,4 +1,4 @@
-import type { NavItem, SiteConfig } from '@/types'
+import type { NavItem, SiteConfig, UserRole } from '@/types'
 
 export const SITE_CONFIG: SiteConfig = {
   name: '사이니지 관리 시스템',
@@ -10,7 +10,12 @@ export const SITE_CONFIG: SiteConfig = {
 export const NAV_ITEMS: NavItem[] = [
   { title: '대시보드', href: '/admin/dashboard', icon: 'LayoutDashboard' },
   // 콘텐츠 관리 그룹
-  { title: '조직도 관리', href: '/admin/org', icon: 'Users', group: '콘텐츠 관리', roles: ['super_admin', 'content_admin'] },
+  {
+    title: '조직도 관리', href: '/admin/org', icon: 'Users', group: '콘텐츠 관리', roles: ['super_admin', 'content_admin'],
+    children: [
+      { title: '퇴사자 관리', href: '/admin/org/resigned', icon: 'UserMinus' as const, roles: ['super_admin', 'content_admin'] as UserRole[] },
+    ],
+  },
   { title: '뉴스 관리', href: '/admin/news', icon: 'Newspaper', group: '콘텐츠 관리' },
   { title: '방문자 관리', href: '/admin/visitor', icon: 'UserCheck', group: '콘텐츠 관리' },
   { title: '회사소개 관리', href: '/admin/company-intro', icon: 'Building2', group: '콘텐츠 관리', roles: ['super_admin', 'content_admin'] },

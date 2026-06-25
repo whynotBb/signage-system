@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, DragOverlay, useDroppable, closestCenter, type DragEndEvent, type DragStartEvent, type DragOverEvent } from "@dnd-kit/core";
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, DragOverlay, useDroppable, closestCenter, defaultDropAnimationSideEffects, type DragEndEvent, type DragStartEvent, type DragOverEvent, type DropAnimation } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "@/lib/supabase/client";
@@ -52,7 +52,7 @@ async function fetchTeams(): Promise<Team[]> {
 
 async function fetchActiveEmployees(): Promise<Employee[]> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("employees").select("*").eq("is_resigned", false).eq("is_dispatched", false).order("display_order", { ascending: true });
+	const { data, error } = await supabase.from("employees").select("*").eq("is_resigned", false).order("display_order", { ascending: true });
 	if (error) throw error;
 	return data ?? [];
 }
@@ -120,6 +120,7 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: Omit<Emplo
 			<span className="min-w-0 truncate text-sm font-medium">{employee.name}</span>
 			{employee.position && <span className="shrink-0 text-xs text-muted-foreground">{employee.position}</span>}
 			{employee.title && <Badge className="shrink-0 border-0 bg-indigo-100 text-[10px] text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">{employee.title}</Badge>}
+			{employee.is_dispatched && <Badge className="shrink-0 border-0 bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">파견</Badge>}
 			{!isEditor && (
 				<div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 ml-auto">
 					<Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => onEdit?.(employee)}>
@@ -142,8 +143,8 @@ function SortableEmployeeRow({ employee, containerId, isEditor, onEdit, onDelete
 
 	const style = {
 		transform: CSS.Transform.toString(transform),
-		transition,
-		opacity: isDragging ? 0.4 : 1,
+		transition: transition ?? "transform 150ms ease",
+		opacity: isDragging ? 0 : 1,
 	};
 
 	return (
@@ -164,6 +165,7 @@ interface TeamBlockProps {
 	containerId: ContainerId;
 	isEditor: boolean;
 	dragHandle?: DragHandle;
+	showColor?: boolean;
 	onAddEmployee?: (teamId: string) => void;
 	onEditTeam?: (team: Team) => void;
 	onDeleteTeam?: (team: Team) => void;
@@ -171,11 +173,16 @@ interface TeamBlockProps {
 	onDeleteEmployee?: (employee: Employee) => void;
 }
 
-function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, onAddEmployee, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee }: TeamBlockProps) {
+function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, showColor, onAddEmployee, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee }: TeamBlockProps) {
 	const { setNodeRef: setDropRef, isOver } = useDroppable({ id: containerId });
+	const color = showColor ? (team.color ?? "#6366f1") : undefined;
+	const bgTint = color ? color + "0d" : undefined;
 
 	return (
-		<div className="rounded-md border border-border/60 bg-background/80">
+		<div
+			className="rounded-md border border-border/60 bg-background/80"
+			style={color ? { borderLeftWidth: 4, borderLeftColor: color, backgroundColor: bgTint } : undefined}
+		>
 			<div className="flex items-center gap-2 px-3 py-2">
 				{dragHandle && (
 					<div className="flex cursor-grab touch-none items-center" {...dragHandle.attributes} {...dragHandle.listeners}>
@@ -219,8 +226,8 @@ function SortableTeamBlock(props: TeamBlockProps) {
 
 	const style = {
 		transform: CSS.Transform.toString(transform),
-		transition,
-		opacity: isDragging ? 0.4 : 1,
+		transition: transition ?? "transform 150ms ease",
+		opacity: isDragging ? 0 : 1,
 	};
 
 	return (
@@ -331,8 +338,8 @@ function SortableDivisionCard(props: DivisionCardProps) {
 
 	const style = {
 		transform: CSS.Transform.toString(transform),
-		transition,
-		opacity: isDragging ? 0.4 : 1,
+		transition: transition ?? "transform 150ms ease",
+		opacity: isDragging ? 0 : 1,
 	};
 
 	return (
@@ -412,6 +419,12 @@ function OrgBoardSkeleton() {
 const EMPTY_DIVISIONS: Division[] = [];
 const EMPTY_TEAMS: Team[] = [];
 const EMPTY_EMPLOYEES: Employee[] = [];
+
+const dropAnimation: DropAnimation = {
+	duration: 180,
+	easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+	sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0" } } }),
+};
 
 // ── OrgBoard 메인 컴포넌트 ───────────────────────────────────────────────────
 
@@ -745,12 +758,12 @@ export function OrgBoard() {
 									<div className="h-px flex-1 bg-border" />
 								</div>
 								{independentTeams.map((team) => (
-									<TeamBlockContent key={team.id} team={team} employees={employeeContainers[`team:${team.id}`] ?? []} containerId={`team:${team.id}`} isEditor={isEditor} onAddEmployee={(teamId) => openAddEmployee(null, teamId)} onEditTeam={openEditTeam} onDeleteTeam={openDeleteTeam} onEditEmployee={openEditEmployee} onDeleteEmployee={openEditEmployee} />
+									<TeamBlockContent key={team.id} team={team} employees={employeeContainers[`team:${team.id}`] ?? []} containerId={`team:${team.id}`} isEditor={isEditor} showColor onAddEmployee={(teamId) => openAddEmployee(null, teamId)} onEditTeam={openEditTeam} onDeleteTeam={openDeleteTeam} onEditEmployee={openEditEmployee} onDeleteEmployee={openEditEmployee} />
 								))}
 							</div>
 						)}
 
-						<DragOverlay>
+						<DragOverlay dropAnimation={dropAnimation}>
 							{activeItem?.type === "DIVISION" && (
 								<div
 									className="rounded-lg border border-border px-4 py-3 shadow-lg opacity-90"

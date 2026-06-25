@@ -24,7 +24,12 @@ import type { Division, Team, Employee } from "@/types";
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 
-const POSITION_OPTIONS = ["사원", "주임", "대리", "과장", "차장", "부장"] as const;
+const POSITION_OPTIONS = ["사원", "주임", "대리", "과장", "차장", "부장", "이사", "대표", "부대표"] as const;
+const EXECUTIVE_POSITIONS = ["대표", "부대표"] as const;
+const POSITION_ORG_ROLE: Record<string, EmployeeFormValues["org_role"]> = {
+	대표: "representative",
+	부대표: "vice_representative",
+};
 const TITLE_OPTIONS = ["실장", "팀장"] as const;
 
 // ── Supabase 쿼리/뮤테이션 함수 ──────────────────────────────────────────────
@@ -67,7 +72,7 @@ async function insertEmployee(values: EmployeeFormValues, profileBlob: Blob | nu
 			position: values.position,
 			division_id: values.division_id,
 			team_id: values.team_id,
-			org_role: "member",
+			org_role: values.org_role,
 			hired_at: values.hired_at,
 			is_dispatched: values.is_dispatched,
 			is_resigned: values.is_resigned,
@@ -106,6 +111,7 @@ async function updateEmployee(id: string, values: EmployeeFormValues, profileBlo
 			position: values.position,
 			division_id: values.division_id,
 			team_id: values.team_id,
+			org_role: values.org_role,
 			hired_at: values.hired_at,
 			is_dispatched: values.is_dispatched,
 			is_resigned: values.is_resigned,
@@ -170,6 +176,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 	});
 
 	const watchedDivisionId = useWatch({ control: form.control, name: "division_id" });
+	const watchedPosition = useWatch({ control: form.control, name: "position" });
+	const isExecutive = (EXECUTIVE_POSITIONS as readonly string[]).includes(watchedPosition ?? "");
 
 	const filteredTeams = teams.filter((t) => watchedDivisionId === null || t.division_id === watchedDivisionId);
 
@@ -303,7 +311,18 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 											<FormLabel>
 												직위 <span className="text-destructive">*</span>
 											</FormLabel>
-											<Select value={field.value ?? ""} onValueChange={(v) => field.onChange(v)}>
+											<Select
+												value={field.value ?? ""}
+												onValueChange={(v) => {
+													field.onChange(v);
+													const role = POSITION_ORG_ROLE[v] ?? "member";
+													form.setValue("org_role", role);
+													if (POSITION_ORG_ROLE[v]) {
+														form.setValue("division_id", null);
+														form.setValue("team_id", null);
+													}
+												}}
+											>
 												<FormControl>
 													<SelectTrigger className="w-full">
 														<SelectValue placeholder="직위 선택" />
@@ -375,6 +394,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 										<FormItem>
 											<FormLabel>소속 실</FormLabel>
 											<Select
+												disabled={isExecutive}
 												value={field.value ?? "__none__"}
 												onValueChange={(v) => {
 													field.onChange(v === "__none__" ? null : v);
@@ -406,7 +426,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>소속 팀</FormLabel>
-											<Select value={field.value ?? "__none__"} onValueChange={(v) => field.onChange(v === "__none__" ? null : v)}>
+											<Select disabled={isExecutive} value={field.value ?? "__none__"} onValueChange={(v) => field.onChange(v === "__none__" ? null : v)}>
 												<FormControl>
 													<SelectTrigger className="w-full">
 														<SelectValue placeholder="팀 선택" />

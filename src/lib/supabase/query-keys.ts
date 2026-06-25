@@ -17,6 +17,7 @@ export const queryKeys = {
     byDivision: (divisionId: string) => ['employees', { divisionId }] as const,
     byTeam: (teamId: string) => ['employees', { teamId }] as const,
     detail: (id: string) => ['employees', id] as const,
+    resigned: () => ['employees', { is_resigned: true }] as const,
     // 파견/퇴사 제외 활성 직원 수
     activeCount: () => ['employees', 'count', { active: true }] as const,
   },
