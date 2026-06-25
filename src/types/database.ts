@@ -173,6 +173,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          news_date: string | null
           scheduled_end_at: string | null
           scheduled_start_at: string | null
           subtitle: string | null
@@ -186,6 +187,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          news_date?: string | null
           scheduled_end_at?: string | null
           scheduled_start_at?: string | null
           subtitle?: string | null
@@ -199,6 +201,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          news_date?: string | null
           scheduled_end_at?: string | null
           scheduled_start_at?: string | null
           subtitle?: string | null

@@ -59,6 +59,19 @@ function formatDatetime(iso: string | null | undefined): string {
   })
 }
 
+function formatNewsDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  try {
+    const parts = dateStr.split('-')
+    if (parts.length === 3) {
+      return `${parts[0]}. ${parts[1]}. ${parts[2]}.`
+    }
+    return dateStr
+  } catch {
+    return dateStr
+  }
+}
+
 // ── Supabase 함수 ─────────────────────────────────────────────────────────────
 
 async function fetchNews(): Promise<NewsRow[]> {
@@ -148,6 +161,10 @@ function SortableTableRow({
             <span className="text-xs text-muted-foreground line-clamp-1">{item.subtitle}</span>
           )}
         </div>
+      </TableCell>
+
+      <TableCell className="text-sm text-muted-foreground">
+        {formatNewsDate(item.news_date)}
       </TableCell>
 
       <TableCell>
@@ -314,6 +331,7 @@ export function NewsTable() {
                   <TableRow>
                     <TableHead className="w-8 px-2" />
                     <TableHead className="min-w-[200px]">제목 / 부제목</TableHead>
+                    <TableHead className="w-[120px]">날짜</TableHead>
                     <TableHead className="w-[80px]">활성</TableHead>
                     <TableHead className="w-[190px]">게시 기간</TableHead>
                     <TableHead className="w-[100px]">등록자</TableHead>
