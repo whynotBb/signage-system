@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import NextImage from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
@@ -89,8 +90,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/admin/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <LayoutDashboard className="size-4" />
+                <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg">
+                  <NextImage src="/logo_icon.png" alt="로고" width={32} height={32} className="object-contain" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{SITE_CONFIG.name}</span>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { SITE_CONFIG } from '@/lib/constants'
 
 export default function AdminAuthLayout({ children }: { children: React.ReactNode }) {
@@ -7,8 +8,8 @@ export default function AdminAuthLayout({ children }: { children: React.ReactNod
       {/* 좌측 브랜드 패널 (데스크탑 전용) */}
       <div className="relative hidden flex-col justify-between bg-muted p-10 lg:flex lg:w-[480px]">
         <Link href="/admin/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-            S
+          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg">
+            <Image src="/logo_icon.png" alt="로고" width={32} height={32} className="object-contain" />
           </div>
           <span className="font-semibold">{SITE_CONFIG.name}</span>
         </Link>
