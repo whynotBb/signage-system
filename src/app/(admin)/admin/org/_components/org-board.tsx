@@ -356,7 +356,7 @@ function RepresentativeCard({ employee, label, isEditor, onAssign, onEdit }: { e
 
 	if (!employee) {
 		return (
-			<div className="flex w-full max-w-[260px] items-center gap-4 rounded-lg border border-dashed border-border p-3">
+			<div className="flex w-full sm:max-w-[260px] items-center gap-4 rounded-lg border border-dashed border-border p-3">
 				<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted">
 					<span className="text-xs text-muted-foreground/50">미지정</span>
 				</div>
@@ -374,7 +374,7 @@ function RepresentativeCard({ employee, label, isEditor, onAssign, onEdit }: { e
 	}
 
 	return (
-		<div className="flex w-full max-w-[260px] items-center gap-4 rounded-lg border border-border bg-card p-3 shadow-sm">
+		<div className="flex w-full sm:max-w-[260px] items-center gap-4 rounded-lg border border-border bg-card p-3 shadow-sm">
 			<Avatar className="h-12 w-12 shrink-0">
 				<AvatarImage src={employee.profile_image_url ?? undefined} alt={employee.name} />
 				<AvatarFallback className="text-base">{getInitials(employee.name)}</AvatarFallback>
@@ -713,7 +713,7 @@ export function OrgBoard() {
 			{/* 대표/부대표 */}
 			<div className="rounded-lg border border-border/50 p-4">
 				<p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">대표 · 부대표</p>
-				<div className="flex gap-3">
+				<div className="flex flex-col gap-3 sm:flex-row">
 					<RepresentativeCard employee={representative} label="대표" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
 					<RepresentativeCard employee={viceRepresentative} label="부대표" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
 				</div>
