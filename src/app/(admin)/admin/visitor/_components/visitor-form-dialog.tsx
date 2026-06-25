@@ -233,7 +233,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 
 							{fields.map((fieldItem, index) => (
 								<div key={fieldItem.id} className="flex items-end gap-2">
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
+									<div className="grid grid-cols-2 gap-2 flex-1">
 										<FormField
 											control={form.control}
 											name={`visitors.${index}.name`}

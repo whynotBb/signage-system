@@ -11,6 +11,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
 interface NavSubItem {
@@ -32,6 +33,12 @@ interface NavGroup {
 }
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  function closeSidebarOnMobile() {
+    if (isMobile) setOpenMobile(false)
+  }
+
   return (
     <>
       {groups.map((group, i) => (
@@ -41,7 +48,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
             {group.items.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
-                  <Link href={item.url}>
+                  <Link href={item.url} onClick={closeSidebarOnMobile}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </Link>
@@ -51,7 +58,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                     {item.children.map((child) => (
                       <SidebarMenuSubItem key={child.title}>
                         <SidebarMenuSubButton asChild isActive={child.isActive}>
-                          <Link href={child.url}>
+                          <Link href={child.url} onClick={closeSidebarOnMobile}>
                             {child.icon && <child.icon />}
                             <span>{child.title}</span>
                           </Link>
