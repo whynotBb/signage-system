@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   closestCenter,
@@ -15,6 +16,7 @@ import {
   verticalListSortingStrategy,
   useSortable,
   arrayMove,
+  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
@@ -147,8 +149,7 @@ function SortableTableRow({
           {...attributes}
           {...listeners}
           className="cursor-grab touch-none text-muted-foreground/50 transition-colors hover:text-muted-foreground active:cursor-grabbing"
-          aria-label="순서 변경"
-          tabIndex={-1}
+          aria-label="순서 변경 (Space로 선택, 방향키로 이동, Enter로 확정)"
         >
           <GripVertical className="h-4 w-4" />
         </button>
@@ -163,7 +164,7 @@ function SortableTableRow({
         </div>
       </TableCell>
 
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
         {formatNewsDate(item.news_date)}
       </TableCell>
 
@@ -176,7 +177,7 @@ function SortableTableRow({
         />
       </TableCell>
 
-      <TableCell className="tabular-nums text-xs text-muted-foreground">
+      <TableCell className="hidden lg:table-cell tabular-nums text-xs text-muted-foreground">
         {item.scheduled_start_at || item.scheduled_end_at ? (
           <div className="flex flex-col gap-0.5">
             <span>{formatDatetime(item.scheduled_start_at)}</span>
@@ -187,7 +188,7 @@ function SortableTableRow({
         )}
       </TableCell>
 
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
         {item.profiles?.name ?? '—'}
       </TableCell>
 
@@ -219,6 +220,70 @@ function SortableTableRow({
   )
 }
 
+// ── MobileNewsCard ────────────────────────────────────────────────────────────
+
+interface MobileNewsCardProps {
+  item: NewsRow
+  canEdit: boolean
+  onEdit: () => void
+  onDelete: () => void
+  onToggleActive: (checked: boolean) => void
+  isTogglePending: boolean
+}
+
+function MobileNewsCard({
+  item,
+  canEdit,
+  onEdit,
+  onDelete,
+  onToggleActive,
+  isTogglePending,
+}: MobileNewsCardProps) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm leading-snug truncate">{item.title}</p>
+          {item.subtitle && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.subtitle}</p>
+          )}
+        </div>
+        <Switch
+          checked={item.is_active}
+          onCheckedChange={onToggleActive}
+          disabled={isTogglePending}
+          aria-label={item.is_active ? '활성' : '비활성'}
+          className="shrink-0"
+        />
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+          <Badge variant="outline" className="text-xs">
+            {item.scheduled_start_at ? '기간 설정' : '상시'}
+          </Badge>
+          {item.profiles?.name && <span>{item.profiles.name}</span>}
+        </div>
+        {canEdit && (
+          <div className="flex gap-1 shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={onDelete}
+              title="삭제"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── NewsTable ─────────────────────────────────────────────────────────────────
 
 export function NewsTable() {
@@ -228,6 +293,7 @@ export function NewsTable() {
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<NewsContent | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<NewsRow | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const { data: newsList = [], isLoading } = useQuery({
     queryKey: queryKeys.news.all,
@@ -235,9 +301,8 @@ export function NewsTable() {
   })
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const reorderMutation = useMutation({
@@ -249,13 +314,16 @@ export function NewsTable() {
   })
 
   const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      toggleActive(id, is_active),
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) => {
+      setTogglingId(id)
+      return toggleActive(id, is_active)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.news.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.news.activeCount() })
     },
     onError: () => toast.error('상태 변경에 실패했습니다.'),
+    onSettled: () => setTogglingId(null),
   })
 
   function canEdit(item: NewsRow): boolean {
@@ -320,47 +388,67 @@ export function NewsTable() {
             action={{ label: '뉴스 등록', onClick: handleCreate }}
           />
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="rounded-lg border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8 px-2" />
-                    <TableHead className="min-w-[200px]">제목 / 부제목</TableHead>
-                    <TableHead className="w-[120px]">날짜</TableHead>
-                    <TableHead className="w-[80px]">활성</TableHead>
-                    <TableHead className="w-[190px]">게시 기간</TableHead>
-                    <TableHead className="w-[100px]">등록자</TableHead>
-                    <TableHead className="w-[80px]">액션</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <SortableContext
-                  items={newsList.map((item) => item.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <TableBody>
-                    {newsList.map((item) => (
-                      <SortableTableRow
-                        key={item.id}
-                        item={item}
-                        canEdit={canEdit(item)}
-                        onEdit={() => handleEdit(item)}
-                        onDelete={() => setDeleteTarget(item)}
-                        onToggleActive={(checked) =>
-                          toggleActiveMutation.mutate({ id: item.id, is_active: checked })
-                        }
-                        isTogglePending={toggleActiveMutation.isPending}
-                      />
-                    ))}
-                  </TableBody>
-                </SortableContext>
-              </Table>
+          <>
+            {/* 모바일 카드 뷰 */}
+            <div className="sm:hidden flex flex-col gap-2">
+              {newsList.map((item) => (
+                <MobileNewsCard
+                  key={item.id}
+                  item={item}
+                  canEdit={canEdit(item)}
+                  onEdit={() => handleEdit(item)}
+                  onDelete={() => setDeleteTarget(item)}
+                  onToggleActive={(checked) =>
+                    toggleActiveMutation.mutate({ id: item.id, is_active: checked })
+                  }
+                  isTogglePending={togglingId === item.id}
+                />
+              ))}
             </div>
-          </DndContext>
+
+            {/* 태블릿/데스크탑 테이블 뷰 */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="hidden sm:block rounded-lg border border-border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8 px-2" />
+                      <TableHead className="min-w-[200px]">제목 / 부제목</TableHead>
+                      <TableHead className="hidden sm:table-cell w-[120px]">날짜</TableHead>
+                      <TableHead className="w-[80px]">활성</TableHead>
+                      <TableHead className="hidden lg:table-cell w-[190px]">게시 기간</TableHead>
+                      <TableHead className="hidden lg:table-cell w-[100px]">등록자</TableHead>
+                      <TableHead className="w-[80px]">액션</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <SortableContext
+                    items={newsList.map((item) => item.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <TableBody>
+                      {newsList.map((item) => (
+                        <SortableTableRow
+                          key={item.id}
+                          item={item}
+                          canEdit={canEdit(item)}
+                          onEdit={() => handleEdit(item)}
+                          onDelete={() => setDeleteTarget(item)}
+                          onToggleActive={(checked) =>
+                            toggleActiveMutation.mutate({ id: item.id, is_active: checked })
+                          }
+                          isTogglePending={togglingId === item.id}
+                        />
+                      ))}
+                    </TableBody>
+                  </SortableContext>
+                </Table>
+              </div>
+            </DndContext>
+          </>
         )}
       </div>
 

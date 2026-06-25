@@ -92,7 +92,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 	const form = useForm<VisitorFormValues>({
 		resolver: zodResolver(visitorSchema),
 		defaultValues: {
-			title: "방문을 환영합니다!",
+			title: "방문을 환영합니다.",
 			visitor_org: "",
 			visitors: [{ name: "", title: "" }],
 			location: "",
@@ -145,7 +145,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 			}
 
 			form.reset({
-				title: visitor?.title ?? (isEdit ? "" : "방문을 환영합니다."),
+				title: visitor?.title ?? "방문을 환영합니다.",
 				visitor_org: visitor?.visitor_org ?? "",
 				visitors: initialVisitors,
 				location: visitor?.location ?? "",
@@ -233,7 +233,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 
 							{fields.map((fieldItem, index) => (
 								<div key={fieldItem.id} className="flex items-end gap-2">
-									<div className="grid grid-cols-2 gap-2 flex-1">
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
 										<FormField
 											control={form.control}
 											name={`visitors.${index}.name`}
@@ -301,7 +301,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 							})()}
 						</div>
 
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<FormField
 								control={form.control}
 								name="visit_date"
@@ -351,7 +351,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 							/>
 						</div>
 
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<FormField
 								control={form.control}
 								name="scheduled_start_at"
