@@ -3,11 +3,16 @@ import { z } from 'zod'
 export const visitorSchema = z.object({
   title: z.string().min(1, '방문 제목을 입력해주세요').max(100, '100자 이하로 입력해주세요'),
   visitor_org: z.string().min(1, '방문 기관/기업명을 입력해주세요').max(100, '100자 이하로 입력해주세요'),
-  visitor_name: z.string().min(1, '방문자 이름을 입력해주세요').max(50, '50자 이하로 입력해주세요'),
-  visitor_title: z.string().min(1, '방문자 직책을 입력해주세요').max(50, '50자 이하로 입력해주세요'),
-  location: z.string().min(1, '방문 장소를 입력해주세요').max(100, '100자 이하로 입력해주세요'),
-  scheduled_start_at: z.string().nullable().optional(),
-  scheduled_end_at: z.string().nullable().optional(),
+  visitors: z.array(
+    z.object({
+      name: z.string().min(1, '방문자 이름을 입력해주세요').max(50, '50자 이하로 입력해주세요'),
+      title: z.string().min(1, '방문자 직책을 입력해주세요').max(50, '50자 이하로 입력해주세요'),
+    })
+  ).min(1, '방문자를 최소 1명 이상 입력해주세요.').max(3, '방문자는 최대 3명까지만 추가할 수 있습니다.'),
+  location: z.string().min(1, '방문 장소를 선택해주세요').max(100, '100자 이하로 입력해주세요'),
+  scheduled_start_at: z.string().min(1, '게시 시작 일시를 입력해주세요'),
+  scheduled_end_at: z.string().min(1, '게시 종료 일시를 입력해주세요'),
+  visit_date: z.string().nullable().optional(),
   is_active: z.boolean(),
 }).superRefine((data, ctx) => {
   if (data.scheduled_start_at && data.scheduled_end_at) {

@@ -30,6 +30,7 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X } from 'lucide-react'
+import { DateTimePicker } from '@/components/ui/date-picker'
 import type { NewsContent } from '@/types'
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
@@ -347,11 +348,10 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                         <span className="font-normal text-muted-foreground">(선택)</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="datetime-local"
-                          {...field}
+                        <DateTimePicker
                           value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value || null)}
+                          onChange={(v) => field.onChange(v || null)}
+                          placeholder="시작 일시 선택"
                         />
                       </FormControl>
                       <FormMessage />
@@ -368,11 +368,10 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                         <span className="font-normal text-muted-foreground">(선택)</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="datetime-local"
-                          {...field}
+                        <DateTimePicker
                           value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value || null)}
+                          onChange={(v) => field.onChange(v || null)}
+                          placeholder="종료 일시 선택"
                         />
                       </FormControl>
                       <FormMessage />
