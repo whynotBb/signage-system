@@ -191,7 +191,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>{isEdit ? "방문자 공지 수정" : "방문자 공지 등록"}</DialogTitle>
 				</DialogHeader>
