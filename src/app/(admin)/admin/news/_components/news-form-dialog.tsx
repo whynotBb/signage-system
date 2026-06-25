@@ -30,6 +30,7 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X } from 'lucide-react'
+import { DatePicker, DateTimePicker } from '@/components/ui/date-picker'
 import type { NewsContent } from '@/types'
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
@@ -75,6 +76,7 @@ async function insertNews(values: NewsFormValues, imageBlob: Blob | null): Promi
     .insert({
       title: values.title,
       subtitle: values.subtitle ?? null,
+      news_date: values.news_date || null,
       image_url: null,
       scheduled_start_at: values.scheduled_start_at || null,
       scheduled_end_at: values.scheduled_end_at || null,
@@ -120,6 +122,7 @@ async function updateNews(
     .update({
       title: values.title,
       subtitle: values.subtitle ?? null,
+      news_date: values.news_date || null,
       scheduled_start_at: values.scheduled_start_at || null,
       scheduled_end_at: values.scheduled_end_at || null,
       is_active: values.is_active,
@@ -154,6 +157,7 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
     defaultValues: {
       title: '',
       subtitle: '',
+      news_date: null,
       image_url: null,
       scheduled_start_at: null,
       scheduled_end_at: null,
@@ -166,6 +170,7 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
       form.reset({
         title: news?.title ?? '',
         subtitle: news?.subtitle ?? '',
+        news_date: news?.news_date ?? null,
         image_url: news?.image_url ?? null,
         scheduled_start_at: toDatetimeLocal(news?.scheduled_start_at),
         scheduled_end_at: toDatetimeLocal(news?.scheduled_end_at),
@@ -280,6 +285,27 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="news_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      날짜{' '}
+                      <span className="font-normal text-muted-foreground">(선택)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value ?? ''}
+                        onChange={(v) => field.onChange(v || null)}
+                        placeholder="날짜 선택"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* 이미지 업로드 */}
               <div className="flex flex-col gap-2">
                 <Label>
@@ -347,11 +373,10 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                         <span className="font-normal text-muted-foreground">(선택)</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="datetime-local"
-                          {...field}
+                        <DateTimePicker
                           value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value || null)}
+                          onChange={(v) => field.onChange(v || null)}
+                          placeholder="시작 일시 선택"
                         />
                       </FormControl>
                       <FormMessage />
@@ -368,11 +393,10 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                         <span className="font-normal text-muted-foreground">(선택)</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="datetime-local"
-                          {...field}
+                        <DateTimePicker
                           value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value || null)}
+                          onChange={(v) => field.onChange(v || null)}
+                          placeholder="종료 일시 선택"
                         />
                       </FormControl>
                       <FormMessage />

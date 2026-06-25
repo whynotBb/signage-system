@@ -21,8 +21,8 @@ import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
 import { useAuthStore } from '@/store/auth-store'
 import { toast } from 'sonner'
-import { NewsFormDialog } from './news-form-dialog'
-import { DeleteNewsDialog } from './delete-news-dialog'
+import { VisitorFormDialog } from './visitor-form-dialog'
+import { DeleteVisitorDialog } from './delete-visitor-dialog'
 import { PageHeader } from '@/components/composite/page-header'
 import { EmptyState } from '@/components/composite/empty-state'
 import {
@@ -37,12 +37,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
-import { GripVertical, Pencil, Trash2, Plus, Newspaper } from 'lucide-react'
-import type { NewsContent } from '@/types'
+import { GripVertical, Pencil, Trash2, Plus, UserCheck } from 'lucide-react'
+import type { VisitorContent } from '@/types'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 
-type NewsRow = NewsContent & {
+type VisitorRow = VisitorContent & {
   profiles: { name: string } | null
 }
 
@@ -59,37 +59,35 @@ function formatDatetime(iso: string | null | undefined): string {
   })
 }
 
-function formatNewsDate(dateStr: string | null | undefined): string {
+function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
-  try {
-    const parts = dateStr.split('-')
-    if (parts.length === 3) {
-      return `${parts[0]}. ${parts[1]}. ${parts[2]}.`
-    }
-    return dateStr
-  } catch {
-    return dateStr
-  }
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return dateStr
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
 }
 
 // ── Supabase 함수 ─────────────────────────────────────────────────────────────
 
-async function fetchNews(): Promise<NewsRow[]> {
+async function fetchVisitors(): Promise<VisitorRow[]> {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('news_contents')
+    .from('visitor_contents')
     .select('*, profiles(name)')
     .order('display_order', { ascending: true })
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as NewsRow[]
+  return (data ?? []) as VisitorRow[]
 }
 
 async function updateDisplayOrder(items: { id: string; display_order: number }[]): Promise<void> {
   const supabase = createClient()
   await Promise.all(
     items.map(({ id, display_order }) =>
-      supabase.from('news_contents').update({ display_order }).eq('id', id)
+      supabase.from('visitor_contents').update({ display_order }).eq('id', id)
     )
   )
 }
@@ -97,7 +95,7 @@ async function updateDisplayOrder(items: { id: string; display_order: number }[]
 async function toggleActive(id: string, is_active: boolean): Promise<void> {
   const supabase = createClient()
   const { error } = await supabase
-    .from('news_contents')
+    .from('visitor_contents')
     .update({ is_active })
     .eq('id', id)
   if (error) throw error
@@ -106,7 +104,7 @@ async function toggleActive(id: string, is_active: boolean): Promise<void> {
 // ── SortableTableRow ──────────────────────────────────────────────────────────
 
 interface SortableRowProps {
-  item: NewsRow
+  item: VisitorRow
   canEdit: boolean
   onEdit: () => void
   onDelete: () => void
@@ -139,6 +137,20 @@ function SortableTableRow({
     position: isDragging ? 'relative' : undefined,
   }
 
+  const parsedNames = (() => {
+    try {
+      if (item.visitor_name.startsWith('[')) return JSON.parse(item.visitor_name) as string[]
+    } catch {}
+    return [item.visitor_name]
+  })()
+
+  const parsedTitles = (() => {
+    try {
+      if (item.visitor_title.startsWith('[')) return JSON.parse(item.visitor_title) as string[]
+    } catch {}
+    return [item.visitor_title]
+  })()
+
   return (
     <TableRow ref={setNodeRef} style={style}>
       {/* 드래그 핸들 */}
@@ -154,17 +166,32 @@ function SortableTableRow({
         </button>
       </TableCell>
 
+      {/* 방문일 */}
+      <TableCell className="text-sm">
+        {formatDate(item.visit_date)}
+      </TableCell>
+
+      <TableCell className="font-medium">
+        {item.title}
+      </TableCell>
+
       <TableCell>
-        <div className="flex flex-col gap-0.5">
-          <span className="font-medium">{item.title}</span>
-          {item.subtitle && (
-            <span className="text-xs text-muted-foreground line-clamp-1">{item.subtitle}</span>
-          )}
+        {item.visitor_org}
+      </TableCell>
+
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          {parsedNames.map((name, idx) => (
+            <div key={idx} className="flex items-center gap-1.5">
+              <span className="font-medium text-foreground">{name}</span>
+              <span className="text-xs text-muted-foreground">{parsedTitles[idx] || ''}</span>
+            </div>
+          ))}
         </div>
       </TableCell>
 
-      <TableCell className="text-sm text-muted-foreground">
-        {formatNewsDate(item.news_date)}
+      <TableCell className="text-sm">
+        {item.location}
       </TableCell>
 
       <TableCell>
@@ -219,19 +246,19 @@ function SortableTableRow({
   )
 }
 
-// ── NewsTable ─────────────────────────────────────────────────────────────────
+// ── VisitorTable ─────────────────────────────────────────────────────────────
 
-export function NewsTable() {
+export function VisitorTable() {
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
 
   const [formOpen, setFormOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<NewsContent | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<NewsRow | null>(null)
+  const [editTarget, setEditTarget] = useState<VisitorContent | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<VisitorRow | null>(null)
 
-  const { data: newsList = [], isLoading } = useQuery({
-    queryKey: queryKeys.news.all,
-    queryFn: fetchNews,
+  const { data: visitorList = [], isLoading } = useQuery({
+    queryKey: queryKeys.visitors.all,
+    queryFn: fetchVisitors,
   })
 
   const sensors = useSensors(
@@ -243,7 +270,7 @@ export function NewsTable() {
   const reorderMutation = useMutation({
     mutationFn: updateDisplayOrder,
     onError: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.news.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.visitors.all })
       toast.error('순서 저장에 실패했습니다.')
     },
   })
@@ -252,13 +279,13 @@ export function NewsTable() {
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       toggleActive(id, is_active),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.news.all })
-      queryClient.invalidateQueries({ queryKey: queryKeys.news.activeCount() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.visitors.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.visitors.activeCount() })
     },
     onError: () => toast.error('상태 변경에 실패했습니다.'),
   })
 
-  function canEdit(item: NewsRow): boolean {
+  function canEdit(item: VisitorRow): boolean {
     if (!user) return false
     if (user.role === 'editor') return item.created_by === user.id
     return true
@@ -268,14 +295,14 @@ export function NewsTable() {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = newsList.findIndex((item) => item.id === active.id)
-    const newIndex = newsList.findIndex((item) => item.id === over.id)
+    const oldIndex = visitorList.findIndex((item) => item.id === active.id)
+    const newIndex = visitorList.findIndex((item) => item.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
 
-    const reordered = arrayMove(newsList, oldIndex, newIndex)
+    const reordered = arrayMove(visitorList, oldIndex, newIndex)
 
     // 낙관적 업데이트
-    queryClient.setQueryData<NewsRow[]>(queryKeys.news.all, reordered)
+    queryClient.setQueryData<VisitorRow[]>(queryKeys.visitors.all, reordered)
 
     // 서버 동기화
     reorderMutation.mutate(
@@ -283,7 +310,7 @@ export function NewsTable() {
     )
   }
 
-  function handleEdit(item: NewsRow) {
+  function handleEdit(item: VisitorRow) {
     setEditTarget(item)
     setFormOpen(true)
   }
@@ -297,12 +324,12 @@ export function NewsTable() {
     <>
       <div className="flex flex-col gap-6">
         <PageHeader
-          title="뉴스 관리"
-          description="사이니지에 표시할 뉴스 콘텐츠를 관리합니다."
+          title="방문자 관리"
+          description="방문자 정보를 관리하고 사이니지에 표시합니다."
         >
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            뉴스 등록
+            방문자 등록
           </Button>
         </PageHeader>
 
@@ -312,12 +339,12 @@ export function NewsTable() {
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
-        ) : newsList.length === 0 ? (
+        ) : visitorList.length === 0 ? (
           <EmptyState
-            icon={Newspaper}
-            title="등록된 뉴스가 없습니다"
-            description="뉴스 등록 버튼을 눌러 첫 번째 뉴스를 등록하세요."
-            action={{ label: '뉴스 등록', onClick: handleCreate }}
+            icon={UserCheck}
+            title="등록된 방문자 공지가 없습니다"
+            description="방문자 등록 버튼을 눌러 첫 번째 방문 공지를 등록하세요."
+            action={{ label: '방문자 등록', onClick: handleCreate }}
           />
         ) : (
           <DndContext
@@ -330,8 +357,11 @@ export function NewsTable() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8 px-2" />
-                    <TableHead className="min-w-[200px]">제목 / 부제목</TableHead>
-                    <TableHead className="w-[120px]">날짜</TableHead>
+                    <TableHead className="w-[120px]">방문일</TableHead>
+                    <TableHead className="min-w-[150px]">방문 목적</TableHead>
+                    <TableHead className="w-[150px]">방문 기관</TableHead>
+                    <TableHead className="w-[150px]">방문자</TableHead>
+                    <TableHead className="w-[120px]">방문 장소</TableHead>
                     <TableHead className="w-[80px]">활성</TableHead>
                     <TableHead className="w-[190px]">게시 기간</TableHead>
                     <TableHead className="w-[100px]">등록자</TableHead>
@@ -339,11 +369,11 @@ export function NewsTable() {
                   </TableRow>
                 </TableHeader>
                 <SortableContext
-                  items={newsList.map((item) => item.id)}
+                  items={visitorList.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <TableBody>
-                    {newsList.map((item) => (
+                    {visitorList.map((item) => (
                       <SortableTableRow
                         key={item.id}
                         item={item}
@@ -364,22 +394,21 @@ export function NewsTable() {
         )}
       </div>
 
-      <NewsFormDialog
+      <VisitorFormDialog
         open={formOpen}
         onOpenChange={(v) => {
           setFormOpen(v)
           if (!v) setEditTarget(null)
         }}
-        news={editTarget}
+        visitor={editTarget}
       />
 
       {deleteTarget && (
-        <DeleteNewsDialog
+        <DeleteVisitorDialog
           open={!!deleteTarget}
           onOpenChange={(v) => { if (!v) setDeleteTarget(null) }}
-          newsId={deleteTarget.id}
+          visitorId={deleteTarget.id}
           title={deleteTarget.title}
-          imageUrl={deleteTarget.image_url}
         />
       )}
     </>

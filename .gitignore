@@ -46,3 +46,7 @@ next-env.d.ts
 
 # shrimp task manager (로컬 전용)
 /shrimp_data
+
+# mcp config (로컬 전용)
+/.mcp.json
+

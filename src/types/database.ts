@@ -173,6 +173,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          news_date: string | null
           scheduled_end_at: string | null
           scheduled_start_at: string | null
           subtitle: string | null
@@ -186,6 +187,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          news_date?: string | null
           scheduled_end_at?: string | null
           scheduled_start_at?: string | null
           subtitle?: string | null
@@ -199,6 +201,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          news_date?: string | null
           scheduled_end_at?: string | null
           scheduled_start_at?: string | null
           subtitle?: string | null
@@ -335,6 +338,8 @@ export type Database = {
           visitor_name: string
           visitor_org: string
           visitor_title: string
+          display_order: number
+          visit_date: string | null
         }
         Insert: {
           created_at?: string
@@ -349,6 +354,8 @@ export type Database = {
           visitor_name: string
           visitor_org: string
           visitor_title: string
+          display_order?: number
+          visit_date?: string | null
         }
         Update: {
           created_at?: string
@@ -363,6 +370,8 @@ export type Database = {
           visitor_name?: string
           visitor_org?: string
           visitor_title?: string
+          display_order?: number
+          visit_date?: string | null
         }
         Relationships: [
           {
