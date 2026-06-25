@@ -69,7 +69,7 @@
 - ✅ **TASK-009 완료**: `proxy.ts` 라우트 가드 구현 (`/admin/**` 비로그인 차단 → `/admin/login` 리디렉션), `nav-user.tsx` 로그아웃 `supabase.auth.signOut()` 연동, Playwright E2E 검증
 - ✅ **TASK-010 완료**: 대시보드 현황 개요 구현 — `dashboard-stats.tsx` 클라이언트 컴포넌트 신규 생성, 5개 카테고리별 TanStack Query count 쿼리(`query-keys.ts` activeCount 키 추가), 현재 사용자 역할 표시, Playwright E2E 검증
 - ✅ **TASK-011 완료**: 조직도 UI/UX 설계 + DB 마이그레이션(divisions.color, employees.position/org_role) + @dnd-kit/react-easy-crop 설치, TypeScript 타입 반영
-- ✅ **TASK-012 완료**: OrgBoard 드래그 앤 드롭 전체 UI — 대표/부대표 섹션, 실-팀-직원 계층 카드, 독립 팀 지원, CRUD 다이얼로그(실/팀/직원) 연동, 프로필 사진 원형 크롭(react-easy-crop), Supabase Storage 업로드, display_order 낙관적 업데이트, 크로스 컨테이너 DnD E2E 검증 완료
+- ✅ **TASK-012 완료**: OrgBoard DnD 전체 UI + 파견 Badge·org_role 연동·독립 팀 컬러·퇴사자 관리 서브메뉴·DnD 애니메이션 개선 포함 전체 구현 완료
 - ⬜ **미완료**: TASK-013 이후 — 콘텐츠 관리 페이지 UI/CRUD, Realtime 연동, 사용자 관리, RBAC 통합
 
 ---
@@ -175,6 +175,7 @@
   - [x] `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` 패키지 설치
   - [x] `react-easy-crop` 패키지 설치 (프로필 사진 원형 크롭용)
   - [x] 기존 DivisionSection/TeamSection 삭제 → OrgBoard 컴포넌트로 전면 대체
+  - [ ] DB 마이그레이션: `teams.color` (독립 팀 대표 색상, `TEXT DEFAULT '#6366f1'`)
 
 - [x] **TASK-012: 조직도 관리 — 드래그 앤 드롭 전체 UI 구현** ✅ (F003~F008)
   - [x] 대표/부대표 섹션 카드 (페이지 최상단, `org_role` 기반 지정)
@@ -184,10 +185,18 @@
   - [x] `display_order` 낙관적 업데이트 → Supabase upsert 반영
   - [x] 실 CRUD 모달 — 이름 + 네이티브 컬러 피커
   - [x] 팀 CRUD 모달 — 이름 + 소속 실 선택 (NULL 독립 팀 옵션)
-  - [x] 직원 CRUD — 이름/직위/직책/프로필 사진(react-easy-crop 원형 크롭+Storage)/소속 실·팀/org_role/파견·퇴사 토글
+  - [x] 직원 CRUD — 이름/직위/직책/프로필 사진(react-easy-crop 원형 크롭+Storage)/소속 실·팀/파견·퇴사 토글 (기본 CRUD)
   - [x] `src/lib/image-utils.ts` getCroppedImg 유틸, `crop-dialog.tsx` 컴포넌트
   - [x] Zod 스키마(`src/lib/validations/org.ts`) 3종 + TypeScript 타입 export
   - [x] **테스트 체크리스트**: 드래그 앤 드롭, 직원 등록/수정/삭제, 대표 지정, 실/팀 CRUD (Playwright MCP) — 크로스 컨테이너 DnD 버그 3건 수정 포함(Maximum update depth, findContainer prefix 매핑, dragStartContainerRef)
+  - [x] **[버그 수정]** 파견 직원(`is_dispatched=true`) 조직도 계속 표시 — 파견 Badge 표출, 소속 실·팀 유지 (`fetchActiveEmployees` 쿼리의 `is_dispatched` 필터 제거)
+  - [x] **[기능 추가]** 직위 옵션 확장: '이사', '대표', '부대표' 추가
+  - [x] **[기능 추가]** 대표/부대표 직위 선택 시 `org_role` 자동 설정(`대표` → `representative`, `부대표` → `vice_representative`), 소속 실·팀 입력 초기화 및 비활성화
+  - [x] **[기능 추가]** 독립 팀(`division_id=NULL`) 컬러 지정 — `TeamFormDialog`에서 독립 팀일 때만 컬러 피커 표시, OrgBoard 독립 팀 카드 컬러 스타일링
+  - [x] **[기능 추가]** 퇴사자 관리 페이지(`/admin/org/resigned`) 추가 — 퇴사 직원 목록 표시, 삭제 및 퇴사 취소(`is_resigned` 토글) 기능
+  - [x] **[기능 추가]** 사이드바 중첩 메뉴 지원 — '조직도 관리' 하위에 '퇴사자 관리' 서브메뉴 추가 (NAV_ITEMS `children` 필드 + NavMain SidebarMenuSub 렌더링 확장)
+  - [x] **[개선]** DnD 드래그 애니메이션 자연스럽게 개선 (CSS transition/transform 튜닝, 드롭 스냅 동작 부드럽게)
+  - [x] **테스트 체크리스트 (추가)**: 파견 직원 조직도 표시 및 Badge 확인, 대표/부대표 직위 선택 시 org_role 자동 설정·소속 비활성화, 독립 팀 컬러 저장 및 카드 반영, 퇴사자 관리 CRUD·퇴사 취소 (Playwright MCP)
 
 - [ ] **TASK-013: 뉴스 관리 CRUD 구현** (F009, F010, F011, F012)
   - [ ] 뉴스 목록 테이블 조회 — 제목, 활성 상태, 게시 기간, 등록자 (F009)
