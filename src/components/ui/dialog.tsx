@@ -47,6 +47,12 @@ function DialogOverlay({
   )
 }
 
+function isDialogHeader(child: React.ReactNode): boolean {
+  if (!React.isValidElement(child)) return false
+  const type = child.type as { displayName?: string }
+  return type.displayName === 'DialogHeader'
+}
+
 function DialogContent({
   className,
   children,
@@ -56,13 +62,17 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const childArray = React.Children.toArray(children)
+  const headerChildren = childArray.filter(isDialogHeader)
+  const bodyChildren = childArray.filter((c) => !isDialogHeader(c))
+
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 flex flex-col w-full max-w-[calc(100%-2rem)] max-h-[90dvh] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden w-full max-w-[calc(100%-2rem)] max-h-[90dvh] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         onInteractOutside={(e) => {
@@ -71,9 +81,15 @@ function DialogContent({
         }}
         {...props}
       >
-        {/* 스크롤 영역: children 전체를 감싸 콘텐츠만 스크롤됨 */}
+        {/* 헤더 영역: 스크롤 영역 밖 — 항상 고정 */}
+        {headerChildren.length > 0 && (
+          <div className="shrink-0">
+            {headerChildren}
+          </div>
+        )}
+        {/* 스크롤 영역: 헤더 제외 콘텐츠 */}
         <div className="flex flex-col flex-1 gap-4 overflow-y-auto p-4">
-          {children}
+          {bodyChildren}
         </div>
         {/* X 버튼: DialogContent 기준 absolute — 스크롤에 영향받지 않음 */}
         {showCloseButton && (
@@ -98,13 +114,14 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-header"
       className={cn(
-        "sticky top-0 z-10 bg-popover -mx-4 -mt-4 px-4 pt-4 pb-3 border-b border-border/60 flex flex-col gap-1",
+        "px-4 pt-4 pb-3 border-b border-border/60 flex flex-col gap-1",
         className
       )}
       {...props}
     />
   )
 }
+DialogHeader.displayName = 'DialogHeader'
 
 function DialogFooter({
   className,
