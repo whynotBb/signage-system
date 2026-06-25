@@ -10,7 +10,6 @@ import { employeeSchema, type EmployeeFormValues } from "@/lib/validations/org";
 import { toast } from "sonner";
 import { CropDialog } from "./crop-dialog";
 import { LoadingButton } from "@/components/composite/loading-button";
-import { ConfirmDialog } from "@/components/composite/confirm-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
-import { Trash2, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import type { Division, Team, Employee } from "@/types";
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -121,12 +120,6 @@ async function updateEmployee(id: string, values: EmployeeFormValues, profileBlo
 	if (error) throw error;
 }
 
-async function deleteEmployee(id: string): Promise<void> {
-	const supabase = createClient();
-	const { error } = await supabase.from("employees").delete().eq("id", id);
-	if (error) throw error;
-}
-
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface EmployeeFormDialogProps {
@@ -177,7 +170,13 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 
 	const watchedDivisionId = useWatch({ control: form.control, name: "division_id" });
 	const watchedPosition = useWatch({ control: form.control, name: "position" });
+	const watchedTitle = useWatch({ control: form.control, name: "title" });
 	const isExecutive = (EXECUTIVE_POSITIONS as readonly string[]).includes(watchedPosition ?? "");
+	const isManager = watchedTitle === "실장";
+
+	// 이미 대표/부대표인 직원 존재 여부 (편집 중인 본인은 제외)
+	const existingRepId = allEmployees.find((e) => e.org_role === "representative" && e.id !== employee?.id)?.id;
+	const existingViceRepId = allEmployees.find((e) => e.org_role === "vice_representative" && e.id !== employee?.id)?.id;
 
 	const filteredTeams = teams.filter((t) => watchedDivisionId === null || t.division_id === watchedDivisionId);
 
@@ -238,16 +237,6 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 			console.error("직원 수정 오류:", err);
 			toast.error("직원 수정에 실패했습니다.");
 		},
-	});
-
-	const deleteMutation = useMutation({
-		mutationFn: () => deleteEmployee(employee!.id),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
-			toast.success("직원이 삭제되었습니다.");
-			onOpenChange(false);
-		},
-		onError: () => toast.error("직원 삭제에 실패했습니다."),
 	});
 
 	const isPending = insertMutation.isPending || updateMutation.isPending;
@@ -318,6 +307,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 													const role = POSITION_ORG_ROLE[v] ?? "member";
 													form.setValue("org_role", role);
 													if (POSITION_ORG_ROLE[v]) {
+														form.setValue("title", "");
 														form.setValue("division_id", null);
 														form.setValue("team_id", null);
 													}
@@ -329,11 +319,16 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													{POSITION_OPTIONS.map((p) => (
-														<SelectItem key={p} value={p}>
-															{p}
-														</SelectItem>
-													))}
+													{POSITION_OPTIONS.map((p) => {
+														const disabled =
+															(p === "대표" && !!existingRepId) ||
+															(p === "부대표" && !!existingViceRepId);
+														return (
+															<SelectItem key={p} value={p} disabled={disabled}>
+																{p}{disabled ? " (이미 지정됨)" : ""}
+															</SelectItem>
+														);
+													})}
 												</SelectContent>
 											</Select>
 											<FormMessage />
@@ -349,7 +344,15 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>직책</FormLabel>
-											<Select value={field.value || "__none__"} onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}>
+											<Select
+												disabled={isExecutive}
+												value={field.value || "__none__"}
+												onValueChange={(v) => {
+													const title = v === "__none__" ? "" : v;
+													field.onChange(title);
+													if (title === "실장") form.setValue("team_id", null);
+												}}
+											>
 												<FormControl>
 													<SelectTrigger className="w-full">
 														<SelectValue placeholder="직책 선택" />
@@ -426,7 +429,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>소속 팀</FormLabel>
-											<Select disabled={isExecutive} value={field.value ?? "__none__"} onValueChange={(v) => field.onChange(v === "__none__" ? null : v)}>
+											<Select disabled={isExecutive || isManager} value={field.value ?? "__none__"} onValueChange={(v) => field.onChange(v === "__none__" ? null : v)}>
 												<FormControl>
 													<SelectTrigger className="w-full">
 														<SelectValue placeholder="팀 선택" />
@@ -449,18 +452,20 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 
 							{isEdit && (
 								<div className="flex gap-6 rounded-md border border-border p-3">
-									<FormField
-										control={form.control}
-										name="is_dispatched"
-										render={({ field }) => (
-											<FormItem className="flex items-center gap-2 space-y-0">
-												<FormControl>
-													<Switch checked={field.value} onCheckedChange={field.onChange} />
-												</FormControl>
-												<Label className="cursor-pointer text-sm">파견 중</Label>
-											</FormItem>
-										)}
-									/>
+									{!isExecutive && (
+										<FormField
+											control={form.control}
+											name="is_dispatched"
+											render={({ field }) => (
+												<FormItem className="flex items-center gap-2 space-y-0">
+													<FormControl>
+														<Switch checked={field.value} onCheckedChange={field.onChange} />
+													</FormControl>
+													<Label className="cursor-pointer text-sm">파견 중</Label>
+												</FormItem>
+											)}
+										/>
+									)}
 									<FormField
 										control={form.control}
 										name="is_resigned"
@@ -477,21 +482,6 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 							)}
 
 							<DialogFooter className="flex-row gap-2 pt-2">
-								{isEdit && (
-									<ConfirmDialog
-										trigger={
-											<Button type="button" variant="outline" size="sm" className="mr-auto text-destructive hover:text-destructive" disabled={deleteMutation.isPending}>
-												<Trash2 className="mr-1 h-3 w-3" />
-												삭제
-											</Button>
-										}
-										title="직원을 삭제하시겠습니까?"
-										description="삭제된 직원은 복구할 수 없습니다."
-										confirmLabel="삭제"
-										variant="destructive"
-										onConfirm={() => deleteMutation.mutate()}
-									/>
-								)}
 								<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 									취소
 								</Button>
