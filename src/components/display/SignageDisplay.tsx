@@ -96,20 +96,6 @@ export function SignageDisplay({
             <OrgSlide divisions={divisions} teams={teams} employees={employees} />
           </div>
 
-          {/* 방문자 슬라이드 (활성 콘텐츠 순환) */}
-          {visitorItems.map((visitor) => (
-            <div key={visitor.id} className="swiper-slide bubble_st">
-              <VisitorSlide visitor={visitor} />
-            </div>
-          ))}
-
-          {/* 뉴스 슬라이드 (활성 콘텐츠 순환) */}
-          {newsItems.map((news) => (
-            <div key={news.id} className="swiper-slide bubble_st">
-              <NewsSlide news={news} />
-            </div>
-          ))}
-
           {/* SafeInsight (활성화된 경우) */}
           {showSafeInsight && (
             <div className="swiper-slide">
@@ -123,6 +109,20 @@ export function SignageDisplay({
               <InGuideSlide />
             </div>
           )}
+
+          {/* 뉴스 슬라이드 (활성 콘텐츠 순환) */}
+          {newsItems.map((news) => (
+            <div key={news.id} className="swiper-slide bubble_st">
+              <NewsSlide news={news} />
+            </div>
+          ))}
+
+          {/* 방문자 슬라이드 (활성 콘텐츠 순환) */}
+          {visitorItems.map((visitor) => (
+            <div key={visitor.id} className="swiper-slide bubble_st">
+              <VisitorSlide visitor={visitor} />
+            </div>
+          ))}
         </div>
       </div>
     </div>
