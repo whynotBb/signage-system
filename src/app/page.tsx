@@ -11,8 +11,8 @@ export default async function DisplayPage() {
     supabase.from('teams').select('*').order('display_order', { ascending: true }),
     supabase.from('employees').select('*').eq('is_resigned', false).order('display_order', { ascending: true }),
     supabase.from('company_intro_config').select('*').single(),
-    supabase.from('news_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }),
-    supabase.from('visitor_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+    supabase.from('news_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }).order('created_at', { ascending: true }),
+    supabase.from('visitor_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }).order('created_at', { ascending: false }),
   ])
 
   // 게시 스케줄 필터링 (null이면 상시 표시)
