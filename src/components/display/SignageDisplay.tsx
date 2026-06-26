@@ -5,10 +5,12 @@ import Swiper from 'swiper'
 import { Autoplay, EffectFade } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/effect-fade'
-import type { Division, Team, Employee } from '@/types'
+import type { Division, Team, Employee, NewsContent, VisitorContent } from '@/types'
 import { OrgSlide } from './slides/OrgSlide'
 import { SafeInsightSlide } from './slides/SafeInsightSlide'
 import { InGuideSlide } from './slides/InGuideSlide'
+import { NewsSlide } from './slides/NewsSlide'
+import { VisitorSlide } from './slides/VisitorSlide'
 
 interface SignageDisplayProps {
   divisions: Division[]
@@ -16,6 +18,8 @@ interface SignageDisplayProps {
   employees: Employee[]
   showSafeInsight: boolean
   showInGuide: boolean
+  newsItems: NewsContent[]
+  visitorItems: VisitorContent[]
 }
 
 export function SignageDisplay({
@@ -24,6 +28,8 @@ export function SignageDisplay({
   employees,
   showSafeInsight,
   showInGuide,
+  newsItems,
+  visitorItems,
 }: SignageDisplayProps) {
   const swiperRef = useRef<Swiper | null>(null)
 
@@ -85,14 +91,28 @@ export function SignageDisplay({
             <OrgSlide divisions={divisions} teams={teams} employees={employees} />
           </div>
 
-          {/* 슬라이드 2: SafeInsight (활성화된 경우) */}
+          {/* 방문자 슬라이드 (활성 콘텐츠 순환) */}
+          {visitorItems.map((visitor) => (
+            <div key={visitor.id} className="swiper-slide bubble_st">
+              <VisitorSlide visitor={visitor} />
+            </div>
+          ))}
+
+          {/* 뉴스 슬라이드 (활성 콘텐츠 순환) */}
+          {newsItems.map((news) => (
+            <div key={news.id} className="swiper-slide bubble_st">
+              <NewsSlide news={news} />
+            </div>
+          ))}
+
+          {/* SafeInsight (활성화된 경우) */}
           {showSafeInsight && (
             <div className="swiper-slide">
               <SafeInsightSlide />
             </div>
           )}
 
-          {/* 슬라이드 3: In-Guide (활성화된 경우) */}
+          {/* In-Guide (활성화된 경우) */}
           {showInGuide && (
             <div className="swiper-slide">
               <InGuideSlide />

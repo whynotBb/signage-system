@@ -4,13 +4,29 @@ import { SignageDisplay } from '@/components/display/SignageDisplay'
 
 export default async function DisplayPage() {
   const supabase = await createClient()
+  const now = new Date()
 
-  const [divsRes, teamsRes, empsRes, configRes] = await Promise.all([
+  const [divsRes, teamsRes, empsRes, configRes, newsRes, visitorRes] = await Promise.all([
     supabase.from('divisions').select('*').order('display_order', { ascending: true }),
     supabase.from('teams').select('*').order('display_order', { ascending: true }),
     supabase.from('employees').select('*').eq('is_resigned', false).order('display_order', { ascending: true }),
     supabase.from('company_intro_config').select('*').single(),
+    supabase.from('news_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+    supabase.from('visitor_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }),
   ])
+
+  // 게시 스케줄 필터링 (null이면 상시 표시)
+  const activeNews = (newsRes.data ?? []).filter((n) => {
+    if (n.scheduled_start_at && new Date(n.scheduled_start_at) > now) return false
+    if (n.scheduled_end_at && new Date(n.scheduled_end_at) < now) return false
+    return true
+  })
+
+  // 방문자는 게시 기간이 필수
+  const activeVisitors = (visitorRes.data ?? []).filter((v) => {
+    if (!v.scheduled_start_at || !v.scheduled_end_at) return false
+    return new Date(v.scheduled_start_at) <= now && new Date(v.scheduled_end_at) >= now
+  })
 
   return (
     <SignageDisplay
@@ -19,6 +35,8 @@ export default async function DisplayPage() {
       employees={empsRes.data ?? []}
       showSafeInsight={configRes.data?.safeinsight_enabled ?? true}
       showInGuide={configRes.data?.inguide_enabled ?? true}
+      newsItems={activeNews}
+      visitorItems={activeVisitors}
     />
   )
 }
