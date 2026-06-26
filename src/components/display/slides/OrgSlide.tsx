@@ -201,7 +201,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
               <section
                 key={team.id}
                 className="org-dept org-dept-team-only"
-                style={{ '--dept-color': '#888888' } as React.CSSProperties}
+                style={{ '--dept-color': team.color ?? '#888888' } as React.CSSProperties}
               >
                 <div className="org-team-list">
                   <div className="org-team">
