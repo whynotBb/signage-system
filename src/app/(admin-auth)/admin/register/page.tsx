@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MailCheck } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -33,18 +33,27 @@ export default function RegisterPage() {
   async function onSubmit(values: RegisterFormValues) {
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
         data: { name: values.name },
-        emailRedirectTo: `${window.location.origin}/admin/auth/callback`,
       },
     })
 
     if (error) {
       toast.error('회원가입 실패', { description: mapAuthError(error) })
       return
+    }
+
+    if (data.user) {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        email: values.email,
+        name: values.name,
+        is_active: false,
+        role: 'editor',
+      })
     }
 
     setSubmittedEmail(values.email)
@@ -56,17 +65,17 @@ export default function RegisterPage() {
       <div className="space-y-6 text-center">
         <div className="flex justify-center">
           <div className="rounded-full bg-primary/10 p-4">
-            <MailCheck className="h-8 w-8 text-primary" />
+            <Clock className="h-8 w-8 text-primary" />
           </div>
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">인증 메일을 확인해주세요</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">가입 신청이 완료되었습니다</h1>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{submittedEmail}</span>로
-            인증 메일이 발송되었습니다.
+            <span className="font-medium text-foreground">{submittedEmail}</span>으로
+            가입 신청이 접수되었습니다.
           </p>
           <p className="text-sm text-muted-foreground">
-            메일함의 인증 링크를 클릭하면 가입이 완료됩니다.
+            관리자 승인 후 로그인이 가능합니다.
           </p>
         </div>
         <Link

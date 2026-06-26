@@ -28,9 +28,6 @@ export default function LoginPage() {
   const setUser = useAuthStore((state) => state.setUser)
 
   useEffect(() => {
-    if (searchParams.get('verified') === 'true') {
-      toast.success('이메일 인증 완료', { description: '로그인해주세요' })
-    }
     if (searchParams.get('error') === 'auth_callback_error') {
       toast.error('인증 링크 오류', { description: '유효하지 않거나 만료된 링크입니다. 다시 시도해주세요' })
     }
@@ -73,7 +70,7 @@ export default function LoginPage() {
     if (!profile.is_active) {
       await supabase.auth.signOut()
       toast.error('로그인 실패', {
-        description: '비활성화된 계정입니다. 관리자에게 문의해주세요',
+        description: '관리자 승인 대기 중인 계정입니다. 승인 후 로그인이 가능합니다.',
       })
       return
     }

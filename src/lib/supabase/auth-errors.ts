@@ -5,7 +5,7 @@ export function mapAuthError(error: AuthError): string {
     case 'invalid_credentials':
       return '이메일 또는 비밀번호가 올바르지 않습니다'
     case 'email_not_confirmed':
-      return '이메일 인증이 완료되지 않았습니다. 메일함을 확인해주세요'
+      return '가입 승인이 완료되지 않았습니다. 관리자에게 문의해주세요'
     case 'over_request_rate_limit':
       return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요'
     case 'user_not_found':
