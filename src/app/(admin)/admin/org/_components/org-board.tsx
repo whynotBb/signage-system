@@ -89,6 +89,12 @@ function getInitials(name: string): string {
 	return name.slice(0, 2);
 }
 
+function isNewEmployee(hiredAt: string): boolean {
+	const threeMonthsAgo = new Date();
+	threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+	return new Date(hiredAt) > threeMonthsAgo;
+}
+
 function findContainer(id: string, containers: Record<string, Employee[]>): ContainerId | null {
 	if (id in containers) return id;
 	// over.id가 팀 UUID 또는 실 UUID로 넘어올 때 prefix 매핑
@@ -121,6 +127,7 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: Omit<Emplo
 			{employee.position && <span className="shrink-0 text-xs text-muted-foreground">{employee.position}</span>}
 			{employee.title && <Badge className="shrink-0 border-0 bg-indigo-100 text-[10px] text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">{employee.title}</Badge>}
 			{employee.is_dispatched && <Badge className="shrink-0 border-0 bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">파견</Badge>}
+			{isNewEmployee(employee.hired_at) && <Badge className="shrink-0 border-0 bg-purple-100 text-[10px] text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">NEW</Badge>}
 			{!isEditor && (
 				<div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 ml-auto">
 					<Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => onEdit?.(employee)}>

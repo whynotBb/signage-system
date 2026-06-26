@@ -7,11 +7,11 @@ interface OrgSlideProps {
   employees: Employee[]
 }
 
-// 신규입사자 기준: 입사일로부터 6개월 이내
+// 신규입사자 기준: 입사일로부터 3개월 이내
 function isNewEmployee(hiredAt: string): boolean {
-  const sixMonthsAgo = new Date()
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-  return new Date(hiredAt) > sixMonthsAgo
+  const threeMonthsAgo = new Date()
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  return new Date(hiredAt) > threeMonthsAgo
 }
 
 // 아바타 이미지 URL (폴백: 빈 원형)
@@ -50,6 +50,9 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
   // 임원진 추출
   const ceo = employees.find((e) => e.org_role === 'representative') ?? null
   const vp = employees.find((e) => e.org_role === 'vice_representative') ?? null
+
+  // 단독팀 (소속 실 없음)
+  const standaloneTeams = teams.filter((t) => !t.division_id)
 
   // 부서별 데이터 구성
   const deptData = divisions.map((div) => {
@@ -106,7 +109,6 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
           {deptData.map(({ div, divTeams, head, directMembers, hasTeams, hasHead }) => {
             const deptClass = [
               'org-dept',
-              `org-dept-${div.color}`,
               !hasTeams ? 'org-dept-no-teams' : '',
               !hasHead && hasTeams ? 'org-dept-team-only' : '',
             ]
@@ -114,7 +116,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
               .join(' ')
 
             return (
-              <section key={div.id} className={deptClass}>
+              <section key={div.id} className={deptClass} style={{ '--dept-color': div.color } as React.CSSProperties}>
                 {/* 실 이름 (팀이 없거나 실장이 있을 때 표시) */}
                 {(!hasTeams || hasHead) && (
                   <h2 className="org-dept-name">{div.name}</h2>
@@ -186,6 +188,31 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
                     ))}
                   </ul>
                 )}
+              </section>
+            )
+          })}
+
+          {/* 단독팀 (소속 실 없음) */}
+          {standaloneTeams.map((team) => {
+            const teamMembers = employees.filter(
+              (e) => e.team_id === team.id && e.org_role === 'member',
+            )
+            return (
+              <section
+                key={team.id}
+                className="org-dept org-dept-team-only"
+                style={{ '--dept-color': '#888888' } as React.CSSProperties}
+              >
+                <div className="org-team-list">
+                  <div className="org-team">
+                    <h3 className="org-team-name">{team.name}</h3>
+                    <ul className="org-member-list">
+                      {teamMembers.map((emp) => (
+                        <MemberCard key={emp.id} employee={emp} />
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </section>
             )
           })}

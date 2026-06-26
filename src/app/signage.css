@@ -421,23 +421,8 @@ a {
 	margin: 0 auto;
 }
 
-.org-dept-service .org-dept-name {
-	background: var(--color-blue);
-}
-.org-dept-solution .org-dept-name {
-	background: var(--color-cyan);
-}
-.org-dept-platform .org-dept-name {
-	background: var(--color-green);
-}
-.org-dept-sales .org-dept-name {
-	background: var(--color-lime);
-}
-.org-dept-dx .org-dept-name {
-	background: var(--color-orange);
-}
-.org-dept-management .org-dept-name {
-	background: var(--color-pink);
+.org-dept .org-dept-name {
+	background: var(--dept-color, var(--color-blue));
 }
 
 /* ─ 실장 영역 */
@@ -513,23 +498,8 @@ a {
 	font-style: normal;
 }
 
-.org-dept-service .org-team-name {
-	background: var(--color-blue);
-}
-.org-dept-solution .org-team-name {
-	background: var(--color-cyan);
-}
-.org-dept-platform .org-team-name {
-	background: var(--color-green);
-}
-.org-dept-sales .org-team-name {
-	background: var(--color-lime);
-}
-.org-dept-dx .org-team-name {
-	background: var(--color-orange);
-}
-.org-dept-management .org-team-name {
-	background: var(--color-pink);
+.org-dept .org-team-name {
+	background: var(--dept-color, var(--color-blue));
 }
 
 /* ────────────────────────────────
@@ -570,42 +540,12 @@ a {
 	height: 2.083vw;
 }
 
-.org-dept-service .org-member {
-	border-color: var(--color-blue);
-}
-.org-dept-solution .org-member {
-	border-color: var(--color-cyan);
-}
-.org-dept-platform .org-member {
-	border-color: var(--color-green);
-}
-.org-dept-sales .org-member {
-	border-color: var(--color-lime);
-}
-.org-dept-dx .org-member {
-	border-color: var(--color-orange);
-}
-.org-dept-management .org-member {
-	border-color: var(--color-pink);
+.org-dept .org-member {
+	border-color: var(--dept-color, var(--color-blue));
 }
 
-.org-dept-service .org-member::after {
-	background: var(--color-blue);
-}
-.org-dept-solution .org-member::after {
-	background: var(--color-cyan);
-}
-.org-dept-platform .org-member::after {
-	background: var(--color-green);
-}
-.org-dept-sales .org-member::after {
-	background: var(--color-lime);
-}
-.org-dept-dx .org-member::after {
-	background: var(--color-orange);
-}
-.org-dept-management .org-member::after {
-	background: var(--color-pink);
+.org-dept .org-member::after {
+	background: var(--dept-color, var(--color-blue));
 }
 
 /* ─ 파견자 */
@@ -648,13 +588,12 @@ a {
 	white-space: nowrap;
 }
 
-/* ─ 신규입사자 */
-.org-dept-solution .org-member.org-member-new {
-	position: relative;
+/* ─ 신규입사자 (전체 부서 적용) */
+.org-dept .org-member.org-member-new {
 	border-color: #c925ff;
 }
 
-.org-dept-solution .org-member.org-member-new::before {
+.org-dept .org-member.org-member-new::before {
 	content: "";
 	width: 0.573vw;
 	height: 0.573vw;
@@ -665,7 +604,7 @@ a {
 	z-index: 1;
 }
 
-.org-dept-solution .org-member.org-member-new::after {
+.org-dept .org-member.org-member-new::after {
 	background: #c925ff;
 }
 
