@@ -19,17 +19,20 @@ export type Database = {
       company_intro_config: {
         Row: {
           id: string
-          is_enabled: boolean
+          safeinsight_enabled: boolean
+          inguide_enabled: boolean
           updated_at: string
         }
         Insert: {
           id?: string
-          is_enabled?: boolean
+          safeinsight_enabled?: boolean
+          inguide_enabled?: boolean
           updated_at?: string
         }
         Update: {
           id?: string
-          is_enabled?: boolean
+          safeinsight_enabled?: boolean
+          inguide_enabled?: boolean
           updated_at?: string
         }
         Relationships: []

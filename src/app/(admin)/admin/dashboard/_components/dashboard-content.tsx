@@ -50,7 +50,8 @@ type SlideGroup = {
 	key: GroupKey;
 	display_order: number;
 	items: ContentItem[];
-	is_enabled?: boolean;
+	safeinsight_enabled?: boolean;
+	inguide_enabled?: boolean;
 };
 
 // ── 그룹 메타 ─────────────────────────────────────────────────────────────────
@@ -114,11 +115,11 @@ async function fetchAllImages(): Promise<ContentItem[]> {
 	return (data ?? []).map((r) => ({ ...r, display_order: (r as Record<string, unknown>)["display_order"] as number ?? 0 })) as ContentItem[];
 }
 
-async function fetchCompanyIntroConfig(): Promise<{ id: string; is_enabled: boolean }> {
+async function fetchCompanyIntroConfig(): Promise<{ id: string; safeinsight_enabled: boolean; inguide_enabled: boolean }> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("company_intro_config").select("id, is_enabled").single();
+	const { data, error } = await supabase.from("company_intro_config").select("id, safeinsight_enabled, inguide_enabled").single();
 	if (error) throw error;
-	return data as { id: string; is_enabled: boolean };
+	return data as { id: string; safeinsight_enabled: boolean; inguide_enabled: boolean };
 }
 
 async function fetchActiveEmployeeCount(): Promise<number> {
@@ -144,9 +145,15 @@ async function toggleItemActive(table: string, id: string, is_active: boolean) {
 	if (error) throw error;
 }
 
-async function toggleCompanyIntro(id: string, is_enabled: boolean) {
+async function toggleSafeInsight(id: string, safeinsight_enabled: boolean) {
 	const supabase = createClient();
-	const { error } = await supabase.from("company_intro_config").update({ is_enabled }).eq("id", id);
+	const { error } = await supabase.from("company_intro_config").update({ safeinsight_enabled }).eq("id", id);
+	if (error) throw error;
+}
+
+async function toggleInGuide(id: string, inguide_enabled: boolean) {
+	const supabase = createClient();
+	const { error } = await supabase.from("company_intro_config").update({ inguide_enabled }).eq("id", id);
 	if (error) throw error;
 }
 
@@ -214,10 +221,11 @@ interface SortableGroupCardProps {
 	activeEmployeeCount?: number;
 	onItemToggle: (itemId: string, is_active: boolean) => void;
 	onItemReorder: (newItems: ContentItem[]) => void;
-	onCompanyIntroToggle?: (is_enabled: boolean) => void;
+	onSafeInsightToggle?: (v: boolean) => void;
+	onInGuideToggle?: (v: boolean) => void;
 }
 
-function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, onItemToggle, onItemReorder, onCompanyIntroToggle }: SortableGroupCardProps) {
+function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle }: SortableGroupCardProps) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.key });
@@ -294,11 +302,14 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 						재직 {activeEmployeeCount ?? 0}명
 					</Badge>
 				)}
-				{isCompanyIntro && (
-					<Badge variant="outline" className={cn("text-xs ml-1", group.is_enabled ? "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400" : "")}>
-						{group.is_enabled ? "활성" : "비활성"}
-					</Badge>
-				)}
+				{isCompanyIntro && (() => {
+					const activeCount = (group.safeinsight_enabled ? 1 : 0) + (group.inguide_enabled ? 1 : 0);
+					return (
+						<Badge variant="outline" className={cn("text-xs ml-1", activeCount > 0 ? "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400" : "")}>
+							활성 {activeCount}/2
+						</Badge>
+					);
+				})()}
 				{hasItems && (
 					<Badge variant="outline" className="text-xs ml-1">
 						활성 {activeCount}/{totalCount}
@@ -312,11 +323,6 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 							<ExternalLink className="h-3.5 w-3.5" />
 						</Link>
 					</Button>
-
-					{/* 회사소개 토글 */}
-					{isCompanyIntro && onCompanyIntroToggle && (
-						<Switch checked={group.is_enabled ?? false} onCheckedChange={onCompanyIntroToggle} aria-label="회사소개 슬라이드 활성화" />
-					)}
 
 					{/* 접기/펼치기 */}
 					{(hasItems || isOrg || isCompanyIntro) && (
@@ -332,7 +338,34 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 				<>
 					{isOrg && <div className="px-4 py-3 text-sm text-muted-foreground">조직도 슬라이드 1개 · 상세 편집은 <Link href={meta.href} className="underline underline-offset-2 hover:text-foreground transition-colors">조직도 관리</Link>에서</div>}
 
-					{isCompanyIntro && <div className="px-4 py-3 text-sm text-muted-foreground">SafeInsight + In-Guide 슬라이드 묶음 · 내용 편집은 개발 배포를 통해 변경됩니다.</div>}
+					{isCompanyIntro && (
+						<div className="divide-y divide-border/50">
+							<div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors">
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-medium">SafeInsight</p>
+									<p className="text-xs text-muted-foreground">안전보건 정보 슬라이드</p>
+								</div>
+								<Switch
+									checked={group.safeinsight_enabled ?? false}
+									onCheckedChange={onSafeInsightToggle}
+									aria-label="SafeInsight 슬라이드 활성화"
+									className="shrink-0"
+								/>
+							</div>
+							<div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors">
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-medium">In-Guide</p>
+									<p className="text-xs text-muted-foreground">사내 가이드 슬라이드</p>
+								</div>
+								<Switch
+									checked={group.inguide_enabled ?? false}
+									onCheckedChange={onInGuideToggle}
+									aria-label="In-Guide 슬라이드 활성화"
+									className="shrink-0"
+								/>
+							</div>
+						</div>
+					)}
 
 					{hasItems && (
 						<>
@@ -394,14 +427,15 @@ export function DashboardContent() {
 			key: g.group_key as GroupKey,
 			display_order: g.display_order,
 			items: ITEM_MAP[g.group_key as GroupKey] ?? [],
-			is_enabled: g.group_key === "company_intro" ? (companyIntroConfig?.is_enabled ?? false) : undefined,
+			safeinsight_enabled: g.group_key === "company_intro" ? (companyIntroConfig?.safeinsight_enabled ?? false) : undefined,
+			inguide_enabled: g.group_key === "company_intro" ? (companyIntroConfig?.inguide_enabled ?? false) : undefined,
 		}))
 		.sort((a, b) => a.display_order - b.display_order);
 
 	const visibleGroups = showActiveOnly
 		? groups.filter((g) => {
 				if (g.key === "org") return true;
-				if (g.key === "company_intro") return g.is_enabled;
+				if (g.key === "company_intro") return g.safeinsight_enabled || g.inguide_enabled;
 				return g.items.some((i) => i.is_active);
 		  })
 		: groups;
@@ -410,7 +444,8 @@ export function DashboardContent() {
 		(activeEmployeeCount > 0 ? 1 : 0) +
 		newsItems.filter((i) => i.is_active).length +
 		visitorItems.filter((i) => i.is_active).length +
-		(companyIntroConfig?.is_enabled ? 1 : 0) +
+		(companyIntroConfig?.safeinsight_enabled ? 1 : 0) +
+		(companyIntroConfig?.inguide_enabled ? 1 : 0) +
 		videoItems.filter((i) => i.is_active).length +
 		imageItems.filter((i) => i.is_active).length;
 
@@ -467,12 +502,21 @@ export function DashboardContent() {
 		});
 	}
 
-	// ── 회사소개 토글 ──
+	// ── 회사소개 개별 토글 ──
 
-	function handleCompanyIntroToggle(is_enabled: boolean) {
+	function handleSafeInsightToggle(safeinsight_enabled: boolean) {
 		if (!companyIntroConfig) return;
-		queryClient.setQueryData(queryKeys.companyIntro.config(), { ...companyIntroConfig, is_enabled });
-		toggleCompanyIntro(companyIntroConfig.id, is_enabled).catch(() => {
+		queryClient.setQueryData(queryKeys.companyIntro.config(), { ...companyIntroConfig, safeinsight_enabled });
+		toggleSafeInsight(companyIntroConfig.id, safeinsight_enabled).catch(() => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.companyIntro.config() });
+			toast.error("상태 변경에 실패했습니다.");
+		});
+	}
+
+	function handleInGuideToggle(inguide_enabled: boolean) {
+		if (!companyIntroConfig) return;
+		queryClient.setQueryData(queryKeys.companyIntro.config(), { ...companyIntroConfig, inguide_enabled });
+		toggleInGuide(companyIntroConfig.id, inguide_enabled).catch(() => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.companyIntro.config() });
 			toast.error("상태 변경에 실패했습니다.");
 		});
@@ -520,7 +564,8 @@ export function DashboardContent() {
 								activeEmployeeCount={group.key === "org" ? activeEmployeeCount : undefined}
 								onItemToggle={(itemId, v) => handleItemToggle(group.key, itemId, v)}
 								onItemReorder={(newItems) => handleItemReorder(group.key, newItems)}
-								onCompanyIntroToggle={group.key === "company_intro" ? handleCompanyIntroToggle : undefined}
+								onSafeInsightToggle={group.key === "company_intro" ? handleSafeInsightToggle : undefined}
+								onInGuideToggle={group.key === "company_intro" ? handleInGuideToggle : undefined}
 							/>
 						))}
 					</div>
