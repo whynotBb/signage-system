@@ -38,6 +38,9 @@ export const queryKeys = {
   companyIntro: {
     config: () => ['company_intro_config'] as const,
   },
+  signageGroupOrder: {
+    all: ['signage_group_order'] as const,
+  },
   videos: {
     all: ['video_contents'] as const,
     active: () => ['video_contents', { is_active: true }] as const,
