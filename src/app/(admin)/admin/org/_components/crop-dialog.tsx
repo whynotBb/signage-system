@@ -35,7 +35,7 @@ export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete }: Cro
     if (!croppedAreaPixels) return
     setIsCropping(true)
     try {
-      const blob = await getCroppedImg(imageSrc, croppedAreaPixels)
+      const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 400, undefined, undefined, 'image/png')
       onCropComplete(blob)
       onOpenChange(false)
     } catch {

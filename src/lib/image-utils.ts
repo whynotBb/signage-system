@@ -10,7 +10,8 @@ export async function getCroppedImg(
   pixelCrop: PixelCrop,
   outputSize = 400,
   outputWidth?: number,
-  outputHeight?: number
+  outputHeight?: number,
+  mimeType: 'image/jpeg' | 'image/png' = 'image/jpeg'
 ): Promise<Blob> {
   const image = await createImage(imageSrc)
   const canvas = document.createElement('canvas')
@@ -19,6 +20,12 @@ export async function getCroppedImg(
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')!
+
+  // JPEG는 투명도 미지원 — 흰색 배경 채우기
+  if (mimeType === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
+  }
 
   ctx.drawImage(
     image,
@@ -41,8 +48,8 @@ export async function getCroppedImg(
         }
         resolve(blob)
       },
-      'image/jpeg',
-      0.9
+      mimeType,
+      mimeType === 'image/jpeg' ? 0.9 : undefined
     )
   })
 }

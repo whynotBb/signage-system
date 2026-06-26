@@ -49,10 +49,9 @@ async function fetchTeams(): Promise<Team[]> {
 
 async function uploadProfileImage(employeeId: string, blob: Blob): Promise<string> {
 	const supabase = createClient();
-	const ext = "jpg";
-	const path = `${employeeId}/profile.${ext}`;
+	const path = `${employeeId}/profile.png`;
 
-	const { error: uploadError } = await supabase.storage.from("employees").upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+	const { error: uploadError } = await supabase.storage.from("employees").upload(path, blob, { upsert: true, contentType: "image/png" });
 	if (uploadError) throw uploadError;
 
 	const { data } = supabase.storage.from("employees").getPublicUrl(path);
