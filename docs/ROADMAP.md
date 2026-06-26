@@ -283,10 +283,10 @@
   - [x] signage.css 포팅 (vw 단위 유지, CSS Variables, 애니메이션 포함)
   - [x] Paperlogy 폰트 CDN 연동 (layout.tsx)
 
-- [ ] **TASK-021: 조직도 슬라이드 구현** (F029)
-  - [ ] `divisions`/`teams`/`employees` 데이터 기반 동적 렌더링 (실/팀/직원 계층 구조)
-  - [ ] 파견/퇴사 직원 표시 제외 처리, display_order 정렬
-  - [ ] 항상 표시 (표시 조건 없음)
+- [x] **TASK-021: 조직도 슬라이드 구현** (F029)
+  - [x] `divisions`/`teams`/`employees` 데이터 기반 동적 렌더링 (실/팀/직원 계층 구조)
+  - [x] 파견/퇴사 직원 표시 제외 처리, display_order 정렬
+  - [x] 항상 표시 (표시 조건 없음)
 
 - [ ] **TASK-022: 뉴스·방문자 슬라이드 구현** (F030, F031)
   - [ ] 뉴스 슬라이드 — 활성 뉴스(is_active=true) 순환 표시 (F030)
