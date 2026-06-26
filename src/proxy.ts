@@ -13,6 +13,15 @@ const PUBLIC_AUTH_PATHS = [
   '/admin/auth/callback',
 ]
 
+// 역할 기반 보호 경로 — 허용 역할 외 접근 시 /admin/dashboard로 리다이렉트
+const ROLE_GUARDS: { prefix: string; allowed: string[] }[] = [
+  { prefix: '/admin/users', allowed: ['super_admin'] },
+  { prefix: '/admin/org', allowed: ['super_admin', 'content_admin'] },
+  { prefix: '/admin/company-intro', allowed: ['super_admin', 'content_admin'] },
+  { prefix: '/admin/video', allowed: ['super_admin', 'content_admin'] },
+  { prefix: '/admin/image', allowed: ['super_admin', 'content_admin'] },
+]
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -55,6 +64,24 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin/login'
     return NextResponse.redirect(url)
+  }
+
+  // 역할 기반 접근 제어 — 보호 경로 진입 시에만 DB 조회
+  if (user) {
+    const matchedGuard = ROLE_GUARDS.find((g) => pathname.startsWith(g.prefix))
+    if (matchedGuard) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile || !matchedGuard.allowed.includes(profile.role)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin/dashboard'
+        return NextResponse.redirect(url)
+      }
+    }
   }
 
   return response

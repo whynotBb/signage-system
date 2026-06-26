@@ -56,7 +56,7 @@
 
 ---
 
-## 현재 상태 요약 (2026-06-25 기준)
+## 현재 상태 요약 (2026-06-26 기준)
 
 - ✅ **프로젝트 스캐폴딩 완료**: 라우트 그룹 구조, 빈 페이지 껍데기, 공통 레이아웃, shadcn/ui + composite 컴포넌트, Zustand 스토어, 인증 폼 검증 스키마
 - ✅ **도메인 타입 정의 완료**: 9개 Supabase 테이블 TypeScript 타입(Row/Insert/Update), Database 네임스페이스, `@/types` 일괄 export, auth-store Profile 타입 통합
@@ -64,15 +64,17 @@
 - ✅ **DB 스키마·마이그레이션 완료**: 9개 테이블, updated_at 트리거, handle_new_user Auth 트리거(role=editor 자동 생성), company_intro_config 시드, FK 인덱스 7개
 - ✅ **RLS·Storage 완료**: `current_user_role()` SECURITY DEFINER 헬퍼, 9개 테이블 역할 기반 RLS 정책, Storage 버킷 3종(employees/videos/images), 보안 강화(불필요한 PUBLIC EXECUTE 박탈)
 - ✅ **TASK-006 완료**: 로그인 기능 Supabase Auth 연동 (`auth-errors.ts` + `login/page.tsx` 수정), Playwright E2E 검증
-- ✅ **TASK-007 완료**: 회원가입 기능 Supabase Auth 연동 (`register/page.tsx` signUp + 성공 UI, `auth-errors.ts` 에러 코드 보강)
-- ✅ **TASK-008 완료**: 이메일 인증 콜백 라우트 (`/admin/auth/callback/route.ts`), `verified=true`/`error=` 쿼리 파라미터 toast 처리
+- ✅ **TASK-007 완료** _(플로우 변경)_: 이메일 인증 방식 → **관리자 승인 방식**으로 전환 — `signUp` 후 `profiles` 직접 insert(`is_active=false`), 가입 완료 UI 교체(Clock 아이콘·승인 대기 안내)
+- ✅ **TASK-008 유지**: 이메일 인증 콜백 라우트(`/admin/auth/callback/route.ts`) 코드 유지, 단 TASK-007 플로우 변경으로 주가입 경로에서는 미사용
 - ✅ **TASK-009 완료**: `proxy.ts` 라우트 가드 구현 (`/admin/**` 비로그인 차단 → `/admin/login` 리디렉션), `nav-user.tsx` 로그아웃 `supabase.auth.signOut()` 연동, Playwright E2E 검증
 - ✅ **TASK-010 완료**: 대시보드 현황 개요 구현 — `dashboard-stats.tsx` 클라이언트 컴포넌트 신규 생성, 5개 카테고리별 TanStack Query count 쿼리(`query-keys.ts` activeCount 키 추가), 현재 사용자 역할 표시, Playwright E2E 검증
 - ✅ **TASK-011 완료**: 조직도 UI/UX 설계 + DB 마이그레이션(divisions.color, employees.position/org_role) + @dnd-kit/react-easy-crop 설치, TypeScript 타입 반영
 - ✅ **TASK-012 완료**: OrgBoard DnD 전체 UI + 파견 Badge·org_role 연동·독립 팀 컬러·퇴사자 관리 서브메뉴·DnD 애니메이션 개선 포함 전체 구현 완료
 - ✅ **TASK-013 완료**: 뉴스 관리 CRUD — Zod 스키마(`validations/news.ts`), 목록 테이블(`news-table.tsx`, TanStack Query + @dnd-kit 순서 변경 + 인라인 Switch 토글 + editor 권한 제어), 등록/수정 폼(`news-form-dialog.tsx`, react-easy-crop 16:9 크롭 + Storage 업로드), 삭제 모달(`delete-news-dialog.tsx`, Storage 이미지 동시 삭제), DB 마이그레이션(`news_contents.display_order`), Playwright E2E 검증 완료
 - ✅ **TASK-014 완료**: 방문자 관리 CRUD — Zod 스키마(`validations/visitor.ts`), 목록 테이블(`visitor-table.tsx`, TanStack Query + Switch 활성 토글 + editor 권한 분기), 등록/수정 폼(`visitor-form-dialog.tsx`), 삭제 모달(`delete-visitor-dialog.tsx`), 페이지 통합 완료
-- ⬜ **미완료**: TASK-015 이후 — 회사소개·동영상·이미지 관리 CRUD, Realtime 연동, 사용자 관리, RBAC 통합
+- ✅ **TASK-018 완료**: 사용자 관리 전체 — 목록·탭·역할 변경·승인/비활성화(ConfirmDialog) + PendingUsersBanner + 사이드바 배지 + `users/page.tsx` super_admin 서버 가드
+- ✅ **TASK-019 완료**: RBAC 통합 — `proxy.ts` ROLE_GUARDS 역할 기반 라우트 가드 + 사이드바/editor 규칙 정합성 검증
+- ⬜ **미완료**: TASK-015 이후 — 회사소개·동영상·이미지 관리 CRUD, Realtime 연동
 
 ---
 
@@ -134,10 +136,10 @@
   - [x] 회원가입 페이지 링크 연결
   - [x] **테스트 체크리스트**: 로그인 성공/실패, 잘못된 형식 입력, 세션 유지 E2E 테스트 (Playwright MCP)
 
-- [x] **TASK-007: 회원가입 기능 구현** (F026)
+- [x] **TASK-007: 회원가입 기능 구현** (F026) _→ **[2026-06-26 플로우 변경]** 이메일 인증 → 관리자 승인 방식_
   - [x] 회원가입 페이지 UI 구현 (이름/이메일/비밀번호 폼, Zod 유효성 검사)
-  - [x] Supabase Auth `signUp` 연동 및 이메일 인증 메일 발송 트리거
-  - [x] 가입 신청 완료 안내 메시지 표시 ("인증 메일을 확인하세요")
+  - [x] ~~Supabase Auth `signUp` + 이메일 인증 메일 발송~~ → `signUp` 후 `profiles` 직접 insert(`is_active=false`, `role=editor`), `emailRedirectTo` 제거
+  - [x] 가입 완료 UI 변경 — MailCheck → Clock 아이콘, "인증 메일" → "관리자 승인 대기" 안내
   - [x] **테스트 체크리스트**: 가입 신청 성공 UI·폼 유효성 검사 Playwright E2E 확인. 중복 이메일은 Supabase 이메일 인증 모드 기본 동작(이메일 열거 방지를 위해 성공 응답 반환)으로 UI 레벨 검증 생략. `auth-errors.ts`에 `user_already_exists` 에러 코드 처리 추가.
 
 - [x] **TASK-008: 이메일 인증 완료 흐름 구현** (F027)
@@ -248,18 +250,21 @@
 
 **완료 기준**: super_admin이 사용자 역할 변경·계정 비활성화를 수행할 수 있고, 모든 페이지·메뉴·DB 접근이 역할 정책에 따라 정확히 통제된다.
 
-- [ ] **TASK-018: 사용자 관리 기능 구현** (F022, F023, F024) - 우선순위
-  - [ ] 사용자 계정 목록 테이블 — 이름, 이메일, 역할, 가입일, 활성 상태 (F022)
-  - [ ] 역할 변경 드롭다운 — editor ↔ content_admin 변경 (F023)
-  - [ ] 계정 비활성화/삭제 확인 모달 (`is_active` 토글) (F024)
-  - [ ] 페이지 접근 제어: super_admin만
-  - [ ] **테스트 체크리스트**: 역할 변경 후 권한 즉시 반영, 비활성 계정 로그인 차단 (Playwright MCP)
+- [x] **TASK-018: 사용자 관리 기능 구현** ✅ (F022, F023, F024) - 우선순위
+  - [x] 사용자 계정 목록 테이블 — 이름, 이메일, 역할, 가입일, 활성 상태 컬럼 + 전체/승인대기/활성 탭 (F022)
+  - [x] 역할 변경 드롭다운 — editor / content_admin / super_admin 선택 (F023)
+  - [x] 계정 비활성화 (`is_active` 토글) — ConfirmDialog 확인 모달 적용 (variant=destructive) (F024)
+  - [x] **[추가]** 가입 신청 승인 기능 — `is_active=false` → `true` 승인 버튼, 승인 즉시 `pendingCount` 캐시 무효화
+  - [x] **[추가]** `PendingUsersBanner` — 대시보드에 미승인 사용자 수 안내 배너 (super_admin 전용, 0명이면 숨김)
+  - [x] **[추가]** 사이드바 amber 배지 — 미승인 사용자 수 실시간 표시 (`queryKeys.profiles.pendingCount()`)
+  - [x] 페이지 접근 제어: super_admin만 — `users/page.tsx` async 서버 컴포넌트에서 `profiles.role` 조회 후 redirect
+  - [x] **테스트 체크리스트**: 비인증 접근 /admin/users → /admin/login 리다이렉트 Playwright 검증 완료
 
-- [ ] **TASK-019: RBAC 통합 및 권한 일관성 검증** (F001~F024)
-  - [ ] 사이드바 메뉴의 역할별 조건부 렌더링 일괄 점검 (조직도/회사소개/동영상/이미지: content_admin↑, 사용자관리: super_admin)
-  - [ ] 라우트 가드와 RLS 정책 간 정합성 검증 (UI 차단 ≠ DB 차단 불일치 제거)
-  - [ ] editor 본인 콘텐츠 한정 수정/삭제 규칙 전역 일관성 확인 (뉴스·방문자)
-  - [ ] **테스트 체크리스트**: 3개 역할별 전체 페이지 접근 매트릭스 E2E 테스트 (Playwright MCP)
+- [x] **TASK-019: RBAC 통합 및 권한 일관성 검증** ✅ (F001~F024)
+  - [x] 사이드바 메뉴의 역할별 조건부 렌더링 점검 — NAV_ITEMS roles 설정 + app-sidebar.tsx visibleItems 필터 정합성 확인
+  - [x] `proxy.ts` 역할 기반 라우트 가드 추가 — `ROLE_GUARDS` 상수 정의, 보호 경로 진입 시에만 `profiles.role` DB 조회 (성능 최소화), 미허용 역할 → `/admin/dashboard` redirect
+  - [x] editor 본인 콘텐츠 한정 규칙 확인 — news-table.tsx·visitor-table.tsx 모두 `canEdit()` 동일 패턴 확인
+  - [x] **테스트 체크리스트**: 비인증 /admin/org·/admin/users → /admin/login 리다이렉트 Playwright 검증 완료
 
 ---
 

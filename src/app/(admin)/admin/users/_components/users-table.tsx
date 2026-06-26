@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CheckCircle, XCircle, Users } from 'lucide-react'
+import { ConfirmDialog } from '@/components/composite/confirm-dialog'
 import type { Profile, UserRole } from '@/types'
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
@@ -192,15 +193,23 @@ export function UsersTable() {
                           승인
                         </Button>
                       ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deactivateMutation.mutate(profile.id)}
-                          disabled={deactivateMutation.isPending}
-                        >
-                          <XCircle className="mr-1.5 h-3.5 w-3.5" />
-                          비활성화
-                        </Button>
+                        <ConfirmDialog
+                          trigger={
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={deactivateMutation.isPending}
+                            >
+                              <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                              비활성화
+                            </Button>
+                          }
+                          title="계정을 비활성화하시겠습니까?"
+                          description="비활성화된 계정은 로그인할 수 없습니다. 나중에 다시 승인할 수 있습니다."
+                          confirmLabel="비활성화"
+                          onConfirm={() => deactivateMutation.mutate(profile.id)}
+                          variant="destructive"
+                        />
                       )}
                     </TableCell>
                   </TableRow>
