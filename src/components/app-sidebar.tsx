@@ -6,11 +6,14 @@ import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, UserMinus, Newspaper, UserCheck, Building2, Video, Image, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { NAV_ITEMS, SITE_CONFIG } from "@/lib/constants";
 import { useAuthStore } from "@/store/auth-store";
+import { createClient } from "@/lib/supabase/client";
+import { queryKeys } from "@/lib/supabase/query-keys";
 import type { NavIconKey } from "@/types";
 
 const iconMap: Record<NavIconKey, LucideIcon> = {
@@ -28,6 +31,20 @@ const iconMap: Record<NavIconKey, LucideIcon> = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const role = useAuthStore((s) => s.user?.role);
 	const pathname = usePathname();
+
+	const { data: pendingCount = 0 } = useQuery({
+		queryKey: queryKeys.profiles.pendingCount(),
+		queryFn: async () => {
+			const supabase = createClient();
+			const { count } = await supabase
+				.from("profiles")
+				.select("id", { count: "exact", head: true })
+				.eq("is_active", false);
+			return count ?? 0;
+		},
+		enabled: role === "super_admin",
+		staleTime: 60_000,
+	});
 
 	const visibleItems = NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role)));
 
@@ -49,6 +66,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				url: item.href,
 				icon: item.icon ? iconMap[item.icon] : undefined,
 				isActive: pathname === item.href || pathname.startsWith(item.href + "/"),
+				badge: item.href === "/admin/users" ? pendingCount : undefined,
 				children: item.children
 					?.filter((child) => !child.roles || (role && child.roles.includes(role)))
 					.map((child) => ({

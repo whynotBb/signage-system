@@ -28,6 +28,7 @@ interface NavGroup {
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    badge?: number
     children?: NavSubItem[]
   }[]
 }
@@ -51,6 +52,9 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                   <Link href={item.url} onClick={closeSidebarOnMobile}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
+                    {!!item.badge && (
+                      <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                    )}
                   </Link>
                 </SidebarMenuButton>
                 {item.children && item.children.length > 0 && (
