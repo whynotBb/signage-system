@@ -36,7 +36,7 @@ export function VisitorSlide({ visitor }: VisitorSlideProps) {
               <span className="company">{visitor.visitor_org}</span>
               {names.map((name, i) => (
                 <span key={i} className="guest">
-                  <b>{name}</b>{titles[i]}님
+                  <b>{name}</b>{titles[i]}
                 </span>
               ))}
             </div>
@@ -44,7 +44,7 @@ export function VisitorSlide({ visitor }: VisitorSlideProps) {
             <p className="welcome-info">
               {visitor.visitor_org}
               <span>
-                <b>{names[0]}</b>{titles[0]}님
+                <b>{names[0]}</b>{titles[0]}
               </span>
             </p>
           )}
