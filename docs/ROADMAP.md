@@ -75,7 +75,11 @@
 - ✅ **TASK-018 완료**: 사용자 관리 전체 — 목록·탭·역할 변경·승인/비활성화(ConfirmDialog) + PendingUsersBanner + 사이드바 배지 + `users/page.tsx` super_admin 서버 가드
 - ✅ **TASK-019 완료**: RBAC 통합 — `proxy.ts` ROLE_GUARDS 역할 기반 라우트 가드 + 사이드바/editor 규칙 정합성 검증
 - ✅ **TASK-020 완료**: Swiper 슬라이드쇼 기반 구조 구현 — `src/app/page.tsx` 서버 컴포넌트로 재작성, Supabase 조직도 데이터 패칭, signage.css 포팅(vw 단위), SafeInsight·InGuide 정적 슬라이드, color-bubble 시스템, Paperlogy 폰트 연동
-- ⬜ **미완료**: TASK-015 이후 — 회사소개·동영상·이미지 관리 CRUD, TASK-021~024 Realtime 연동
+- ✅ **TASK-021 완료**: 조직도 슬라이드 — divisions/teams/employees 동적 렌더링, display_order 정렬
+- ✅ **TASK-022 완료**: 뉴스·방문자 슬라이드 — 활성 콘텐츠 순환, 스케줄 필터링, Playwright E2E 검증
+- ✅ **TASK-023 (회사소개) 완료**: SafeInsight·InGuide 슬라이드 safeinsight_enabled/inguide_enabled on/off 연동, Playwright E2E 검증 — 이미지·동영상 슬라이드는 관리자 서비스 준비 중 보류
+- ✅ **TASK-024 완료**: Supabase Realtime 연동 — RealtimeSync 컴포넌트 신규 생성(6개 테이블 구독, 300ms debounce, 지수 백오프 재연결, visibilitychange 탭 복구), Swiper observer 옵션 추가, Playwright E2E 검증(INSERT→슬라이드 자동 추가, DELETE→제거)
+- ⬜ **미완료**: TASK-015 이후 — 회사소개·동영상·이미지 관리 CRUD, 이미지·동영상 슬라이드(TASK-023 미완)
 
 ---
 
@@ -292,20 +296,20 @@
   - [x] 뉴스 슬라이드 — 활성 뉴스(is_active=true) 순환 표시 (F030)
   - [x] 방문자 슬라이드 — 게시 스케줄(scheduled_start/end_at) 기반 활성 방문자 표시 (F031)
   - [x] 활성 콘텐츠 1건 이상일 때만 슬라이드 표시
-  - [ ] **테스트 체크리스트**: 게시 스케줄 만료 콘텐츠 미표시, 활성 콘텐츠 순환 (Playwright MCP)
+  - [x] **테스트 체크리스트**: 게시 스케줄 만료 콘텐츠 미표시, 활성 콘텐츠 순환 (Playwright MCP)
 
-- [ ] **TASK-023: 회사소개·이미지·동영상 슬라이드 구현** (F032, F033, F034)
-  - [ ] 회사소개 슬라이드 — `is_enabled=true`일 때만 표시, SafeInsight + In-Guide 하드코딩 HTML (F032)
-  - [ ] 이미지 슬라이드 — 활성 이미지 순환 표시 (F033)
-  - [ ] 동영상 슬라이드 — 활성 동영상 풀스크린 자동재생 (F034)
-  - [ ] **테스트 체크리스트**: 회사소개 on/off 연동, 동영상 풀스크린 자동재생, 이미지 순환 (Playwright MCP)
+- [x] **TASK-023: 회사소개·이미지·동영상 슬라이드 구현** (F032, F033, F034)
+  - [x] 회사소개 슬라이드 — `safeinsight_enabled`/`inguide_enabled` on/off 연동 (F032) ← TASK-020에서 구현 완료
+  - [ ] 이미지 슬라이드 — 관리자 서비스 준비 중 보류 (F033)
+  - [ ] 동영상 슬라이드 — 관리자 서비스 준비 중 보류 (F034)
+  - [x] **테스트 체크리스트 (회사소개)**: safeinsight/inguide on/off Playwright MCP 검증 완료
 
-- [ ] **TASK-024: Supabase Realtime 실시간 연동 구현** (F035) - 핵심 기능
-  - [ ] 디스플레이 화면에서 6개 콘텐츠 테이블 Realtime 구독 설정
-  - [ ] 관리자 변경(INSERT/UPDATE/DELETE) 발생 시 해당 슬라이드 즉시 갱신 (새로고침 불필요)
-  - [ ] 구독 재연결/네트워크 단절 복구 처리
-  - [ ] 회사소개 on/off, 직원 상태 변경 등 단일 행 변경 실시간 반영
-  - [ ] **테스트 체크리스트**: 관리자 콘텐츠 등록/수정/삭제 → 디스플레이 즉시 반영 E2E, 연결 끊김 복구 (Playwright MCP)
+- [x] **TASK-024: Supabase Realtime 실시간 연동 구현** (F035) - 핵심 기능
+  - [x] 디스플레이 화면에서 6개 콘텐츠 테이블 Realtime 구독 설정 (`supabase_realtime` publication에 6개 테이블 추가)
+  - [x] 관리자 변경(INSERT/UPDATE/DELETE) 발생 시 해당 슬라이드 즉시 갱신 (새로고침 불필요) — `router.refresh()` + Swiper observer 방식
+  - [x] 구독 재연결/네트워크 단절 복구 처리 — 지수 백오프(최대 30초), visibilitychange 탭 복구
+  - [x] 회사소개 on/off, 직원 상태 변경 등 단일 행 변경 실시간 반영
+  - [x] **테스트 체크리스트**: 뉴스 INSERT → 슬라이드 자동 추가(10→11), DELETE → 슬라이드 제거(11→10), visibilitychange → RSC 요청 발생 Playwright MCP 검증 완료
 
 ---
 

@@ -11,6 +11,7 @@ import { SafeInsightSlide } from './slides/SafeInsightSlide'
 import { InGuideSlide } from './slides/InGuideSlide'
 import { NewsSlide } from './slides/NewsSlide'
 import { VisitorSlide } from './slides/VisitorSlide'
+import { RealtimeSync } from './RealtimeSync'
 
 interface SignageDisplayProps {
   divisions: Division[]
@@ -46,6 +47,9 @@ export function SignageDisplay({
         delay: 10000,
         disableOnInteraction: false,
       },
+      observer: true,
+      observeParents: true,
+      observeSlideChildren: true,
     })
 
     swiperRef.current = swiper
@@ -69,6 +73,7 @@ export function SignageDisplay({
 
   return (
     <div className="signage-wrapper">
+      <RealtimeSync />
       {/* 배경 버블 레이어 */}
       <div className="deco-bubble-wrapper">
         <div className="deco-bubble blur-blue" />
