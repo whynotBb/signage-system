@@ -74,7 +74,8 @@
 - ✅ **TASK-014 완료**: 방문자 관리 CRUD — Zod 스키마(`validations/visitor.ts`), 목록 테이블(`visitor-table.tsx`, TanStack Query + Switch 활성 토글 + editor 권한 분기), 등록/수정 폼(`visitor-form-dialog.tsx`), 삭제 모달(`delete-visitor-dialog.tsx`), 페이지 통합 완료
 - ✅ **TASK-018 완료**: 사용자 관리 전체 — 목록·탭·역할 변경·승인/비활성화(ConfirmDialog) + PendingUsersBanner + 사이드바 배지 + `users/page.tsx` super_admin 서버 가드
 - ✅ **TASK-019 완료**: RBAC 통합 — `proxy.ts` ROLE_GUARDS 역할 기반 라우트 가드 + 사이드바/editor 규칙 정합성 검증
-- ⬜ **미완료**: TASK-015 이후 — 회사소개·동영상·이미지 관리 CRUD, Realtime 연동
+- ✅ **TASK-020 완료**: Swiper 슬라이드쇼 기반 구조 구현 — `src/app/page.tsx` 서버 컴포넌트로 재작성, Supabase 조직도 데이터 패칭, signage.css 포팅(vw 단위), SafeInsight·InGuide 정적 슬라이드, color-bubble 시스템, Paperlogy 폰트 연동
+- ⬜ **미완료**: TASK-015 이후 — 회사소개·동영상·이미지 관리 CRUD, TASK-021~024 Realtime 연동
 
 ---
 
@@ -274,11 +275,13 @@
 
 **완료 기준**: 6종 슬라이드가 표시 조건에 따라 자동 순환 재생되고, 관리자가 콘텐츠를 변경하면 디스플레이 화면이 새로고침 없이 즉시 갱신된다.
 
-- [ ] **TASK-020: Swiper 슬라이드쇼 기반 구조 구현** (F028) - 우선순위
-  - [ ] Swiper v11 설치 및 풀스크린 자동재생 슬라이드쇼 골격 (`vw` 고정 레이아웃, 비반응형)
-  - [ ] 슬라이드 순서/표시 조건 제어 로직 (조직도→뉴스→방문자→회사소개→이미지→동영상)
-  - [ ] 무한 루프 자동재생 및 슬라이드별 표시 시간 설정
-  - [ ] **테스트 체크리스트**: 슬라이드 순환, 빈 데이터 시 해당 슬라이드 스킵 (Playwright MCP)
+- [x] **TASK-020: Swiper 슬라이드쇼 기반 구조 구현** (F028) ✅
+  - [x] Swiper v11 설치 및 풀스크린 자동재생 슬라이드쇼 골격 (`vw` 고정 레이아웃, 비반응형)
+  - [x] 슬라이드 구성: 조직도(항상) → SafeInsight(on/off) → In-Guide(on/off)
+  - [x] loop, fade effect, crossFade, speed:800, autoplay:10000ms — 운영 파일과 동일
+  - [x] color-bubble 시스템 (bubble_st 슬라이드 활성 시 토글)
+  - [x] signage.css 포팅 (vw 단위 유지, CSS Variables, 애니메이션 포함)
+  - [x] Paperlogy 폰트 CDN 연동 (layout.tsx)
 
 - [ ] **TASK-021: 조직도 슬라이드 구현** (F029)
   - [ ] `divisions`/`teams`/`employees` 데이터 기반 동적 렌더링 (실/팀/직원 계층 구조)

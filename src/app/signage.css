@@ -1,0 +1,987 @@
+/* ════════════════════════════════════════════════════
+   Reset
+════════════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html,
+body {
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
+	background: #050d2a;
+}
+
+body {
+	font-family: "Paperlogy", sans-serif;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+	display: block;
+	max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+	font: inherit;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	overflow-wrap: break-word;
+}
+
+ul,
+ol {
+	list-style: none;
+}
+
+a {
+	text-decoration: none;
+	color: inherit;
+}
+
+/* ════════════════════════════════════════════════════
+   Swiper 풀화면
+════════════════════════════════════════════════════ */
+.swiper,
+.swiper-wrapper,
+.swiper-slide {
+	width: 100%;
+	height: 100%;
+}
+
+/* ════════════════════════════════════════════════════
+   CSS Variables
+════════════════════════════════════════════════════ */
+:root {
+	/* 기본 컬러 */
+	--color-blue: #3a86fe;
+	--color-cyan: #00c7dd;
+	--color-green: #3dd179;
+	--color-lime: #a8c900;
+	--color-orange: #ff8c00;
+	--color-pink: #f048ad;
+	--color-purple: #c925ff;
+	--color-gray-lt: #ccd2db;
+	--color-gray: #6b7998;
+	--color-black: #000000;
+
+	/* 그라데이션 */
+	--gradient: linear-gradient(99deg, #00b9ff -2.77%, #e0d900 104.75%);
+	--gradient-new: linear-gradient(91deg, #00e1ff 30.64%, #43e000 71.36%);
+	--gradient-pink: linear-gradient(91deg, #c925ff 30.64%, #f048ad 71.36%);
+}
+
+.signage-wrapper {
+	width: 100%;
+	height: 100%;
+	position: relative;
+	overflow: hidden;
+	background: linear-gradient(161deg, rgba(5, 13, 41, 0.5) 29.86%, rgba(29, 54, 140, 0.5) 120.96%), #050d2a;
+}
+
+.deco-bubble-wrapper {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.deco-bubble {
+	position: absolute;
+}
+
+.deco-bubble.blur-blue {
+	width: 36.458vw;
+	height: 36.458vw;
+	border-radius: 36.458vw;
+	background: #4627b7;
+	filter: blur(90px);
+	top: -21.875vw;
+	left: -28.125vw;
+	animation: float-blue 22s ease-in-out infinite;
+}
+
+.deco-bubble.blur-green {
+	width: 20.833vw;
+	height: 20.833vw;
+	aspect-ratio: 1/1;
+	border-radius: 20.833vw;
+	background: #4cb365;
+	filter: blur(100px);
+	top: -12.5vw;
+	right: -11.458vw;
+	animation: float-green 20s ease-in-out infinite;
+	animation-delay: -7s;
+}
+
+.deco-bubble.blur-blue-lg {
+	width: 62.5vw;
+	height: 36.458vw;
+	border-radius: 62.5vw;
+	background: #4627b7;
+	filter: blur(90px);
+	left: 14.063vw;
+	bottom: -38.115vw;
+	animation: float-blue-lg 25s ease-in-out infinite;
+	animation-delay: -13s;
+}
+
+.color-bubble {
+	opacity: 0;
+	position: absolute;
+	border-radius: 50%;
+	transition: opacity 0.8s ease;
+}
+
+.color-bubble.on {
+	opacity: 1;
+}
+
+.color-bubble.color-blue {
+	width: 2.083vw;
+	height: 2.083vw;
+	background: #0f6be4;
+	top: 8.854vw;
+	left: 9.896vw;
+	animation: bubble-float-a 18s ease-in-out infinite;
+}
+
+.color-bubble.color-blue-lg {
+	width: 23.958vw;
+	height: 23.958vw;
+	background: #0f6be4;
+	bottom: -16.146vw;
+	left: 8.854vw;
+	animation: bubble-float-c 28s ease-in-out infinite;
+	animation-delay: -5s;
+}
+
+.color-bubble.color-green {
+	width: 16.146vw;
+	height: 16.146vw;
+	background: #55ff5f;
+	top: -10.417vw;
+	right: 10.417vw;
+	animation: bubble-float-b 24s ease-in-out infinite;
+	animation-delay: -9s;
+}
+
+.color-bubble.color-yellow {
+	width: 3.125vw;
+	height: 3.125vw;
+	background: #e7ea36;
+	bottom: 4.688vw;
+	right: 7.292vw;
+	animation: bubble-float-b 16s ease-in-out infinite;
+	animation-delay: -4s;
+}
+
+.color-bubble.color-ring-white {
+	width: 3.646vw;
+	height: 3.646vw;
+	border: 0.521vw solid #fff;
+	top: 2.083vw;
+	right: 10.938vw;
+	animation: bubble-float-a 21s ease-in-out infinite;
+	animation-delay: -13s;
+}
+
+.color-bubble.color-ring-white2 {
+	width: 4.688vw;
+	height: 4.688vw;
+	border: 0.781vw solid #fff;
+	bottom: 2.604vw;
+	left: 26.042vw;
+	animation: bubble-float-c 19s ease-in-out infinite;
+	animation-delay: -7s;
+}
+
+.color-bubble.color-ring-white2.on {
+	opacity: 0.7;
+}
+
+.color-bubble.color-ring-green {
+	width: 3.125vw;
+	height: 3.125vw;
+	border: 0.781vw solid #3dd179;
+	top: 31.771vw;
+	left: 3.125vw;
+	animation: bubble-float-a 23s ease-in-out infinite;
+	animation-delay: -16s;
+}
+
+/* ════════════════════════════════════════════════════
+   Bubble 유영 애니메이션 (잔상 방지)
+════════════════════════════════════════════════════ */
+@keyframes bubble-float-a {
+	0% {
+		transform: translate(0, 0);
+	}
+	40% {
+		transform: translate(4vw, 3vw);
+	}
+	75% {
+		transform: translate(2vw, 5vw);
+	}
+	100% {
+		transform: translate(0, 0);
+	}
+}
+
+@keyframes bubble-float-b {
+	0% {
+		transform: translate(0, 0);
+	}
+	35% {
+		transform: translate(-4vw, 3vw);
+	}
+	70% {
+		transform: translate(-2vw, 5vw);
+	}
+	100% {
+		transform: translate(0, 0);
+	}
+}
+
+@keyframes bubble-float-c {
+	0% {
+		transform: translate(0, 0);
+	}
+	45% {
+		transform: translate(3vw, -4vw);
+	}
+	80% {
+		transform: translate(5vw, -2vw);
+	}
+	100% {
+		transform: translate(0, 0);
+	}
+}
+
+@keyframes float-blue {
+	0% {
+		transform: translate(0, 0) rotate(75deg);
+		opacity: 0.8;
+	}
+	30% {
+		transform: translate(16vw, 10vw) rotate(75deg);
+		opacity: 0.45;
+	}
+	65% {
+		transform: translate(8vw, 18vw) rotate(75deg);
+		opacity: 0.85;
+	}
+	100% {
+		transform: translate(0, 0) rotate(75deg);
+		opacity: 0.8;
+	}
+}
+
+@keyframes float-green {
+	0% {
+		transform: translate(0, 0);
+		opacity: 0.9;
+	}
+	35% {
+		transform: translate(-15vw, 12vw);
+		opacity: 0.4;
+	}
+	70% {
+		transform: translate(-7vw, 18vw);
+		opacity: 0.85;
+	}
+	100% {
+		transform: translate(0, 0);
+		opacity: 0.9;
+	}
+}
+
+@keyframes float-blue-lg {
+	0% {
+		transform: rotate(-11.867deg) translate(0, 0);
+		opacity: 0.8;
+	}
+	40% {
+		transform: rotate(-11.867deg) translate(20vw, -15vw);
+		opacity: 0.4;
+	}
+	72% {
+		transform: rotate(-11.867deg) translate(10vw, -20vw);
+		opacity: 0.75;
+	}
+	100% {
+		transform: rotate(-11.867deg) translate(0, 0);
+		opacity: 0.8;
+	}
+}
+
+/* ════════════════════════════════════════════════════
+   Slide 1 : 조직도
+════════════════════════════════════════════════════ */
+.contents-wrapper {
+	width: 100%;
+	height: 100%;
+	position: relative;
+	overflow: hidden;
+}
+
+.org-wrapper {
+	width: 100%;
+	height: 100%;
+	padding: 2.917vw 3.125vw 2.5vw;
+	position: relative;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	gap: 0.833vw;
+	justify-content: center;
+}
+
+/* ────────────────────────────────
+   헤더 (로고 + 임원)
+──────────────────────────────── */
+.org-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	flex-shrink: 0;
+	position: relative;
+}
+
+.org-logo {
+	width: 10.417vw;
+	height: 1.563vw;
+	flex-shrink: 0;
+	position: fixed;
+	top: 2.917vw;
+	left: 3.125vw;
+}
+
+.org-logo img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+/* ────────────────────────────────
+   실별 목록
+──────────────────────────────── */
+.org-dept-list {
+	display: flex;
+	justify-content: space-evenly;
+	gap: 0.417vw;
+	min-height: 0;
+}
+
+/* ─ 실 컨테이너 */
+.org-dept {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.417vw;
+	overflow: hidden;
+}
+
+/* ─ 실 이름 (pill) */
+.org-dept-name {
+	display: flex;
+	height: 2.5vw;
+	width: 8.333vw;
+	justify-content: center;
+	align-items: center;
+	gap: 0.208vw;
+	align-self: stretch;
+	border-radius: 52.031vw;
+	font-size: 1.094vw;
+	font-weight: 700;
+	line-height: 1;
+	color: #fff;
+	margin: 0 auto;
+}
+
+.org-dept-service .org-dept-name {
+	background: var(--color-blue);
+}
+.org-dept-solution .org-dept-name {
+	background: var(--color-cyan);
+}
+.org-dept-platform .org-dept-name {
+	background: var(--color-green);
+}
+.org-dept-sales .org-dept-name {
+	background: var(--color-lime);
+}
+.org-dept-dx .org-dept-name {
+	background: var(--color-orange);
+}
+.org-dept-management .org-dept-name {
+	background: var(--color-pink);
+}
+
+/* ─ 실장 영역 */
+.org-dept-head {
+	flex-shrink: 0;
+	width: 100%;
+	display: flex;
+	justify-content: center;
+}
+
+/* ────────────────────────────────
+   팀 목록
+──────────────────────────────── */
+.org-team-list {
+	padding-top: 0.625vw;
+	display: flex;
+	gap: 0.313vw;
+	flex: 1;
+	min-height: 0;
+	width: 100%;
+	align-items: flex-start;
+}
+
+/* ─ 팀 컨테이너 */
+.org-team {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.26vw;
+	flex: 1;
+	min-width: 0;
+}
+
+/* ─ 10명 이상 팀: 2열 레이아웃 */
+.org-team-wide {
+	flex: 2;
+}
+
+.org-team-wide .org-member-list {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 0.208vw;
+	column-gap: 0.313vw;
+}
+
+.org-dept-team-only {
+	padding-top: 6.979vw;
+}
+
+.org-dept-team-only .org-team-list {
+	padding-top: 0;
+}
+
+.org-dept-no-teams .org-member-list {
+	margin-top: 6.406vw;
+}
+
+/* ─ 팀 이름 (pill) */
+.org-team-name {
+	display: flex;
+	width: 8.333vw;
+	height: 2.083vw;
+	justify-content: center;
+	align-items: center;
+	gap: 0.208vw;
+	border-radius: 5.156vw;
+	color: #fff;
+	font-size: 0.833vw;
+}
+
+.org-team-name em {
+	font-weight: 400;
+	font-style: normal;
+}
+
+.org-dept-service .org-team-name {
+	background: var(--color-blue);
+}
+.org-dept-solution .org-team-name {
+	background: var(--color-cyan);
+}
+.org-dept-platform .org-team-name {
+	background: var(--color-green);
+}
+.org-dept-sales .org-team-name {
+	background: var(--color-lime);
+}
+.org-dept-dx .org-team-name {
+	background: var(--color-orange);
+}
+.org-dept-management .org-team-name {
+	background: var(--color-pink);
+}
+
+/* ────────────────────────────────
+   직원 아이템
+──────────────────────────────── */
+.org-member-list {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.208vw;
+	width: 100%;
+}
+
+.org-member {
+	display: flex;
+	align-items: center;
+	gap: 0.625vw;
+	border-radius: 0.521vw;
+	background: #fff;
+	position: relative;
+	overflow: hidden;
+	flex-shrink: 0;
+	width: 8.403vw;
+	height: 3.021vw;
+	padding: 0.469vw 0.313vw 0.469vw 0.833vw;
+	border: 0.052vw solid var(--color-gray-lt);
+}
+
+/* 우측 실 컬러 바 */
+.org-member::after {
+	content: "";
+	position: absolute;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	border-radius: 0.3125vw 0 0 0.3125vw;
+	width: 0.313vw;
+	height: 2.083vw;
+}
+
+.org-dept-service .org-member {
+	border-color: var(--color-blue);
+}
+.org-dept-solution .org-member {
+	border-color: var(--color-cyan);
+}
+.org-dept-platform .org-member {
+	border-color: var(--color-green);
+}
+.org-dept-sales .org-member {
+	border-color: var(--color-lime);
+}
+.org-dept-dx .org-member {
+	border-color: var(--color-orange);
+}
+.org-dept-management .org-member {
+	border-color: var(--color-pink);
+}
+
+.org-dept-service .org-member::after {
+	background: var(--color-blue);
+}
+.org-dept-solution .org-member::after {
+	background: var(--color-cyan);
+}
+.org-dept-platform .org-member::after {
+	background: var(--color-green);
+}
+.org-dept-sales .org-member::after {
+	background: var(--color-lime);
+}
+.org-dept-dx .org-member::after {
+	background: var(--color-orange);
+}
+.org-dept-management .org-member::after {
+	background: var(--color-pink);
+}
+
+/* ─ 파견자 */
+.org-member.org-member-dispatched {
+	border-color: var(--color-gray-lt);
+}
+.org-member.org-member-dispatched::after {
+	background: var(--color-gray-lt);
+}
+
+.org-member-avatar {
+	width: 2.083vw;
+	height: 2.083vw;
+	border-radius: 50%;
+	object-fit: cover;
+	flex-shrink: 0;
+	background: var(--color-gray-lt);
+}
+
+.org-member-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.365vw;
+	line-height: 1.2;
+	min-width: 0;
+}
+
+.org-member-title {
+	font-size: 0.625vw;
+	font-weight: 500;
+	line-height: 1;
+	color: var(--color-gray);
+}
+
+.org-member-name {
+	line-height: 1;
+	font-size: 0.833vw;
+	font-weight: 600;
+	color: #000000;
+	white-space: nowrap;
+}
+
+/* ─ 신규입사자 */
+.org-dept-solution .org-member.org-member-new {
+	position: relative;
+	border-color: #c925ff;
+}
+
+.org-dept-solution .org-member.org-member-new::before {
+	content: "";
+	width: 0.573vw;
+	height: 0.573vw;
+	background: url(/signage/images/label_new.svg) no-repeat center center / contain;
+	position: absolute;
+	top: 0.547vw;
+	left: 0.781vw;
+	z-index: 1;
+}
+
+.org-dept-solution .org-member.org-member-new::after {
+	background: #c925ff;
+}
+
+/* ─ 임원 리스트 (CEO / VP 배치) */
+.org-executive-list {
+	position: relative;
+	width: 100%;
+	padding-top: 3.333vw;
+	padding-bottom: 1.25vw;
+	padding-right: 24.063vw;
+	display: flex;
+	justify-content: flex-end;
+}
+
+/* ─ CEO 카드 */
+.org-member-ceo {
+	width: 12.5vw;
+	height: 4.583vw;
+	display: flex;
+	align-items: center;
+	gap: 0.729vw;
+	padding: 0.521vw 1.458vw 0.521vw 0.625vw;
+	border-radius: 0.729vw;
+	background: var(--gradient);
+	border: none;
+	flex-shrink: 0;
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	overflow: visible;
+}
+
+.org-member-ceo .org-member-avatar-wrapper {
+	width: 5.208vw;
+	height: 100%;
+	background: none;
+	position: relative;
+	z-index: 10;
+}
+.org-member-ceo .org-member-avatar-wrapper img {
+	position: absolute;
+	bottom: -0.521vw;
+	left: 0;
+	width: 100%;
+	height: 5.938vw;
+	object-fit: cover;
+}
+
+.org-member-ceo .org-member-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.365vw;
+}
+
+.org-member-ceo .org-member-title {
+	font-size: 0.729vw;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.org-member-ceo .org-member-name {
+	font-size: 1.146vw;
+	font-weight: 600;
+	color: #fff;
+	letter-spacing: 0.05em;
+}
+
+/* ─ VP 카드 */
+.org-member-vp {
+	width: 9.375vw;
+	height: 3.646vw;
+	display: flex;
+	align-items: center;
+	gap: 0.521vw;
+	padding: 0.469vw 0.469vw 0.469vw 1.25vw;
+	border-radius: 0.729vw;
+	background: var(--gradient);
+	border: none;
+	flex-shrink: 0;
+}
+
+.org-member-vp .org-member-avatar {
+	width: 2.292vw;
+	height: 2.292vw;
+	border-radius: 50%;
+	object-fit: cover;
+	flex-shrink: 0;
+}
+
+.org-member-vp .org-member-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.365vw;
+}
+
+.org-member-vp .org-member-title {
+	font-size: 0.625vw;
+	font-weight: 400;
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.org-member-vp .org-member-name {
+	font-size: 0.833vw;
+	font-weight: 800;
+	color: #fff;
+	letter-spacing: 0.04em;
+}
+
+/* ════════════════════════════════════════════════════
+   Gradient Text Utility
+════════════════════════════════════════════════════ */
+.text-gradient {
+	background: var(--gradient-new);
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+.bg-pink .text-gradient {
+	background: var(--gradient-pink);
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* ════════════════════════════════════════════════════
+   Pagination
+════════════════════════════════════════════════════ */
+.swiper-pagination {
+	bottom: 9.375vw !important;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 1.042vw;
+}
+
+.swiper-pagination.swiper-pagination-hidden {
+	display: none;
+}
+
+.swiper-pagination-bullet {
+	width: 1.042vw;
+	height: 1.042vw;
+	border: 0.156vw solid #fff;
+	border-radius: 50%;
+	background: transparent;
+	opacity: 1;
+	transition: all 0.3s ease;
+	cursor: pointer;
+}
+
+.swiper-pagination-bullet-active {
+	width: 3.125vw;
+	height: 1.042vw;
+	border-radius: 5.208vw;
+	background: #fff;
+}
+
+/* ════════════════════════════════════════════════════
+   Legend
+════════════════════════════════════════════════════ */
+.org-legend-list {
+	position: absolute;
+	bottom: 4.167vw;
+	right: 3.646vw;
+	display: flex;
+	flex-direction: column;
+	gap: 0.625vw;
+}
+
+.org-legend-item {
+	display: flex;
+	gap: 0.3125vw;
+	font-size: 1.042vw;
+	line-height: 1;
+	font-weight: 500;
+	color: #fff;
+}
+
+.org-legend-item-icon {
+	width: 1.042vw;
+	height: 1.042vw;
+	background: var(--color-gray-lt);
+	border-radius: 50%;
+}
+
+.org-legend-item-icon img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+/* ════════════════════════════════════════════════════
+   Features
+════════════════════════════════════════════════════ */
+.featuresWrap {
+	padding: 3.646vw 4.167vw;
+	height: 100%;
+	position: relative;
+	color: #fff;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+.featuresWrap .feature-logo {
+	width: 9.882vw;
+	height: 4.167vw;
+	margin-bottom: 1.042vw;
+	position: absolute;
+	top: 3.646vw;
+	left: 4.167vw;
+}
+.featuresWrap .feature-logo.inguide {
+	width: 12.969vw;
+	height: 4.167vw;
+}
+
+.featuresWrap .feature-logo img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.featuresWrap .title {
+	text-align: center;
+	margin-bottom: 3.125vw;
+	padding-top: 5.208vw;
+}
+
+.featuresWrap .title h3 {
+	font-size: 3.958vw;
+	font-weight: 600;
+	line-height: 110%;
+	margin-bottom: 0.833vw;
+}
+
+.featuresWrap .title p {
+	font-size: 1.563vw;
+	font-weight: 400;
+	line-height: 140%;
+}
+
+.featuresWrap .contentsWrap {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 2.083vw 0 3.125vw;
+	gap: 5.729vw;
+}
+
+.featuresWrap .contentsWrap .imgWrap {
+	width: 40.104vw;
+}
+
+.featuresWrap .contentsWrap .imgWrap img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.featuresWrap .contentsWrap .contents {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2.083vw;
+	flex: 1;
+}
+
+.featuresWrap .contentsWrap .contents li {
+	padding-left: 4.375vw;
+	position: relative;
+}
+
+.featuresWrap .contentsWrap .contents li span {
+	width: 3.333vw;
+	height: 3.333vw;
+	border-radius: 50%;
+	background: #85de76;
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.458vw;
+	font-weight: 600;
+	color: #fff;
+}
+
+.featuresWrap .contentsWrap .contents li h4 {
+	font-size: 2.083vw;
+	line-height: 140%;
+	font-weight: 600;
+	color: #92f582;
+	margin-bottom: 0.521vw;
+}
+
+.featuresWrap .contentsWrap .contents li p {
+	font-size: 1.354vw;
+	font-weight: 400;
+	line-height: 140%;
+	word-break: keep-all;
+}
+
+.featuresWrap .contentsWrap .contents.coral li span {
+	background: #ff796d;
+}
+
+.featuresWrap .contentsWrap .contents.coral li h4 {
+	color: #ff796d;
+}
+
+.featuresWrap .contentsWrap .contents.sm li p {
+	font-size: 1.25vw;
+}

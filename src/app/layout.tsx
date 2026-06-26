@@ -39,6 +39,7 @@ export default function RootLayout({
             __html: `try{var t=localStorage.getItem('theme')||'system';var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==='system'&&d)){document.documentElement.classList.add('dark')}}catch(e){}`,
           }}
         />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/subsets/Paperlogy-dynamic-subset.css" />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <AppProviders>{children}</AppProviders>
