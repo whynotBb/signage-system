@@ -44,6 +44,9 @@ next-env.d.ts
 .playwright-mcp/
 *.png
 
+# 사이니지 정적 이미지 에셋은 추적 (멤버 사진 제외)
+!public/signage/images/*.png
+
 # shrimp task manager (로컬 전용)
 /shrimp_data
 
