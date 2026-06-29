@@ -44,7 +44,44 @@ function extractStoragePath(url: string): string | null {
 
 function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return ''
-  return iso.slice(0, 16)
+  const date = new Date(iso)
+  if (isNaN(date.getTime())) return ''
+  // UTC → KST (+9시간) 변환 후 "YYYY-MM-DDTHH:mm" 반환
+  const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000)
+  return kst.toISOString().slice(0, 16)
+}
+
+function toUTCIso(localKST: string | null | undefined): string | null {
+  if (!localKST) return null
+  // "YYYY-MM-DDTHH:mm" (KST) → UTC ISO string
+  const date = new Date(`${localKST}+09:00`)
+  return isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+// 이미지 유무 · 제목 길이에 따른 부제목 최대 글자수
+function calcSubtitleMax(hasImage: boolean, titleLen: number): number {
+  if (hasImage) {
+    if (titleLen <= 7) return 48
+    if (titleLen <= 14) return 36
+    return 0  // 15자 이상: 부제목 불가
+  } else {
+    if (titleLen > 22) return 0  // 23자 이상: 부제목 불가
+    if (titleLen >= 12) return 19
+    return 38
+  }
+}
+
+// 부제목 필드 안내 문구
+function getSubtitleHint(hasImage: boolean, titleLen: number): string {
+  if (hasImage) {
+    if (titleLen > 14) return '* 이미지가 있을 때 제목이 15자를 초과하면 부제목을 입력할 수 없습니다.'
+    if (titleLen <= 7) return '* 이미지 있음 — 제목 7자 이하: 부제목 최대 48자 / 8~14자: 최대 36자'
+    return '* 이미지 있음 — 제목 8~14자: 부제목 최대 36자 / 7자 이하: 최대 48자'
+  } else {
+    if (titleLen > 22) return '* 제목이 23자를 초과하면 부제목을 입력할 수 없습니다.'
+    if (titleLen >= 12) return '* 제목이 12자 이상(2줄)이므로 부제목은 최대 19자입니다.'
+    return '* 제목이 12자 이상(2줄)이면 부제목은 19자 이하로 입력해주세요.'
+  }
 }
 
 // ── Supabase 함수 ─────────────────────────────────────────────────────────────
@@ -78,8 +115,8 @@ async function insertNews(values: NewsFormValues, imageBlob: Blob | null): Promi
       subtitle: values.subtitle ?? null,
       news_date: values.news_date || null,
       image_url: null,
-      scheduled_start_at: values.scheduled_start_at || null,
-      scheduled_end_at: values.scheduled_end_at || null,
+      scheduled_start_at: toUTCIso(values.scheduled_start_at),
+      scheduled_end_at: toUTCIso(values.scheduled_end_at),
       is_active: values.is_active,
       created_by: user.id,
     })
@@ -123,8 +160,8 @@ async function updateNews(
       title: values.title,
       subtitle: values.subtitle ?? null,
       news_date: values.news_date || null,
-      scheduled_start_at: values.scheduled_start_at || null,
-      scheduled_end_at: values.scheduled_end_at || null,
+      scheduled_start_at: toUTCIso(values.scheduled_start_at),
+      scheduled_end_at: toUTCIso(values.scheduled_end_at),
       is_active: values.is_active,
       ...(image_url !== undefined ? { image_url } : {}),
     })
@@ -164,6 +201,29 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
       is_active: true,
     },
   })
+
+  const titleValue = form.watch('title') ?? ''
+  const subtitleValue = form.watch('subtitle') ?? ''
+  const scheduledStartAt = form.watch('scheduled_start_at')
+  const hasImage = !!previewUrl
+
+  // 이미지 유무 · 부제목 유무에 따른 제목 최대 글자수
+  const titleMax = hasImage
+    ? (subtitleValue.length > 0 ? 14 : 28)
+    : (subtitleValue.length > 0 ? 22 : 33)
+
+  // 이미지 유무 · 제목 길이에 따른 부제목 최대 글자수
+  const subtitleMax = calcSubtitleMax(hasImage, titleValue.length)
+  const subtitleDisabled = subtitleMax === 0
+
+  // 제목이 변경될 때 부제목이 새 max를 초과하면 자동 trim
+  useEffect(() => {
+    const subtitle = form.getValues('subtitle') ?? ''
+    const newMax = calcSubtitleMax(hasImage, titleValue.length)
+    if (subtitle.length > newMax) {
+      form.setValue('subtitle', subtitle.slice(0, newMax), { shouldValidate: true })
+    }
+  }, [titleValue, hasImage, form])
 
   useEffect(() => {
     if (open) {
@@ -253,11 +313,20 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      제목 <span className="text-destructive">*</span>
-                    </FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>
+                        제목 <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <span className="text-xs text-muted-foreground">
+                        {titleValue.length}/{titleMax}
+                      </span>
+                    </div>
                     <FormControl>
-                      <Input placeholder="뉴스 제목을 입력하세요" {...field} />
+                      <Input
+                        placeholder="뉴스 제목을 입력하세요"
+                        maxLength={titleMax}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -269,18 +338,28 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                 name="subtitle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      부제목{' '}
-                      <span className="font-normal text-muted-foreground">(선택)</span>
-                    </FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>
+                        부제목{' '}
+                        <span className="font-normal text-muted-foreground">(선택)</span>
+                      </FormLabel>
+                      <span className="text-xs text-muted-foreground">
+                        {(field.value ?? '').length}/{subtitleDisabled ? '-' : subtitleMax}
+                      </span>
+                    </div>
                     <FormControl>
                       <Input
-                        placeholder="부제목을 입력하세요"
+                        placeholder={subtitleDisabled ? '제목이 너무 길어 부제목을 입력할 수 없습니다' : '부제목을 입력하세요'}
+                        maxLength={subtitleDisabled ? undefined : subtitleMax}
+                        disabled={subtitleDisabled}
                         {...field}
                         value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-muted-foreground">
+                      {getSubtitleHint(hasImage, titleValue.length)}
+                    </p>
                   </FormItem>
                 )}
               />
@@ -396,6 +475,7 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                         <DateTimePicker
                           value={field.value ?? ''}
                           onChange={(v) => field.onChange(v || null)}
+                          min={scheduledStartAt || undefined}
                           placeholder="종료 일시 선택"
                         />
                       </FormControl>

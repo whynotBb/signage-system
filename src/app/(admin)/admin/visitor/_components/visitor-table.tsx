@@ -67,6 +67,32 @@ function formatDate(dateStr: string | null | undefined): string {
 	});
 }
 
+type DisplayStatus = "active" | "scheduled" | "expired" | "always";
+
+function getDisplayStatus(item: VisitorContent): DisplayStatus {
+	if (!item.scheduled_start_at && !item.scheduled_end_at) return "always";
+	const now = new Date();
+	const start = item.scheduled_start_at ? new Date(item.scheduled_start_at) : null;
+	const end = item.scheduled_end_at ? new Date(item.scheduled_end_at) : null;
+	if (start && start > now) return "scheduled";
+	if (end && end < now) return "expired";
+	return "active";
+}
+
+const DISPLAY_STATUS_LABEL: Record<DisplayStatus, string> = {
+	active: "표시 중",
+	scheduled: "예약 중",
+	expired: "기간 만료",
+	always: "상시",
+};
+
+const DISPLAY_STATUS_VARIANT: Record<DisplayStatus, "default" | "secondary" | "destructive" | "outline"> = {
+	active: "default",
+	scheduled: "secondary",
+	expired: "destructive",
+	always: "outline",
+};
+
 // ── Supabase 함수 ─────────────────────────────────────────────────────────────
 
 async function fetchVisitors(): Promise<VisitorRow[]> {
@@ -161,7 +187,10 @@ function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isT
 
 			<TableCell className="hidden lg:table-cell tabular-nums text-xs text-muted-foreground">
 				{item.scheduled_start_at || item.scheduled_end_at ? (
-					<div className="flex flex-col gap-0.5">
+					<div className="flex flex-col gap-1">
+						<Badge variant={DISPLAY_STATUS_VARIANT[getDisplayStatus(item)]} className="w-fit text-xs">
+							{DISPLAY_STATUS_LABEL[getDisplayStatus(item)]}
+						</Badge>
 						<span>{formatDatetime(item.scheduled_start_at)}</span>
 						<span>→ {formatDatetime(item.scheduled_end_at)}</span>
 					</div>
@@ -224,8 +253,8 @@ function MobileVisitorCard({ item, parsedNames, parsedTitles, canEdit, onEdit, o
 						{item.location}
 					</span>
 				)}
-				<Badge variant="outline" className="text-xs">
-					{item.scheduled_start_at ? "기간 설정" : "상시"}
+				<Badge variant={DISPLAY_STATUS_VARIANT[getDisplayStatus(item)]} className="text-xs">
+					{DISPLAY_STATUS_LABEL[getDisplayStatus(item)]}
 				</Badge>
 			</div>
 			{canEdit && (

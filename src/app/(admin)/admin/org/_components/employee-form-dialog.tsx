@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { Division, Team, Employee } from "@/types";
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -380,7 +381,11 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 												입사일 <span className="text-destructive">*</span>
 											</FormLabel>
 											<FormControl>
-												<Input type="date" {...field} />
+												<DatePicker
+													value={field.value ?? ""}
+													onChange={(v) => field.onChange(v || "")}
+													placeholder="입사일 선택"
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>

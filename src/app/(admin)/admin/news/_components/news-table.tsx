@@ -44,6 +44,32 @@ function formatDatetime(iso: string | null | undefined): string {
 	});
 }
 
+type DisplayStatus = "active" | "scheduled" | "expired" | "always";
+
+function getDisplayStatus(item: NewsContent): DisplayStatus {
+	if (!item.scheduled_start_at && !item.scheduled_end_at) return "always";
+	const now = new Date();
+	const start = item.scheduled_start_at ? new Date(item.scheduled_start_at) : null;
+	const end = item.scheduled_end_at ? new Date(item.scheduled_end_at) : null;
+	if (start && start > now) return "scheduled";
+	if (end && end < now) return "expired";
+	return "active";
+}
+
+const DISPLAY_STATUS_LABEL: Record<DisplayStatus, string> = {
+	active: "표시 중",
+	scheduled: "예약 중",
+	expired: "기간 만료",
+	always: "상시",
+};
+
+const DISPLAY_STATUS_VARIANT: Record<DisplayStatus, "default" | "secondary" | "destructive" | "outline"> = {
+	active: "default",
+	scheduled: "secondary",
+	expired: "destructive",
+	always: "outline",
+};
+
 function formatNewsDate(dateStr: string | null | undefined): string {
 	if (!dateStr) return "—";
 	try {
@@ -127,16 +153,22 @@ function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isT
 			</TableCell>
 
 			<TableCell className="hidden lg:table-cell tabular-nums text-xs text-muted-foreground">
-				{item.scheduled_start_at || item.scheduled_end_at ? (
-					<div className="flex flex-col gap-0.5">
-						<span>{formatDatetime(item.scheduled_start_at)}</span>
-						<span>→ {formatDatetime(item.scheduled_end_at)}</span>
-					</div>
-				) : (
-					<Badge variant="outline" className="text-xs">
-						상시
-					</Badge>
-				)}
+				{(() => {
+					const status = getDisplayStatus(item);
+					return (
+						<div className="flex flex-col gap-0.5">
+							<Badge variant={DISPLAY_STATUS_VARIANT[status]} className="text-xs w-fit mb-0.5">
+								{DISPLAY_STATUS_LABEL[status]}
+							</Badge>
+							{(item.scheduled_start_at || item.scheduled_end_at) && (
+								<>
+									<span>{formatDatetime(item.scheduled_start_at)}</span>
+									<span>→ {formatDatetime(item.scheduled_end_at)}</span>
+								</>
+							)}
+						</div>
+					);
+				})()}
 			</TableCell>
 
 			<TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{item.profiles?.name ?? "—"}</TableCell>
@@ -180,9 +212,14 @@ function MobileNewsCard({ item, canEdit, onEdit, onDelete, onToggleActive, isTog
 			</div>
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-					<Badge variant="outline" className="text-xs">
-						{item.scheduled_start_at ? "기간 설정" : "상시"}
-					</Badge>
+					{(() => {
+						const status = getDisplayStatus(item);
+						return (
+							<Badge variant={DISPLAY_STATUS_VARIANT[status]} className="text-xs">
+								{DISPLAY_STATUS_LABEL[status]}
+							</Badge>
+						);
+					})()}
 					{item.profiles?.name && <span>{item.profiles.name}</span>}
 				</div>
 				{canEdit && (

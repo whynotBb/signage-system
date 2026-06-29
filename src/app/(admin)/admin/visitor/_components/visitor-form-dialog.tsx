@@ -23,7 +23,18 @@ import type { VisitorContent } from "@/types";
 
 function toDatetimeLocal(iso: string | null | undefined): string {
 	if (!iso) return "";
-	return iso.slice(0, 16);
+	const date = new Date(iso);
+	if (isNaN(date.getTime())) return "";
+	// UTC → KST (+9시간) 변환 후 "YYYY-MM-DDTHH:mm" 반환
+	const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+	return kst.toISOString().slice(0, 16);
+}
+
+function toUTCIso(localKST: string | null | undefined): string | null {
+	if (!localKST) return null;
+	// "YYYY-MM-DDTHH:mm" (KST) → UTC ISO string
+	const date = new Date(`${localKST}+09:00`);
+	return isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 // ── Supabase 함수 ─────────────────────────────────────────────────────────────
@@ -44,8 +55,8 @@ async function insertVisitor(values: VisitorFormValues): Promise<void> {
 		visitor_name: visitorNames,
 		visitor_title: visitorTitles,
 		location: values.location,
-		scheduled_start_at: values.scheduled_start_at || null,
-		scheduled_end_at: values.scheduled_end_at || null,
+		scheduled_start_at: toUTCIso(values.scheduled_start_at),
+		scheduled_end_at: toUTCIso(values.scheduled_end_at),
 		visit_date: values.visit_date || null,
 		is_active: values.is_active,
 		created_by: user.id,
@@ -66,8 +77,8 @@ async function updateVisitor(id: string, values: VisitorFormValues): Promise<voi
 			visitor_name: visitorNames,
 			visitor_title: visitorTitles,
 			location: values.location,
-			scheduled_start_at: values.scheduled_start_at || null,
-			scheduled_end_at: values.scheduled_end_at || null,
+			scheduled_start_at: toUTCIso(values.scheduled_start_at),
+			scheduled_end_at: toUTCIso(values.scheduled_end_at),
 			visit_date: values.visit_date || null,
 			is_active: values.is_active,
 		})
@@ -108,6 +119,7 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 		name: "visitors",
 	});
 
+	const titleValue = form.watch("title") ?? ""
 	const scheduledStartAt = form.watch("scheduled_start_at");
 
 	useEffect(() => {
@@ -203,11 +215,15 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 							name="title"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>방문 목적 / 제목</FormLabel>
+									<div className="flex items-center justify-between">
+										<FormLabel>방문 목적 / 제목</FormLabel>
+										<span className="text-xs text-muted-foreground">{titleValue.length}/9</span>
+									</div>
 									<FormControl>
-										<Input placeholder="예) 본사 방문을 환영합니다" {...field} />
+										<Input placeholder="예) 본사 방문을 환영합니다" maxLength={9} {...field} />
 									</FormControl>
 									<FormMessage />
+									<p className="text-xs text-muted-foreground">* 사이니지 화면에 최대 9자까지 표시됩니다.</p>
 								</FormItem>
 							)}
 						/>

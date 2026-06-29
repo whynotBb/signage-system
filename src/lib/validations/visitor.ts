@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const visitorSchema = z.object({
-  title: z.string().min(1, '방문 제목을 입력해주세요').max(100, '100자 이하로 입력해주세요'),
+  title: z.string().min(1, '방문 제목을 입력해주세요').max(9, '제목은 최대 9자까지 입력할 수 있습니다'),
   visitor_org: z.string().min(1, '방문 기관/기업명을 입력해주세요').max(100, '100자 이하로 입력해주세요'),
   visitors: z.array(
     z.object({
