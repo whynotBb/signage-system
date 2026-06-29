@@ -7,8 +7,8 @@ export type Json =
   | Json[]
 
 export type UserRole = 'super_admin' | 'content_admin' | 'editor'
-export type OrgRole = 'member' | 'representative' | 'vice_representative'
-export type EmployeePosition = '사원' | '주임' | '대리' | '과장' | '차장' | '부장' | '이사' | '대표' | '부대표'
+export type OrgRole = 'member' | 'representative' | 'vice_representative' | 'ai'
+export type EmployeePosition = '사원' | '주임' | '대리' | '과장' | '차장' | '부장' | '이사' | '대표이사' | '부사장' | 'AI 에이전트'
 
 export type Database = {
   __InternalSupabase: {

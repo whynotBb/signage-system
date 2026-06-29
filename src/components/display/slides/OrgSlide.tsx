@@ -28,6 +28,7 @@ function MemberCard({ employee, extraClass }: MemberCardProps) {
   const isNew = isNewEmployee(employee.hired_at)
   const className = [
     'org-member',
+    employee.org_role === 'ai' ? 'org-member-ai' : '',
     employee.is_dispatched ? 'org-member-dispatched' : '',
     isNew ? 'org-member-new' : '',
     extraClass ?? '',
@@ -51,8 +52,8 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
   const ceo = employees.find((e) => e.org_role === 'representative') ?? null
   const vp = employees.find((e) => e.org_role === 'vice_representative') ?? null
 
-  const ceoTitle = ceo ? (ceo.title || (ceo.position === '대표' ? '대표이사' : ceo.position || '대표이사')) : ''
-  const vpTitle = vp ? (vp.title || (vp.position === '부대표' ? '부사장' : vp.position || '부사장')) : ''
+  const ceoTitle = ceo ? (ceo.title || (ceo.position === '대표' || ceo.position === '대표이사' ? '대표이사' : ceo.position || '대표이사')) : ''
+  const vpTitle = vp ? (vp.title || (vp.position === '부대표' || vp.position === '부사장' ? '부사장' : vp.position || '부사장')) : ''
 
   // 단독팀 (소속 실 없음)
   const standaloneTeams = teams.filter((t) => !t.division_id)
@@ -61,7 +62,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
   const deptData = divisions.map((div) => {
     const divTeams = teams.filter((t) => t.division_id === div.id)
     const directEmps = employees.filter(
-      (e) => e.division_id === div.id && !e.team_id && e.org_role === 'member',
+      (e) => e.division_id === div.id && !e.team_id && (e.org_role === 'member' || e.org_role === 'ai'),
     )
 
     // 실장: 직속 직원 중 title이 실장/소장인 첫 번째
@@ -143,7 +144,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
                   <div className="org-team-list">
                     {divTeams.map((team) => {
                       const teamMembers = employees.filter(
-                        (e) => e.team_id === team.id && e.org_role === 'member',
+                        (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
                       )
                       const isWide = teamMembers.length >= 10
                       const teamClass = ['org-team', isWide ? 'org-team-wide' : '']
@@ -198,7 +199,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
           {/* 단독팀 (소속 실 없음) */}
           {standaloneTeams.map((team) => {
             const teamMembers = employees.filter(
-              (e) => e.team_id === team.id && e.org_role === 'member',
+              (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
             )
             return (
               <section

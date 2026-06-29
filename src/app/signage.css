@@ -90,6 +90,37 @@ a {
 	--gradient: linear-gradient(99deg, #00b9ff -2.77%, #e0d900 104.75%);
 	--gradient-new: linear-gradient(91deg, #00e1ff 30.64%, #43e000 71.36%);
 	--gradient-pink: linear-gradient(91deg, #c925ff 30.64%, #f048ad 71.36%);
+
+	/* AI 에이전트 카드 그라데이션 샘플들 */
+	--ai-gradient-1: linear-gradient(135deg, #7000ff 0%, #ff8500 100%);
+	--ai-glow-1: 0 0 0.833vw rgba(255, 133, 0, 0.6);
+	--ai-gradient-2: linear-gradient(135deg, #ff00c8 0%, #a2ff00 100%);
+	--ai-glow-2: 0 0 0.833vw rgba(255, 0, 200, 0.6);
+	--ai-gradient-3: linear-gradient(135deg, #0052d4 0%, #ff007f 100%);
+	--ai-glow-3: 0 0 0.833vw rgba(255, 0, 127, 0.6);
+	--ai-gradient-4: linear-gradient(135deg, #c925ff 0%, #00ff87 100%);
+	--ai-glow-4: 0 0 0.833vw rgba(0, 255, 135, 0.6);
+
+	--ai-gradient: var(--ai-gradient-2);
+	--ai-glow: var(--ai-glow-2);
+}
+
+/* AI 에이전트 스타일 샘플 클래스 (body에 동적 적용) */
+body.ai-style-1 {
+	--ai-gradient: var(--ai-gradient-1);
+	--ai-glow: var(--ai-glow-1);
+}
+body.ai-style-2 {
+	--ai-gradient: var(--ai-gradient-2);
+	--ai-glow: var(--ai-glow-2);
+}
+body.ai-style-3 {
+	--ai-gradient: var(--ai-gradient-3);
+	--ai-glow: var(--ai-glow-3);
+}
+body.ai-style-4 {
+	--ai-gradient: var(--ai-gradient-4);
+	--ai-glow: var(--ai-glow-4);
 }
 
 .signage-wrapper {
@@ -606,6 +637,32 @@ a {
 
 .org-dept .org-member.org-member-new::after {
 	background: #c925ff;
+}
+
+/* ─ AI 에이전트 */
+.org-member.org-member-ai::after {
+	display: none;
+}
+
+.org-member.org-member-ai {
+	border: none;
+	background: var(--ai-gradient);
+	box-shadow: var(--ai-glow);
+	gap: 0.4vw;
+	transition: all 0.3s ease;
+}
+
+.org-member.org-member-ai .org-member-name {
+	color: #ffffff;
+	font-size: 0.68vw;
+}
+
+.org-member.org-member-ai .org-member-title {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.org-member.org-member-ai .org-member-avatar {
+	box-shadow: 0 0 0.26vw rgba(255, 255, 255, 0.3);
 }
 
 /* ─ 임원 리스트 (CEO / VP 배치) */

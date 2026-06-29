@@ -356,10 +356,10 @@ function SortableDivisionCard(props: DivisionCardProps) {
 	);
 }
 
-// ── 대표/부대표 카드 ──────────────────────────────────────────────────────────
+// ── 대표이사/부사장 카드 ──────────────────────────────────────────────────────────
 
 function RepresentativeCard({ employee, label, isEditor, onAssign, onEdit }: { employee: Employee | null; label: string; isEditor: boolean; onAssign?: () => void; onEdit?: (employee: Employee) => void }) {
-	const isRep = label === "대표";
+	const isRep = label === "대표이사";
 
 	if (!employee) {
 		return (
@@ -482,7 +482,7 @@ export function OrgBoard() {
 		teams.forEach((t) => { containers[`team:${t.id}`] = []; });
 		divisions.forEach((d) => { containers[`div-direct:${d.id}`] = []; });
 		employees
-			.filter((e) => e.org_role === "member")
+			.filter((e) => e.org_role === "member" || e.org_role === "ai")
 			.forEach((e) => {
 				if (e.team_id && `team:${e.team_id}` in containers) {
 					containers[`team:${e.team_id}`].push(e);
@@ -717,12 +717,12 @@ export function OrgBoard() {
 				)}
 			</PageHeader>
 
-			{/* 대표/부대표 */}
+			{/* 대표이사/부사장 */}
 			<div className="rounded-lg border border-border/50 p-4">
-				<p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">대표 · 부대표</p>
+				<p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">대표이사 · 부사장</p>
 				<div className="flex flex-col gap-3 sm:flex-row">
-					<RepresentativeCard employee={representative} label="대표" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
-					<RepresentativeCard employee={viceRepresentative} label="부대표" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
+					<RepresentativeCard employee={representative} label="대표이사" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
+					<RepresentativeCard employee={viceRepresentative} label="부사장" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
 				</div>
 			</div>
 

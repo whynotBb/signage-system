@@ -24,11 +24,12 @@ import type { Division, Team, Employee } from "@/types";
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 
-const POSITION_OPTIONS = ["사원", "주임", "대리", "과장", "차장", "부장", "이사", "대표", "부대표"] as const;
-const EXECUTIVE_POSITIONS = ["대표", "부대표"] as const;
+const POSITION_OPTIONS = ["사원", "주임", "대리", "과장", "차장", "부장", "이사", "대표이사", "부사장", "AI 에이전트"] as const;
+const EXECUTIVE_POSITIONS = ["대표이사", "부사장"] as const;
 const POSITION_ORG_ROLE: Record<string, EmployeeFormValues["org_role"]> = {
-	대표: "representative",
-	부대표: "vice_representative",
+	대표이사: "representative",
+	부사장: "vice_representative",
+	"AI 에이전트": "ai",
 };
 const TITLE_OPTIONS = ["실장", "팀장"] as const;
 
@@ -306,7 +307,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 													field.onChange(v);
 													const role = POSITION_ORG_ROLE[v] ?? "member";
 													form.setValue("org_role", role);
-													if (POSITION_ORG_ROLE[v]) {
+													if (v === "대표이사" || v === "부사장") {
 														form.setValue("title", "");
 														form.setValue("division_id", null);
 														form.setValue("team_id", null);
@@ -321,8 +322,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 												<SelectContent>
 													{POSITION_OPTIONS.map((p) => {
 														const disabled =
-															(p === "대표" && !!existingRepId) ||
-															(p === "부대표" && !!existingViceRepId);
+															(p === "대표이사" && !!existingRepId) ||
+															(p === "부사장" && !!existingViceRepId);
 														return (
 															<SelectItem key={p} value={p} disabled={disabled}>
 																{p}{disabled ? " (이미 지정됨)" : ""}

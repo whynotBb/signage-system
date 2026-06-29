@@ -20,7 +20,7 @@ export const employeeSchema = z.object({
   position: z.string().min(1, '직위를 선택해주세요'),
   division_id: z.string().nullable(),
   team_id: z.string().nullable(),
-  org_role: z.enum(['member', 'representative', 'vice_representative']),
+  org_role: z.enum(['member', 'representative', 'vice_representative', 'ai']),
   hired_at: z.string().min(1, '입사일을 입력해주세요'),
   is_dispatched: z.boolean(),
   is_resigned: z.boolean(),
