@@ -35,10 +35,10 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 			speed: 800,
 			keyboard: { enabled: true },
 			mousewheel: { enabled: true },
-			// autoplay: {
-			// 	delay: 10000,
-			// 	disableOnInteraction: false,
-			// },
+			autoplay: {
+				delay: 10000,
+				disableOnInteraction: false,
+			},
 			observer: true,
 			observeParents: true,
 			observeSlideChildren: true,
