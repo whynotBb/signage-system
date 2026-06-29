@@ -1289,4 +1289,11 @@ body.ai-style-4 {
 	background: var(--ai-gradient);
 }
 
+/* 마지막 열 팀원 6명 이상일 때 범례 우측 상단으로 이동 */
+.org-legend-list.legend-top-right {
+	bottom: auto;
+	top: 3.125vw;
+}
+
+
 

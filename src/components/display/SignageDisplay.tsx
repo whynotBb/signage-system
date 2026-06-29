@@ -27,10 +27,10 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 	const swiperRef = useRef<Swiper | null>(null);
 
 	useEffect(() => {
-		const SwiperClass = (Swiper as any).default || Swiper;
+		const SwiperClass = (Swiper as unknown as { default?: typeof Swiper }).default || Swiper;
 		const colorBubbles = document.querySelectorAll<HTMLElement>(".color-bubble");
 
-		const updateColorBubbles = (s: any) => {
+		const updateColorBubbles = (s: Swiper) => {
 			if (!s || !s.slides) return;
 			const activeSlide = s.slides[s.activeIndex];
 			const isActive = activeSlide?.classList.contains("bubble_st") ?? false;
@@ -45,18 +45,18 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 			speed: 800,
 			keyboard: { enabled: true },
 			mousewheel: { enabled: true },
-			// autoplay: {
-			// 	delay: 10000,
-			// 	disableOnInteraction: false,
-			// },
+			autoplay: {
+				delay: 10000,
+				disableOnInteraction: false,
+			},
 			observer: true,
 			observeParents: true,
 			observeSlideChildren: true,
 			on: {
-				init: function (s: any) {
+				init: function (s: Swiper) {
 					updateColorBubbles(s);
 				},
-				slideChange: function (s: any) {
+				slideChange: function (s: Swiper) {
 					updateColorBubbles(s);
 				},
 			},
