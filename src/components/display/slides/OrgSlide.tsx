@@ -51,6 +51,9 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
   const ceo = employees.find((e) => e.org_role === 'representative') ?? null
   const vp = employees.find((e) => e.org_role === 'vice_representative') ?? null
 
+  const ceoTitle = ceo ? (ceo.title || (ceo.position === '대표' ? '대표이사' : ceo.position || '대표이사')) : ''
+  const vpTitle = vp ? (vp.title || (vp.position === '부대표' ? '부사장' : vp.position || '부사장')) : ''
+
   // 단독팀 (소속 실 없음)
   const standaloneTeams = teams.filter((t) => !t.division_id)
 
@@ -87,7 +90,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
                   <img src={getAvatarUrl(ceo.profile_image_url)} alt={ceo.name} />
                 </div>
                 <div className="org-member-info">
-                  <span className="org-member-title">{ceo.title}</span>
+                  <span className="org-member-title">{ceoTitle}</span>
                   <span className="org-member-name">{ceo.name}</span>
                 </div>
               </li>
@@ -96,7 +99,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
               <li className="org-member org-member-vp">
                 <img className="org-member-avatar" src={getAvatarUrl(vp.profile_image_url)} alt={vp.name} />
                 <div className="org-member-info">
-                  <span className="org-member-title">{vp.title}</span>
+                  <span className="org-member-title">{vpTitle}</span>
                   <span className="org-member-name">{vp.name}</span>
                 </div>
               </li>
