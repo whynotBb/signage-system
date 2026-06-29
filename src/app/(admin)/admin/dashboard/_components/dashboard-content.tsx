@@ -223,9 +223,13 @@ interface SortableGroupCardProps {
 	onItemReorder: (newItems: ContentItem[]) => void;
 	onSafeInsightToggle?: (v: boolean) => void;
 	onInGuideToggle?: (v: boolean) => void;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
 }
 
-function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle }: SortableGroupCardProps) {
+function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle, onMoveUp, onMoveDown, isFirst, isLast }: SortableGroupCardProps) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.key });
@@ -277,7 +281,7 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 		<div ref={setNodeRef} style={style} className="rounded-lg border border-border bg-card overflow-hidden shadow-sm">
 			{/* 그룹 헤더 */}
 			<div className="flex items-center gap-3 px-4 py-3 bg-muted/30">
-				{/* 그룹 드래그 핸들 */}
+				{/* 그룹 드래그 핸들 및 모바일 이동 화살표 */}
 				{isDragDisabled ? (
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -288,9 +292,21 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 						<TooltipContent side="right">순서 변경은 전체 보기 상태에서만 가능합니다</TooltipContent>
 					</Tooltip>
 				) : (
-					<button {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground transition-colors shrink-0" aria-label="그룹 순서 변경">
-						<GripVertical className="h-5 w-5" />
-					</button>
+					<div className="flex items-center gap-1 shrink-0">
+						{/* 데스크톱: DND 그립 */}
+						<button {...attributes} {...listeners} className="hidden md:inline-flex cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground transition-colors shrink-0" aria-label="그룹 순서 변경">
+							<GripVertical className="h-5 w-5" />
+						</button>
+						{/* 모바일: 화살표 순서 변경 */}
+						<div className="flex md:hidden flex-col items-center">
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={onMoveUp} aria-label="위로 이동" title="위로 이동">
+								<ChevronUp className="h-3 w-3" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={onMoveDown} aria-label="아래로 이동" title="아래로 이동">
+								<ChevronDown className="h-3 w-3" />
+							</Button>
+						</div>
+					</div>
 				)}
 
 				<Icon className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -471,6 +487,20 @@ export function DashboardContent() {
 		});
 	}
 
+	function moveGroup(index: number, direction: "up" | "down") {
+		const newIndex = direction === "up" ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= groups.length) return;
+
+		const reordered = arrayMove(groups, index, newIndex);
+		const updates = reordered.map((g, i) => ({ group_key: g.key, display_order: i + 1 }));
+
+		queryClient.setQueryData(queryKeys.signageGroupOrder.all, updates);
+		updateGroupOrder(updates).catch(() => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.signageGroupOrder.all });
+			toast.error("그룹 순서 저장에 실패했습니다.");
+		});
+	}
+
 	// ── 아이템 순서 변경 ──
 
 	function handleItemReorder(groupKey: GroupKey, newItems: ContentItem[]) {
@@ -555,19 +585,26 @@ export function DashboardContent() {
 			<DndContext sensors={groupSensors} collisionDetection={closestCenter} onDragEnd={handleGroupDragEnd}>
 				<SortableContext items={groups.map((g) => g.key)} strategy={verticalListSortingStrategy}>
 					<div className="flex flex-col gap-3">
-						{visibleGroups.map((group) => (
-							<SortableGroupCard
-								key={group.key}
-								group={group}
-								isDragDisabled={showActiveOnly}
-								showActiveOnly={showActiveOnly}
-								activeEmployeeCount={group.key === "org" ? activeEmployeeCount : undefined}
-								onItemToggle={(itemId, v) => handleItemToggle(group.key, itemId, v)}
-								onItemReorder={(newItems) => handleItemReorder(group.key, newItems)}
-								onSafeInsightToggle={group.key === "company_intro" ? handleSafeInsightToggle : undefined}
-								onInGuideToggle={group.key === "company_intro" ? handleInGuideToggle : undefined}
-							/>
-						))}
+						{visibleGroups.map((group) => {
+							const fullIndex = groups.findIndex((g) => g.key === group.key);
+							return (
+								<SortableGroupCard
+									key={group.key}
+									group={group}
+									isDragDisabled={showActiveOnly}
+									showActiveOnly={showActiveOnly}
+									activeEmployeeCount={group.key === "org" ? activeEmployeeCount : undefined}
+									onItemToggle={(itemId, v) => handleItemToggle(group.key, itemId, v)}
+									onItemReorder={(newItems) => handleItemReorder(group.key, newItems)}
+									onSafeInsightToggle={group.key === "company_intro" ? handleSafeInsightToggle : undefined}
+									onInGuideToggle={group.key === "company_intro" ? handleInGuideToggle : undefined}
+									onMoveUp={() => moveGroup(fullIndex, "up")}
+									onMoveDown={() => moveGroup(fullIndex, "down")}
+									isFirst={fullIndex === 0}
+									isLast={fullIndex === groups.length - 1}
+								/>
+							);
+						})}
 					</div>
 				</SortableContext>
 			</DndContext>

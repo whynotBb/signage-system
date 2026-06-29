@@ -477,6 +477,10 @@ body.ai-style-4 {
 	align-items: flex-start;
 }
 
+.org-member-list .org-member {
+	width: 100%;
+}
+
 /* ─ 팀 컨테이너 */
 .org-team {
 	display: flex;

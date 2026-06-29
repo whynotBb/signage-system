@@ -8,7 +8,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "@/lib/supabase/client";
 import { queryKeys } from "@/lib/supabase/query-keys";
 import { useAuthStore } from "@/store/auth-store";
-import { GripVertical, Plus, Trash, Users } from "lucide-react";
+import { GripVertical, Plus, Trash, Users, ChevronUp, ChevronDown, ArrowDownWideNarrow } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -114,9 +115,13 @@ interface EmployeeRowProps {
 	isEditor: boolean;
 	onEdit?: (employee: Employee) => void;
 	onDelete?: (employee: Employee) => void;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
 }
 
-function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: Omit<EmployeeRowProps, "containerId">) {
+function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: Omit<EmployeeRowProps, "containerId" | "onMoveUp" | "onMoveDown" | "isFirst" | "isLast">) {
 	return (
 		<>
 			<Avatar className="h-7 w-7 shrink-0">
@@ -129,7 +134,7 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: Omit<Emplo
 			{employee.is_dispatched && <Badge className="shrink-0 border-0 bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">파견</Badge>}
 			{isNewEmployee(employee.hired_at) && <Badge className="shrink-0 border-0 bg-purple-100 text-[10px] text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">NEW</Badge>}
 			{!isEditor && (
-				<div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 ml-auto">
+				<div className="flex shrink-0 items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 ml-auto lg:ml-0">
 					<Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => onEdit?.(employee)}>
 						편집
 					</Button>
@@ -142,22 +147,34 @@ function EmployeeRowContent({ employee, isEditor, onEdit, onDelete }: Omit<Emplo
 	);
 }
 
-function SortableEmployeeRow({ employee, containerId, isEditor, onEdit, onDelete }: EmployeeRowProps) {
+function SortableEmployeeRow({ employee, containerId, isEditor, onEdit, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: EmployeeRowProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: employee.id,
 		data: { type: "EMPLOYEE", containerId },
 	});
 
-	const style = {
-		transform: CSS.Transform.toString(transform),
+	const style: React.CSSProperties = {
+		transform: CSS.Translate.toString(transform),
 		transition: transition ?? "transform 150ms ease",
 		opacity: isDragging ? 0 : 1,
 	};
 
 	return (
 		<div ref={setNodeRef} style={style} className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent/50">
-			<div className="flex cursor-grab touch-none items-center" {...attributes} {...listeners}>
-				<GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground" />
+			<div className="flex items-center shrink-0">
+				{/* 데스크톱 그립 */}
+				<div className="hidden md:flex cursor-grab touch-none items-center" {...attributes} {...listeners}>
+					<GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground" />
+				</div>
+				{/* 모바일 화살표 */}
+				<div className="flex md:hidden flex-col items-center shrink-0">
+					<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동">
+						<ChevronUp className="h-3 w-3" />
+					</Button>
+					<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동">
+						<ChevronDown className="h-3 w-3" />
+					</Button>
+				</div>
 			</div>
 			<EmployeeRowContent employee={employee} isEditor={isEditor} onEdit={onEdit} onDelete={onDelete} />
 		</div>
@@ -178,9 +195,17 @@ interface TeamBlockProps {
 	onDeleteTeam?: (team: Team) => void;
 	onEditEmployee?: (employee: Employee) => void;
 	onDeleteEmployee?: (employee: Employee) => void;
+	onMoveEmployee?: (containerId: ContainerId, index: number, direction: "up" | "down") => void;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
+	onSortEmployees?: (containerId: ContainerId) => void;
+	teamNumber?: number;
+	isCollapsed?: boolean;
 }
 
-function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, showColor, onAddEmployee, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee }: TeamBlockProps) {
+function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, showColor, onAddEmployee, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee, onMoveEmployee, onMoveUp, onMoveDown, isFirst, isLast, onSortEmployees, teamNumber, isCollapsed }: TeamBlockProps) {
 	const { setNodeRef: setDropRef, isOver } = useDroppable({ id: containerId });
 	const color = showColor ? (team.color ?? "#6366f1") : undefined;
 	const bgTint = color ? color + "0d" : undefined;
@@ -190,15 +215,47 @@ function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, 
 			className="rounded-md border border-border/60 bg-background/80"
 			style={color ? { borderLeftWidth: 4, borderLeftColor: color, backgroundColor: bgTint } : undefined}
 		>
-			<div className="flex items-center gap-2 px-3 py-2">
-				{dragHandle && (
-					<div className="flex cursor-grab touch-none items-center" {...dragHandle.attributes} {...dragHandle.listeners}>
-						<GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40 hover:text-muted-foreground" />
+			<div className="flex flex-wrap items-center gap-2 px-3 py-2">
+				{/* 독립팀일 때 PC/모바일 화살표 상시 노출 */}
+				{!isEditor && !team.division_id && (
+					<div className="flex flex-col items-center shrink-0">
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동" title="위로 이동">
+							<ChevronUp className="h-3 w-3" />
+						</Button>
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동" title="아래로 이동">
+							<ChevronDown className="h-3 w-3" />
+						</Button>
 					</div>
 				)}
-				<span className="flex-1 text-sm font-semibold">{team.name}</span>
+
+				{/* 실 내부의 팀일 때 기존 DND 그립 & 모바일 화살표 노출 */}
+				{!isEditor && team.division_id && dragHandle && (
+					<>
+						{/* 데스크톱 그립 */}
+						<div className="hidden md:flex cursor-grab touch-none items-center" {...dragHandle.attributes} {...dragHandle.listeners}>
+							<GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40 hover:text-muted-foreground" />
+						</div>
+						{/* 모바일 화살표 */}
+						<div className="flex md:hidden flex-col items-center shrink-0">
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동">
+								<ChevronUp className="h-3 w-3" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동">
+								<ChevronDown className="h-3 w-3" />
+							</Button>
+						</div>
+					</>
+				)}
+
+				{/* 독립팀인 경우 색상 동그라미 및 순서 숫자 표기 */}
+				{color && !team.division_id && (
+					<div className="h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm" style={{ backgroundColor: color }}>
+						{teamNumber}
+					</div>
+				)}
+				<span className="flex-1 text-sm font-semibold min-w-[120px]">{team.name}</span>
 				{!isEditor && (
-					<div className="flex items-center gap-1">
+					<div className="flex items-center gap-1 ml-auto shrink-0 pt-1 sm:pt-0">
 						<Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onAddEmployee?.(team.id)}>
 							<Plus className="h-3 w-3" />
 							직원
@@ -209,18 +266,34 @@ function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, 
 						<Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDeleteTeam?.(team)}>
 							<Trash className="h-3 w-3" />
 						</Button>
+						<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onSortEmployees?.(containerId)} title="정렬" aria-label="팀원 자동 정렬">
+							<ArrowDownWideNarrow className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+						</Button>
 					</div>
 				)}
 			</div>
-
-			<div ref={setDropRef} className={cn("min-h-[32px] border-t border-border/40 px-2 py-1 transition-colors", isOver && "bg-primary/5 ring-1 ring-inset ring-primary/30")}>
-				<SortableContext items={employees.map((e) => e.id)} strategy={verticalListSortingStrategy}>
-					{employees.map((employee) => (
-						<SortableEmployeeRow key={employee.id} employee={employee} containerId={containerId} isEditor={isEditor} onEdit={onEditEmployee} onDelete={onDeleteEmployee} />
-					))}
-				</SortableContext>
-				{employees.length === 0 && <div className={cn("py-1.5 text-center text-xs text-muted-foreground/50 transition-colors", isOver && "text-primary/60")}>{isOver ? "여기에 드롭" : "직원 없음"}</div>}
-			</div>
+			{/* 독립팀이고 접혀있는 상태가 아닐 때만 노출 (또는 실에 속한 일반 팀일 때 노출) */}
+			{!(isCollapsed && !team.division_id) && (
+				<div ref={setDropRef} className={cn("min-h-[32px] border-t border-border/40 px-2 py-1 transition-colors", isOver && "bg-primary/5 ring-1 ring-inset ring-primary/30")}>
+					<SortableContext items={employees.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+						{employees.map((employee, index) => (
+							<SortableEmployeeRow
+								key={employee.id}
+								employee={employee}
+								containerId={containerId}
+								isEditor={isEditor}
+								onEdit={onEditEmployee}
+								onDelete={onDeleteEmployee}
+								onMoveUp={() => onMoveEmployee?.(containerId, index, "up")}
+								onMoveDown={() => onMoveEmployee?.(containerId, index, "down")}
+								isFirst={index === 0}
+								isLast={index === employees.length - 1}
+							/>
+						))}
+					</SortableContext>
+					{employees.length === 0 && <div className={cn("py-1.5 text-center text-xs text-muted-foreground/50 transition-colors", isOver && "text-primary/60")}>{isOver ? "여기에 드롭" : "직원 없음"}</div>}
+				</div>
+			)}
 		</div>
 	);
 }
@@ -228,13 +301,15 @@ function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, 
 function SortableTeamBlock(props: TeamBlockProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: props.team.id,
+		disabled: !props.team.division_id,
 		data: { type: "TEAM", divisionId: props.team.division_id },
 	});
 
-	const style = {
-		transform: CSS.Transform.toString(transform),
+	const style: React.CSSProperties = {
+		transform: CSS.Translate.toString(transform),
 		transition: transition ?? "transform 150ms ease",
 		opacity: isDragging ? 0 : 1,
+		zIndex: isDragging ? 10 : undefined,
 	};
 
 	return (
@@ -261,9 +336,18 @@ interface DivisionCardProps {
 	onDeleteTeam?: (team: Team) => void;
 	onEditEmployee?: (employee: Employee) => void;
 	onDeleteEmployee?: (employee: Employee) => void;
+	onMoveEmployee?: (containerId: ContainerId, index: number, direction: "up" | "down") => void;
+	onMoveInnerTeam?: (divisionId: string, index: number, direction: "up" | "down") => void;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
+	onSortEmployees?: (containerId: ContainerId) => void;
+	divisionNumber?: number;
+	isCollapsed?: boolean;
 }
 
-function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeContainers, isDraggingEmployee, onAddTeam, onAddEmployee, onEditDivision, onDeleteDivision, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee }: DivisionCardProps) {
+function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeContainers, isDraggingEmployee, onAddTeam, onAddEmployee, onEditDivision, onDeleteDivision, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee, onMoveEmployee, onMoveInnerTeam, onMoveUp, onMoveDown, isFirst, isLast, onSortEmployees, divisionNumber, isCollapsed }: DivisionCardProps) {
 	const directContainerId: ContainerId = `div-direct:${division.id}`;
 	const directEmployees = employeeContainers[directContainerId] ?? [];
 	const { setNodeRef: setDirectDropRef, isOver: isDirectOver } = useDroppable({
@@ -278,16 +362,23 @@ function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeCo
 	return (
 		<div className="rounded-lg border border-border shadow-sm" style={{ borderLeftWidth: 4, borderLeftColor: color, backgroundColor: bgTint }}>
 			{/* 실 헤더 */}
-			<div className="flex items-center gap-2 px-3 py-3">
-				{dragHandle && (
-					<div className="flex cursor-grab touch-none items-center" {...dragHandle.attributes} {...dragHandle.listeners}>
-						<GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40 hover:text-muted-foreground" />
+			<div className="flex flex-wrap items-center gap-2 px-3 py-3">
+				{!isEditor && (
+					<div className="flex flex-col items-center shrink-0">
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동" title="위로 이동">
+							<ChevronUp className="h-3 w-3" />
+						</Button>
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동" title="아래로 이동">
+							<ChevronDown className="h-3 w-3" />
+						</Button>
 					</div>
 				)}
-				<div className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-				<span className="flex-1 text-base font-bold">{division.name}</span>
+				<div className="h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm" style={{ backgroundColor: color }}>
+					{divisionNumber}
+				</div>
+				<span className="flex-1 text-base font-bold min-w-[120px]">{division.name}</span>
 				{!isEditor && (
-					<div className="flex items-center gap-1">
+					<div className="flex items-center gap-1 ml-auto shrink-0 pt-1 sm:pt-0">
 						<Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onAddTeam?.(division.id)}>
 							<Plus className="h-3 w-3" />팀
 						</Button>
@@ -305,31 +396,66 @@ function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeCo
 				)}
 			</div>
 
-			{/* 팀 블록 + 직속 직원 */}
-			{(teams.length > 0 || showDirectSection) && (
+			{/* 팀 블록 + 직속 직원 (접혀있는 상태가 아닐 때만 렌더링) */}
+			{!isCollapsed && (teams.length > 0 || showDirectSection) && (
 				<div className="flex flex-col gap-2 px-4 pb-3">
-					{teams.length > 0 && (
-						<SortableContext items={teams.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-							{teams.map((team) => (
-								<SortableTeamBlock key={team.id} team={team} employees={employeeContainers[`team:${team.id}`] ?? []} containerId={`team:${team.id}`} isEditor={isEditor} onAddEmployee={(teamId) => onAddEmployee?.(division.id, teamId)} onEditTeam={onEditTeam} onDeleteTeam={onDeleteTeam} onEditEmployee={onEditEmployee} onDeleteEmployee={onDeleteEmployee} />
-							))}
-						</SortableContext>
-					)}
-
+					{/* 실 직속 (첫 번째로 렌더링) */}
 					{showDirectSection && (
 						<div ref={setDirectDropRef} className={cn("rounded-md border border-dashed border-border/60 bg-background/50 transition-colors", isDirectOver && "border-primary/40 bg-primary/5")}>
-							<div className="px-3 py-1.5">
+							<div className="px-3 py-1.5 flex items-center justify-between">
 								<span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">실 직속</span>
+								{!isEditor && (
+									<Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onSortEmployees?.(directContainerId)} title="정렬" aria-label="직속 직원 정렬">
+										<ArrowDownWideNarrow className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+									</Button>
+								)}
 							</div>
 							<div className="border-t border-border/40 px-2 py-1">
 								<SortableContext items={directEmployees.map((e) => e.id)} strategy={verticalListSortingStrategy}>
-									{directEmployees.map((employee) => (
-										<SortableEmployeeRow key={employee.id} employee={employee} containerId={directContainerId} isEditor={isEditor} onEdit={onEditEmployee} onDelete={onDeleteEmployee} />
+									{directEmployees.map((employee, index) => (
+										<SortableEmployeeRow
+											key={employee.id}
+											employee={employee}
+											containerId={directContainerId}
+											isEditor={isEditor}
+											onEdit={onEditEmployee}
+											onDelete={onDeleteEmployee}
+											onMoveUp={() => onMoveEmployee?.(directContainerId, index, "up")}
+											onMoveDown={() => onMoveEmployee?.(directContainerId, index, "down")}
+											isFirst={index === 0}
+											isLast={index === directEmployees.length - 1}
+										/>
 									))}
 								</SortableContext>
 								{directEmployees.length === 0 && <div className={cn("py-1.5 text-center text-xs text-muted-foreground/50 transition-colors", isDirectOver && "text-primary/60")}>{isDirectOver ? "여기에 드롭" : "직원을 드래그해 추가"}</div>}
 							</div>
 						</div>
+					)}
+
+					{/* 팀 블록 (두 번째로 렌더링) */}
+					{teams.length > 0 && (
+						<SortableContext items={teams.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+							{teams.map((team, index) => (
+								<SortableTeamBlock
+									key={team.id}
+									team={team}
+									employees={employeeContainers[`team:${team.id}`] ?? []}
+									containerId={`team:${team.id}`}
+									isEditor={isEditor}
+									onAddEmployee={(teamId) => onAddEmployee?.(division.id, teamId)}
+									onEditTeam={onEditTeam}
+									onDeleteTeam={onDeleteTeam}
+									onEditEmployee={onEditEmployee}
+									onDeleteEmployee={onDeleteEmployee}
+									onMoveEmployee={onMoveEmployee}
+									onMoveUp={() => onMoveInnerTeam?.(division.id, index, "up")}
+									onMoveDown={() => onMoveInnerTeam?.(division.id, index, "down")}
+									isFirst={index === 0}
+									isLast={index === teams.length - 1}
+									onSortEmployees={onSortEmployees}
+								/>
+							))}
+						</SortableContext>
 					)}
 				</div>
 			)}
@@ -338,20 +464,20 @@ function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeCo
 }
 
 function SortableDivisionCard(props: DivisionCardProps) {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+	const { setNodeRef, transform, transition } = useSortable({
 		id: props.division.id,
+		disabled: true,
 		data: { type: "DIVISION" },
 	});
 
-	const style = {
-		transform: CSS.Transform.toString(transform),
+	const style: React.CSSProperties = {
+		transform: CSS.Translate.toString(transform),
 		transition: transition ?? "transform 150ms ease",
-		opacity: isDragging ? 0 : 1,
 	};
 
 	return (
 		<div ref={setNodeRef} style={style}>
-			<DivisionCardContent {...props} dragHandle={!props.isEditor ? { attributes, listeners } : undefined} />
+			<DivisionCardContent {...props} dragHandle={undefined} />
 		</div>
 	);
 }
@@ -457,6 +583,7 @@ export function OrgBoard() {
 
 	// ── 낙관적 순서 상태 ─────────────────────────────────────────────────────
 	const [localDivisions, setLocalDivisions] = useState<Division[]>(divisions);
+	const [isCollapsed, setIsCollapsed] = useState(false);
 	const [localTeams, setLocalTeams] = useState<Team[]>(teams);
 
 	// ── 직원 컨테이너 상태 (크로스 컨테이너 DnD) ─────────────────────────────
@@ -616,20 +743,58 @@ export function OrgBoard() {
 
 		const activeType = active.data.current?.type as string | undefined;
 
-		if (activeType === "DIVISION") {
-			const oldIndex = localDivisions.findIndex((d) => d.id === active.id);
-			const newIndex = localDivisions.findIndex((d) => d.id === over.id);
+		if (activeType === "DIVISION" || (activeType === "TEAM" && !active.data.current?.divisionId)) {
+			const oldIndex = topLevelItems.findIndex((x) => x.id === active.id);
+			const newIndex = topLevelItems.findIndex((x) => x.id === over.id);
 			if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
-			const reordered = arrayMove(localDivisions, oldIndex, newIndex);
-			setLocalDivisions(reordered);
-			updateDivisionOrders(reordered).then(() => {
+
+			const reorderedItems = arrayMove(topLevelItems, oldIndex, newIndex);
+
+			const updatedDivisions: Division[] = [];
+			const updatedIndependentTeams: Team[] = [];
+
+			reorderedItems.forEach((item, index) => {
+				const newOrder = index + 1;
+				if (item.type === "DIVISION") {
+					updatedDivisions.push({ ...item.item, display_order: newOrder });
+				} else {
+					updatedIndependentTeams.push({ ...item.item, display_order: newOrder });
+				}
+			});
+
+			setLocalDivisions(updatedDivisions.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)));
+
+			const updatedLocalTeams = [
+				...localTeams.filter((t) => t.division_id !== null),
+				...updatedIndependentTeams
+			];
+			setLocalTeams(updatedLocalTeams);
+
+			const supabase = createClient();
+			const updatePromises: Promise<any>[] = [];
+
+			if (updatedDivisions.length > 0) {
+				updatePromises.push((async () => {
+					const { error } = await supabase.from("divisions").upsert(updatedDivisions);
+					if (error) throw error;
+				})());
+			}
+			if (updatedIndependentTeams.length > 0) {
+				updatePromises.push((async () => {
+					const { error } = await supabase.from("teams").upsert(updatedIndependentTeams);
+					if (error) throw error;
+				})());
+			}
+
+			Promise.all(updatePromises).then(() => {
 				queryClient.invalidateQueries({ queryKey: queryKeys.divisions.all });
+				queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
 			});
 			return;
 		}
 
 		if (activeType === "TEAM") {
-			const divisionId = active.data.current?.divisionId as string | null;
+			const divisionId = active.data.current?.divisionId as string;
 			const divTeams = localTeams.filter((t) => t.division_id === divisionId);
 			const oldIndex = divTeams.findIndex((t) => t.id === active.id);
 			const newIndex = divTeams.findIndex((t) => t.id === over.id);
@@ -681,18 +846,150 @@ export function OrgBoard() {
 					newTeamId = null;
 					newDivisionId = toContainer.slice(11);
 				}
-
 				moveEmployeeToContainer(active.id as string, newTeamId, newDivisionId).then(() => {
 					queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
 				});
 			}
 		}
 	}
+	function moveTopLevelItem(index: number, direction: "up" | "down") {
+		const newIndex = direction === "up" ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= topLevelItems.length) return;
+
+		const reorderedItems = arrayMove(topLevelItems, index, newIndex);
+
+		const updatedDivisions: Division[] = [];
+		const updatedIndependentTeams: Team[] = [];
+
+		reorderedItems.forEach((item, idx) => {
+			const newOrder = idx + 1;
+			if (item.type === "DIVISION") {
+				updatedDivisions.push({ ...item.item, display_order: newOrder });
+			} else {
+				updatedIndependentTeams.push({ ...item.item, display_order: newOrder });
+			}
+		});
+
+		setLocalDivisions(updatedDivisions.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)));
+
+		const updatedLocalTeams = [
+			...localTeams.filter((t) => t.division_id !== null),
+			...updatedIndependentTeams
+		];
+		setLocalTeams(updatedLocalTeams);
+
+		const supabase = createClient();
+		const updatePromises: Promise<any>[] = [];
+
+		if (updatedDivisions.length > 0) {
+			updatePromises.push((async () => {
+				const { error } = await supabase.from("divisions").upsert(updatedDivisions);
+				if (error) throw error;
+			})());
+		}
+		if (updatedIndependentTeams.length > 0) {
+			updatePromises.push((async () => {
+				const { error } = await supabase.from("teams").upsert(updatedIndependentTeams);
+				if (error) throw error;
+			})());
+		}
+
+		Promise.all(updatePromises).then(() => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.divisions.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+		});
+	}
+
+	function moveInnerTeam(divisionId: string, index: number, direction: "up" | "down") {
+		const divTeams = localTeams.filter((t) => t.division_id === divisionId);
+		const newIndex = direction === "up" ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= divTeams.length) return;
+
+		const reordered = arrayMove(divTeams, index, newIndex);
+		const updatedLocalTeams = [...localTeams.filter((t) => t.division_id !== divisionId), ...reordered];
+		setLocalTeams(updatedLocalTeams);
+		updateTeamOrders(reordered).then(() => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+		});
+	}
+
+	function moveEmployee(containerId: ContainerId, index: number, direction: "up" | "down") {
+		const containerEmps = employeeContainers[containerId] ?? [];
+		const newIndex = direction === "up" ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= containerEmps.length) return;
+
+		const reordered = arrayMove(containerEmps, index, newIndex);
+		setDndContainers((prev) => ({ ...(prev ?? baseContainers), [containerId]: reordered }));
+		updateEmployeeOrders(reordered).then(() => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+		});
+	}
+
+	const POSITION_RANK: Record<string, number> = {
+		"대표이사": 9,
+		"부사장": 8,
+		"이사": 7,
+		"부장": 6,
+		"차장": 5,
+		"과장": 4,
+		"대리": 3,
+		"주임": 2,
+		"사원": 1,
+		"AI 에이전트": 0,
+	};
+	function getPositionRank(pos?: string | null): number {
+		if (!pos) return -1;
+		return POSITION_RANK[pos] ?? -1;
+	}
+
+	function compareEmployees(a: Employee, b: Employee): number {
+		// 1. 팀장 우선
+		const isALeader = a.title === "팀장" || a.title === "실장";
+		const isBLeader = b.title === "팀장" || b.title === "실장";
+		if (isALeader && !isBLeader) return -1;
+		if (!isALeader && isBLeader) return 1;
+
+		// 2. 직위 높은 순서
+		const rankA = getPositionRank(a.position);
+		const rankB = getPositionRank(b.position);
+		if (rankA !== rankB) {
+			return rankB - rankA;
+		}
+
+		// 3. 입사일 오래된 순서 (오름차순)
+		const timeA = a.hired_at ? new Date(a.hired_at).getTime() : Infinity;
+		const timeB = b.hired_at ? new Date(b.hired_at).getTime() : Infinity;
+		if (timeA !== timeB) {
+			return timeA - timeB;
+		}
+
+		// 4. ㄱ~ㅎ 순서
+		return a.name.localeCompare(b.name, "ko");
+	}
+
+	function sortEmployees(containerId: ContainerId) {
+		const containerEmps = employeeContainers[containerId] ?? [];
+		if (containerEmps.length <= 1) return;
+
+		const sorted = [...containerEmps].sort(compareEmployees);
+
+		setDndContainers((prev) => ({ ...(prev ?? baseContainers), [containerId]: sorted }));
+
+		updateEmployeeOrders(sorted).then(() => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+			toast.success("팀원이 정렬되었습니다.");
+		});
+	}
 
 	// ── 파생 데이터 ──────────────────────────────────────────────────────────
 	const representative = employees.find((e) => e.org_role === "representative") ?? null;
 	const viceRepresentative = employees.find((e) => e.org_role === "vice_representative") ?? null;
 	const independentTeams = localTeams.filter((t) => !t.division_id);
+	const topLevelItems = useMemo(() => {
+		const divs = localDivisions.map((d) => ({ type: "DIVISION" as const, id: d.id, display_order: d.display_order ?? 0, item: d }));
+		const indTeams = independentTeams.map((t) => ({ type: "TEAM" as const, id: t.id, display_order: t.display_order ?? 0, item: t }));
+		return [...divs, ...indTeams].sort((a, b) => a.display_order - b.display_order);
+	}, [localDivisions, independentTeams]);
 	const isDraggingEmployee = activeItem?.type === "EMPLOYEE";
 
 	if (isLoading) return <OrgBoardSkeleton />;
@@ -731,44 +1028,92 @@ export function OrgBoard() {
 				{localDivisions.length === 0 && independentTeams.length === 0 ? (
 					<EmptyState icon={Users} title="조직도 데이터가 없습니다" description="실을 추가하여 조직도를 구성해보세요." />
 				) : (
-					<DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-						<SortableContext items={localDivisions.map((d) => d.id)} strategy={verticalListSortingStrategy}>
-							{localDivisions.map((division) => {
-								const divisionTeams = localTeams.filter((t) => t.division_id === division.id);
-								return (
-									<SortableDivisionCard
-										key={division.id}
-										division={division}
-										teams={divisionTeams}
-										isEditor={isEditor}
-										employeeContainers={employeeContainers}
-										isDraggingEmployee={isDraggingEmployee}
-										onAddTeam={(divId) => openAddTeam(divId)}
-										onAddEmployee={(divId, teamId) => openAddEmployee(divId, teamId)}
-										onEditDivision={openEditDivision}
-										onDeleteDivision={openDeleteDivision}
-										onEditTeam={openEditTeam}
-										onDeleteTeam={openDeleteTeam}
-										onEditEmployee={openEditEmployee}
-										onDeleteEmployee={openEditEmployee}
-									/>
-								);
-							})}
-						</SortableContext>
+					<div className="flex flex-col gap-3">
+						{/* 접기/펼치기 제어 바 */}
+						<div className="flex items-center justify-between px-1">
+							<p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">조직 구조</p>
+							<Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40" onClick={() => setIsCollapsed(!isCollapsed)}>
+								{isCollapsed ? (
+									<>
+										<ChevronDown className="h-3.5 w-3.5" />
+										전체 펼치기
+									</>
+								) : (
+									<>
+										<ChevronUp className="h-3.5 w-3.5" />
+										전체 접기
+									</>
+								)}
+							</Button>
+						</div>
 
-						{/* 독립 팀 */}
-						{independentTeams.length > 0 && (
-							<div className="flex flex-col gap-3">
-								<div className="flex items-center gap-2">
-									<div className="h-px flex-1 bg-border" />
-									<span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">독립 팀</span>
-									<div className="h-px flex-1 bg-border" />
-								</div>
-								{independentTeams.map((team) => (
-									<TeamBlockContent key={team.id} team={team} employees={employeeContainers[`team:${team.id}`] ?? []} containerId={`team:${team.id}`} isEditor={isEditor} showColor onAddEmployee={(teamId) => openAddEmployee(null, teamId)} onEditTeam={openEditTeam} onDeleteTeam={openDeleteTeam} onEditEmployee={openEditEmployee} onDeleteEmployee={openEditEmployee} />
-								))}
-							</div>
-						)}
+						<DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+						<div className="flex flex-col gap-4">
+							<SortableContext items={topLevelItems.map((x) => x.id)} strategy={verticalListSortingStrategy}>
+								{topLevelItems.map((item) => {
+									const fullIndex = topLevelItems.findIndex((x) => x.id === item.id);
+									const isFirst = fullIndex === 0;
+									const isLast = fullIndex === topLevelItems.length - 1;
+
+									if (item.type === "DIVISION") {
+										const division = item.item as Division;
+										const divisionTeams = localTeams.filter((t) => t.division_id === division.id);
+										return (
+											<SortableDivisionCard
+												key={division.id}
+												division={division}
+												teams={divisionTeams}
+												isEditor={isEditor}
+												employeeContainers={employeeContainers}
+												isDraggingEmployee={isDraggingEmployee}
+												onAddTeam={(divId) => openAddTeam(divId)}
+												onAddEmployee={(divId, teamId) => openAddEmployee(divId, teamId)}
+												onEditDivision={openEditDivision}
+												onDeleteDivision={openDeleteDivision}
+												onEditTeam={openEditTeam}
+												onDeleteTeam={openDeleteTeam}
+												onEditEmployee={openEditEmployee}
+												onDeleteEmployee={openEditEmployee}
+												onMoveEmployee={moveEmployee}
+												onMoveInnerTeam={moveInnerTeam}
+												onMoveUp={() => moveTopLevelItem(fullIndex, "up")}
+												onMoveDown={() => moveTopLevelItem(fullIndex, "down")}
+												isFirst={isFirst}
+												isLast={isLast}
+												onSortEmployees={sortEmployees}
+												divisionNumber={fullIndex + 1}
+												isCollapsed={isCollapsed}
+											/>
+										);
+									} else {
+										const team = item.item as Team;
+										return (
+											<SortableTeamBlock
+												key={team.id}
+												team={team}
+												employees={employeeContainers[`team:${team.id}`] ?? []}
+												containerId={`team:${team.id}`}
+												isEditor={isEditor}
+												showColor
+												onAddEmployee={(teamId) => openAddEmployee(null, teamId)}
+												onEditTeam={openEditTeam}
+												onDeleteTeam={openDeleteTeam}
+												onEditEmployee={openEditEmployee}
+												onDeleteEmployee={openEditEmployee}
+												onMoveEmployee={moveEmployee}
+												onMoveUp={() => moveTopLevelItem(fullIndex, "up")}
+												onMoveDown={() => moveTopLevelItem(fullIndex, "down")}
+												isFirst={isFirst}
+												isLast={isLast}
+												onSortEmployees={sortEmployees}
+												teamNumber={fullIndex + 1}
+												isCollapsed={isCollapsed}
+											/>
+										);
+									}
+								})}
+							</SortableContext>
+						</div>
 
 						<DragOverlay dropAnimation={dropAnimation}>
 							{activeItem?.type === "DIVISION" && (
@@ -799,6 +1144,7 @@ export function OrgBoard() {
 							)}
 						</DragOverlay>
 					</DndContext>
+					</div>
 				)}
 			</div>
 

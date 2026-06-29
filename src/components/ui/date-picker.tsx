@@ -74,6 +74,9 @@ export function DatePicker({
           selected={selected}
           onSelect={handleSelect}
           defaultMonth={selected}
+          captionLayout="dropdown"
+          startMonth={new Date(1950, 0)}
+          endMonth={new Date(new Date().getFullYear() + 10, 11)}
           initialFocus
         />
       </PopoverContent>
@@ -190,6 +193,9 @@ export function DateTimePicker({
           selected={internalSelected}
           onSelect={handleDateSelect}
           defaultMonth={internalSelected ?? selected}
+          captionLayout="dropdown"
+          startMonth={new Date(1950, 0)}
+          endMonth={new Date(new Date().getFullYear() + 10, 11)}
           disabled={minDate ? { before: minDate } : undefined}
         />
 

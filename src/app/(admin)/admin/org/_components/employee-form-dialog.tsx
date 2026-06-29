@@ -170,6 +170,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 	});
 
 	const watchedDivisionId = useWatch({ control: form.control, name: "division_id" });
+	const watchedTeamId = useWatch({ control: form.control, name: "team_id" });
 	const watchedPosition = useWatch({ control: form.control, name: "position" });
 	const watchedTitle = useWatch({ control: form.control, name: "title" });
 	const isExecutive = (EXECUTIVE_POSITIONS as readonly string[]).includes(watchedPosition ?? "");
@@ -178,6 +179,10 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 	// 이미 대표/부대표인 직원 존재 여부 (편집 중인 본인은 제외)
 	const existingRepId = allEmployees.find((e) => e.org_role === "representative" && e.id !== employee?.id)?.id;
 	const existingViceRepId = allEmployees.find((e) => e.org_role === "vice_representative" && e.id !== employee?.id)?.id;
+
+	// 이미 실장/팀장인 직원 존재 여부 (편집 중인 본인은 제외)
+	const hasDivisionManager = watchedDivisionId ? allEmployees.some((e) => e.division_id === watchedDivisionId && e.title === "실장" && e.id !== employee?.id) : false;
+	const hasTeamManager = watchedTeamId ? allEmployees.some((e) => e.team_id === watchedTeamId && e.title === "팀장" && e.id !== employee?.id) : false;
 
 	const filteredTeams = teams.filter((t) => watchedDivisionId === null || t.division_id === watchedDivisionId);
 
@@ -361,11 +366,34 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 												</FormControl>
 												<SelectContent>
 													<SelectItem value="__none__">없음</SelectItem>
-													{TITLE_OPTIONS.map((t) => (
-														<SelectItem key={t} value={t}>
-															{t}
-														</SelectItem>
-													))}
+													{TITLE_OPTIONS.map((t) => {
+														let isDisabled = false;
+														let labelSuffix = "";
+
+														if (t === "실장") {
+															if (watchedDivisionId === null) {
+																isDisabled = true;
+																labelSuffix = " (소속 실 없음)";
+															} else if (hasDivisionManager) {
+																isDisabled = true;
+																labelSuffix = " (이미 존재함)";
+															}
+														} else if (t === "팀장") {
+															if (watchedTeamId === null) {
+																isDisabled = true;
+																labelSuffix = " (소속 팀 없음)";
+															} else if (hasTeamManager) {
+																isDisabled = true;
+																labelSuffix = " (이미 존재함)";
+															}
+														}
+
+														return (
+															<SelectItem key={t} value={t} disabled={isDisabled}>
+																{t}{labelSuffix}
+															</SelectItem>
+														);
+													})}
 												</SelectContent>
 											</Select>
 											<FormMessage />

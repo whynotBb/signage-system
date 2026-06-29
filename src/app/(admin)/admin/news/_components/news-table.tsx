@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GripVertical, Pencil, Trash2, Plus, Newspaper, Search } from "lucide-react";
+import { GripVertical, Pencil, Trash2, Plus, Newspaper, Search, ChevronUp, ChevronDown } from "lucide-react";
 import type { NewsContent } from "@/types";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
@@ -113,9 +113,13 @@ interface SortableRowProps {
 	onToggleActive: (checked: boolean) => void;
 	isTogglePending: boolean;
 	isDragDisabled: boolean;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
 }
 
-function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled }: SortableRowProps) {
+function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled, onMoveUp, onMoveDown, isFirst, isLast }: SortableRowProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
 	const style: React.CSSProperties = {
@@ -128,14 +132,26 @@ function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isT
 
 	return (
 		<TableRow ref={setNodeRef} style={style}>
-			{/* 드래그 핸들 */}
-			<TableCell className="w-8 px-2">
+			{/* 드래그 핸들 및 모바일 이동 화살표 */}
+			<TableCell className="w-16 md:w-8 px-2">
 				{isDragDisabled ? (
 					<span className="block h-4 w-4" />
 				) : (
-					<button {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground/50 transition-colors hover:text-muted-foreground active:cursor-grabbing" aria-label="순서 변경 (Space로 선택, 방향키로 이동, Enter로 확정)">
-						<GripVertical className="h-4 w-4" />
-					</button>
+					<div className="flex items-center gap-1">
+						{/* 데스크톱: DND 그립 */}
+						<button {...attributes} {...listeners} className="hidden md:inline-flex cursor-grab touch-none text-muted-foreground/50 transition-colors hover:text-muted-foreground active:cursor-grabbing" aria-label="순서 변경">
+							<GripVertical className="h-4 w-4" />
+						</button>
+						{/* 모바일: 화살표 순서 변경 */}
+						<div className="flex md:hidden flex-col items-center">
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동">
+								<ChevronUp className="h-3 w-3" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동">
+								<ChevronDown className="h-3 w-3" />
+							</Button>
+						</div>
+					</div>
 				)}
 			</TableCell>
 
@@ -198,9 +214,13 @@ interface MobileNewsCardProps {
 	onDelete: () => void;
 	onToggleActive: (checked: boolean) => void;
 	isTogglePending: boolean;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
 }
 
-function MobileNewsCard({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending }: MobileNewsCardProps) {
+function MobileNewsCard({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, onMoveUp, onMoveDown, isFirst, isLast }: MobileNewsCardProps) {
 	return (
 		<div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
 			<div className="flex items-start justify-between gap-3">
@@ -222,16 +242,27 @@ function MobileNewsCard({ item, canEdit, onEdit, onDelete, onToggleActive, isTog
 					})()}
 					{item.profiles?.name && <span>{item.profiles.name}</span>}
 				</div>
-				{canEdit && (
-					<div className="flex gap-1 shrink-0">
-						<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
-							<Pencil className="h-3.5 w-3.5" />
+				<div className="flex items-center gap-1 shrink-0">
+					{/* 순서 변경 화살표 */}
+					<div className="flex flex-col items-center mr-1 border-r pr-1 border-border">
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={onMoveUp} aria-label="위로 이동" title="위로 이동">
+							<ChevronUp className="h-3 w-3" />
 						</Button>
-						<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
-							<Trash2 className="h-3.5 w-3.5" />
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={onMoveDown} aria-label="아래로 이동" title="아래로 이동">
+							<ChevronDown className="h-3 w-3" />
 						</Button>
 					</div>
-				)}
+					{canEdit && (
+						<div className="flex gap-1">
+							<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
+								<Pencil className="h-3.5 w-3.5" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
+								<Trash2 className="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					)}
+				</div>
 			</div>
 		</div>
 	);
@@ -310,6 +341,19 @@ export function NewsTable() {
 		reorderMutation.mutate(reordered.map((item, index) => ({ id: item.id, display_order: index + 1 })));
 	}
 
+	function moveItem(index: number, direction: "up" | "down") {
+		const newIndex = direction === "up" ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= newsList.length) return;
+
+		const reordered = arrayMove(newsList, index, newIndex);
+
+		// 낙관적 업데이트
+		queryClient.setQueryData<NewsRow[]>(queryKeys.news.all, reordered);
+
+		// 서버 동기화
+		reorderMutation.mutate(reordered.map((item, idx) => ({ id: item.id, display_order: idx + 1 })));
+	}
+
 	function handleEdit(item: NewsRow) {
 		setEditTarget(item);
 		setFormOpen(true);
@@ -369,9 +413,24 @@ export function NewsTable() {
 							<>
 								{/* 모바일 카드 뷰 */}
 								<div className="sm:hidden flex flex-col gap-2">
-									{filteredList.map((item) => (
-										<MobileNewsCard key={item.id} item={item} canEdit={canEdit(item)} onEdit={() => handleEdit(item)} onDelete={() => setDeleteTarget(item)} onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })} isTogglePending={togglingId === item.id} />
-									))}
+									{filteredList.map((item) => {
+										const fullIndex = newsList.findIndex((n) => n.id === item.id);
+										return (
+											<MobileNewsCard
+												key={item.id}
+												item={item}
+												canEdit={canEdit(item)}
+												onEdit={() => handleEdit(item)}
+												onDelete={() => setDeleteTarget(item)}
+												onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
+												isTogglePending={togglingId === item.id}
+												onMoveUp={() => moveItem(fullIndex, "up")}
+												onMoveDown={() => moveItem(fullIndex, "down")}
+												isFirst={fullIndex === 0}
+												isLast={fullIndex === newsList.length - 1}
+											/>
+										);
+									})}
 								</div>
 
 								{/* 태블릿/데스크탑 테이블 뷰 */}
@@ -380,7 +439,7 @@ export function NewsTable() {
 										<Table>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-8 px-2" />
+													<TableHead className="w-16 md:w-8 px-2" />
 													<TableHead className="min-w-[200px]">제목 / 부제목</TableHead>
 													<TableHead className="hidden sm:table-cell w-[120px]">날짜</TableHead>
 													<TableHead className="w-[80px]">활성</TableHead>
@@ -391,9 +450,25 @@ export function NewsTable() {
 											</TableHeader>
 											<SortableContext items={filteredList.map((item) => item.id)} strategy={verticalListSortingStrategy}>
 												<TableBody>
-													{filteredList.map((item) => (
-														<SortableTableRow key={item.id} item={item} canEdit={canEdit(item)} onEdit={() => handleEdit(item)} onDelete={() => setDeleteTarget(item)} onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })} isTogglePending={togglingId === item.id} isDragDisabled={isFiltering} />
-													))}
+													{filteredList.map((item) => {
+														const fullIndex = newsList.findIndex((n) => n.id === item.id);
+														return (
+															<SortableTableRow
+																key={item.id}
+																item={item}
+																canEdit={canEdit(item)}
+																onEdit={() => handleEdit(item)}
+																onDelete={() => setDeleteTarget(item)}
+																onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
+																isTogglePending={togglingId === item.id}
+																isDragDisabled={isFiltering}
+																onMoveUp={() => moveItem(fullIndex, "up")}
+																onMoveDown={() => moveItem(fullIndex, "down")}
+																isFirst={fullIndex === 0}
+																isLast={fullIndex === newsList.length - 1}
+															/>
+														);
+													})}
 												</TableBody>
 											</SortableContext>
 										</Table>

@@ -40,7 +40,9 @@ function MemberCard({ employee, extraClass }: MemberCardProps) {
     <li className={className}>
       <img className="org-member-avatar" src={getAvatarUrl(employee.profile_image_url)} alt={employee.name} />
       <div className="org-member-info">
-        <span className="org-member-title">{employee.title}</span>
+        <span className="org-member-title">
+          {employee.title && employee.position ? employee.title : (employee.position || employee.title || '')}
+        </span>
         <span className="org-member-name">{employee.name}</span>
       </div>
     </li>
@@ -73,8 +75,26 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
     const hasTeams = divTeams.length > 0
     const hasHead = head !== null
 
-    return { div, divTeams, head, directMembers, hasTeams, hasHead }
+    return {
+      type: 'division' as const,
+      id: div.id,
+      display_order: div.display_order ?? 0,
+      data: { div, divTeams, head, directMembers, hasTeams, hasHead }
+    }
   })
+
+  // 단독팀 데이터 구성
+  const standaloneData = standaloneTeams.map((team) => {
+    return {
+      type: 'team' as const,
+      id: team.id,
+      display_order: team.display_order ?? 0,
+      data: team
+    }
+  })
+
+  // 병합 및 정렬
+  const mixedBlocks = [...deptData, ...standaloneData].sort((a, b) => a.display_order - b.display_order)
 
   return (
     <div className="contents-wrapper">
@@ -110,115 +130,123 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
 
         {/* 실별 목록 */}
         <div className="org-dept-list">
-          {deptData.map(({ div, divTeams, head, directMembers, hasTeams, hasHead }) => {
-            const deptClass = [
-              'org-dept',
-              !hasTeams ? 'org-dept-no-teams' : '',
-              !hasHead && hasTeams ? 'org-dept-team-only' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')
+          {mixedBlocks.map((block) => {
+            if (block.type === 'division') {
+              const { div, divTeams, head, directMembers, hasTeams, hasHead } = block.data as {
+                div: Division
+                divTeams: Team[]
+                head: Employee | null
+                directMembers: Employee[]
+                hasTeams: boolean
+                hasHead: boolean
+              }
+              const deptClass = [
+                'org-dept',
+                !hasTeams ? 'org-dept-no-teams' : '',
+                !hasHead && hasTeams ? 'org-dept-team-only' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')
 
-            return (
-              <section key={div.id} className={deptClass} style={{ '--dept-color': div.color } as React.CSSProperties}>
-                {/* 실 이름 (팀이 없거나 실장이 있을 때 표시) */}
-                {(!hasTeams || hasHead) && (
-                  <h2 className="org-dept-name">{div.name}</h2>
-                )}
+              return (
+                <section key={div.id} className={deptClass} style={{ '--dept-color': div.color } as React.CSSProperties}>
+                  {/* 실 이름 (팀이 없거나 실장이 있을 때 표시) */}
+                  {(!hasTeams || hasHead) && (
+                    <h2 className="org-dept-name">{div.name}</h2>
+                  )}
 
-                {/* 실장 카드 */}
-                {hasHead && head && (
-                  <div className="org-dept-head">
-                    <div className="org-member">
-                      <img className="org-member-avatar" src={getAvatarUrl(head.profile_image_url)} alt={head.name} />
-                      <div className="org-member-info">
-                        <span className="org-member-title">{head.title}</span>
-                        <span className="org-member-name">{head.name}</span>
+                  {/* 실장 카드 */}
+                  {hasHead && head && (
+                    <div className="org-dept-head">
+                      <div className="org-member">
+                        <img className="org-member-avatar" src={getAvatarUrl(head.profile_image_url)} alt={head.name} />
+                        <div className="org-member-info">
+                          <span className="org-member-title">{head.title}</span>
+                          <span className="org-member-name">{head.name}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* 팀 목록 */}
-                {hasTeams && (
-                  <div className="org-team-list">
-                    {divTeams.map((team) => {
-                      const teamMembers = employees.filter(
-                        (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
-                      )
-                      const isWide = teamMembers.length >= 10
-                      const teamClass = ['org-team', isWide ? 'org-team-wide' : '']
+                  {/* 팀 목록 */}
+                  {hasTeams && (
+                    <div className="org-team-list">
+                      {divTeams.map((team) => {
+                        const teamMembers = employees.filter(
+                          (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
+                        )
+                        const isWide = teamMembers.length >= 10
+                        const teamClass = ['org-team', isWide ? 'org-team-wide' : '']
+                          .filter(Boolean)
+                          .join(' ')
+
+                        // 팀명 분리 (e.g. "서비스개발 1팀" → ["서비스개발", "1팀"])
+                        const parts = team.name.split(' ')
+
+                        return (
+                          <div key={team.id} className={teamClass}>
+                            <h3 className="org-team-name">
+                              {parts.length > 1 ? (
+                                <>
+                                  {parts.slice(0, -1).join(' ')}{' '}
+                                  <em>{parts[parts.length - 1]}</em>
+                                </>
+                              ) : (
+                                team.name
+                              )}
+                            </h3>
+                            <ul className="org-member-list">
+                              {teamMembers.map((emp) => (
+                                <MemberCard key={emp.id} employee={emp} />
+                              ))}
+                            </ul>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* 팀이 없고 직속 멤버가 있는 경우 (영업/기획실 등) */}
+                  {!hasTeams && directMembers.length > 0 && (
+                    <ul
+                      className={[
+                        'org-member-list',
+                        directMembers.length >= 10 ? 'org-team-wide' : '',
+                      ]
                         .filter(Boolean)
-                        .join(' ')
-
-                      // 팀명 분리 (e.g. "서비스개발 1팀" → ["서비스개발", "1팀"])
-                      const parts = team.name.split(' ')
-
-                      return (
-                        <div key={team.id} className={teamClass}>
-                          <h3 className="org-team-name">
-                            {parts.length > 1 ? (
-                              <>
-                                {parts.slice(0, -1).join(' ')}{' '}
-                                <em>{parts[parts.length - 1]}</em>
-                              </>
-                            ) : (
-                              team.name
-                            )}
-                          </h3>
-                          <ul className="org-member-list">
-                            {teamMembers.map((emp) => (
-                              <MemberCard key={emp.id} employee={emp} />
-                            ))}
-                          </ul>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* 팀이 없고 직속 멤버가 있는 경우 (영업/기획실 등) */}
-                {!hasTeams && directMembers.length > 0 && (
-                  <ul
-                    className={[
-                      'org-member-list',
-                      directMembers.length >= 10 ? 'org-team-wide' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    {directMembers.map((emp) => (
-                      <MemberCard key={emp.id} employee={emp} />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )
-          })}
-
-          {/* 단독팀 (소속 실 없음) */}
-          {standaloneTeams.map((team) => {
-            const teamMembers = employees.filter(
-              (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
-            )
-            return (
-              <section
-                key={team.id}
-                className="org-dept org-dept-team-only"
-                style={{ '--dept-color': team.color ?? '#888888' } as React.CSSProperties}
-              >
-                <div className="org-team-list">
-                  <div className="org-team">
-                    <h3 className="org-team-name">{team.name}</h3>
-                    <ul className="org-member-list">
-                      {teamMembers.map((emp) => (
+                        .join(' ')}
+                    >
+                      {directMembers.map((emp) => (
                         <MemberCard key={emp.id} employee={emp} />
                       ))}
                     </ul>
+                  )}
+                </section>
+              )
+            } else {
+              const team = block.data as Team
+              const teamMembers = employees.filter(
+                (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
+              )
+              return (
+                <section
+                  key={team.id}
+                  className="org-dept org-dept-team-only"
+                  style={{ '--dept-color': team.color ?? '#888888' } as React.CSSProperties}
+                >
+                  <div className="org-team-list">
+                    <div className="org-team">
+                      <h3 className="org-team-name">{team.name}</h3>
+                      <ul className="org-member-list">
+                        {teamMembers.map((emp) => (
+                          <MemberCard key={emp.id} employee={emp} />
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                </div>
-              </section>
-            )
+                </section>
+              )
+            }
           })}
         </div>
 

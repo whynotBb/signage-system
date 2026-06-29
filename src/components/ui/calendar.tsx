@@ -93,6 +93,10 @@ function Calendar({
           defaultClassNames.disabled
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
+        dropdowns: "flex gap-1 items-center justify-center w-full my-1.5",
+        dropdown: "bg-transparent hover:bg-accent hover:text-accent-foreground text-xs font-medium rounded-md border border-input px-2 py-1 focus-visible:outline-none cursor-pointer",
+        dropdown_month: "shrink-0",
+        dropdown_year: "shrink-0",
         ...classNames,
       }}
       components={{

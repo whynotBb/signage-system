@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Swiper } from "swiper";
+import Swiper from "swiper";
 import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
@@ -27,7 +27,17 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 	const swiperRef = useRef<Swiper | null>(null);
 
 	useEffect(() => {
-		const swiper = new Swiper(".swiper", {
+		const SwiperClass = (Swiper as any).default || Swiper;
+		const colorBubbles = document.querySelectorAll<HTMLElement>(".color-bubble");
+
+		const updateColorBubbles = (s: any) => {
+			if (!s || !s.slides) return;
+			const activeSlide = s.slides[s.activeIndex];
+			const isActive = activeSlide?.classList.contains("bubble_st") ?? false;
+			colorBubbles.forEach((el) => el.classList.toggle("on", isActive));
+		};
+
+		const swiper = new SwiperClass(".swiper", {
 			modules: [Autoplay, EffectFade],
 			loop: true,
 			effect: "fade",
@@ -35,30 +45,29 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 			speed: 800,
 			keyboard: { enabled: true },
 			mousewheel: { enabled: true },
-			autoplay: {
-				delay: 10000,
-				disableOnInteraction: false,
-			},
+			// autoplay: {
+			// 	delay: 10000,
+			// 	disableOnInteraction: false,
+			// },
 			observer: true,
 			observeParents: true,
 			observeSlideChildren: true,
+			on: {
+				init: function (s: any) {
+					updateColorBubbles(s);
+				},
+				slideChange: function (s: any) {
+					updateColorBubbles(s);
+				},
+			},
 		});
 
 		swiperRef.current = swiper;
 
-		const colorBubbles = document.querySelectorAll<HTMLElement>(".color-bubble");
-
-		const updateColorBubbles = () => {
-			const activeSlide = swiper.slides[swiper.activeIndex];
-			const isActive = activeSlide?.classList.contains("bubble_st") ?? false;
-			colorBubbles.forEach((el) => el.classList.toggle("on", isActive));
-		};
-
-		swiper.on("slideChange", updateColorBubbles);
-		updateColorBubbles();
-
 		return () => {
-			swiper.destroy(true, true);
+			if (swiper && typeof swiper.destroy === "function") {
+				swiper.destroy(true, true);
+			}
 			swiperRef.current = null;
 		};
 	}, []);

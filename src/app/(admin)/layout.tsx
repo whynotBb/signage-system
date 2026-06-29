@@ -11,10 +11,10 @@ export default function AdminLayout({
   children: ReactNode
 }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh overflow-hidden">
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
+      <SidebarInset className="flex min-h-0 flex-col overflow-hidden">
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 bg-background">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator
@@ -27,7 +27,7 @@ export default function AdminLayout({
             <ThemeToggle />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )

@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GripVertical, MapPin, Pencil, Trash2, Plus, UserCheck, Search } from "lucide-react";
+import { GripVertical, MapPin, Pencil, Trash2, Plus, UserCheck, Search, ChevronUp, ChevronDown } from "lucide-react";
 import type { VisitorContent } from "@/types";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
@@ -123,9 +123,13 @@ interface SortableRowProps {
 	onToggleActive: (checked: boolean) => void;
 	isTogglePending: boolean;
 	isDragDisabled: boolean;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
 }
 
-function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled }: SortableRowProps) {
+function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled, onMoveUp, onMoveDown, isFirst, isLast }: SortableRowProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
 	const style: React.CSSProperties = {
@@ -141,14 +145,26 @@ function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isT
 
 	return (
 		<TableRow ref={setNodeRef} style={style}>
-			{/* 드래그 핸들 */}
-			<TableCell className="w-8 px-2">
+			{/* 드래그 핸들 및 모바일 이동 화살표 */}
+			<TableCell className="w-16 md:w-8 px-2">
 				{isDragDisabled ? (
 					<span className="block h-4 w-4" />
 				) : (
-					<button {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground/50 transition-colors hover:text-muted-foreground active:cursor-grabbing" aria-label="순서 변경 (Space로 선택, 방향키로 이동, Enter로 확정)">
-						<GripVertical className="h-4 w-4" />
-					</button>
+					<div className="flex items-center gap-1">
+						{/* 데스크톱: DND 그립 */}
+						<button {...attributes} {...listeners} className="hidden md:inline-flex cursor-grab touch-none text-muted-foreground/50 transition-colors hover:text-muted-foreground active:cursor-grabbing" aria-label="순서 변경">
+							<GripVertical className="h-4 w-4" />
+						</button>
+						{/* 모바일: 화살표 순서 변경 */}
+						<div className="flex md:hidden flex-col items-center">
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동">
+								<ChevronUp className="h-3 w-3" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동">
+								<ChevronDown className="h-3 w-3" />
+							</Button>
+						</div>
+					</div>
 				)}
 			</TableCell>
 
@@ -230,9 +246,13 @@ interface MobileVisitorCardProps {
 	onDelete: () => void;
 	onToggleActive: (checked: boolean) => void;
 	isTogglePending: boolean;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	isFirst?: boolean;
+	isLast?: boolean;
 }
 
-function MobileVisitorCard({ item, parsedNames, parsedTitles, canEdit, onEdit, onDelete, onToggleActive, isTogglePending }: MobileVisitorCardProps) {
+function MobileVisitorCard({ item, parsedNames, parsedTitles, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, onMoveUp, onMoveDown, isFirst, isLast }: MobileVisitorCardProps) {
 	return (
 		<div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
 			<div className="flex items-start justify-between gap-3">
@@ -245,28 +265,44 @@ function MobileVisitorCard({ item, parsedNames, parsedTitles, canEdit, onEdit, o
 				</div>
 				<Switch checked={item.is_active} onCheckedChange={onToggleActive} disabled={isTogglePending} aria-label={item.is_active ? "활성" : "비활성"} className="shrink-0" />
 			</div>
-			<div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-				{item.visit_date && <span>{formatDate(item.visit_date)}</span>}
-				{item.location && (
-					<span className="flex items-center gap-0.5">
-						<MapPin className="h-3 w-3" aria-hidden="true" />
-						{item.location}
-					</span>
-				)}
-				<Badge variant={DISPLAY_STATUS_VARIANT[getDisplayStatus(item)]} className="text-xs">
-					{DISPLAY_STATUS_LABEL[getDisplayStatus(item)]}
-				</Badge>
-			</div>
-			{canEdit && (
-				<div className="flex gap-1 justify-end">
-					<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
-						<Pencil className="h-3.5 w-3.5" />
-					</Button>
-					<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
-						<Trash2 className="h-3.5 w-3.5" />
-					</Button>
+			<div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/40">
+				{/* 정보 영역 (날짜, 장소, 배지) */}
+				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground min-w-[140px] flex-1">
+					{item.visit_date && <span>{formatDate(item.visit_date)}</span>}
+					{item.location && (
+						<span className="flex items-center gap-0.5">
+							<MapPin className="h-3 w-3" aria-hidden="true" />
+							{item.location}
+						</span>
+					)}
+					<Badge variant={DISPLAY_STATUS_VARIANT[getDisplayStatus(item)]} className="text-xs">
+						{DISPLAY_STATUS_LABEL[getDisplayStatus(item)]}
+					</Badge>
 				</div>
-			)}
+
+				{/* 편집 & 순서 변경 영역 */}
+				<div className="flex items-center gap-1 shrink-0 ml-auto pt-1 sm:pt-0">
+					{/* 순서 변경 화살표 */}
+					<div className="flex flex-col items-center mr-1 border-r pr-1 border-border">
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={onMoveUp} aria-label="위로 이동" title="위로 이동">
+							<ChevronUp className="h-3 w-3" />
+						</Button>
+						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={onMoveDown} aria-label="아래로 이동" title="아래로 이동">
+							<ChevronDown className="h-3 w-3" />
+						</Button>
+					</div>
+					{canEdit && (
+						<div className="flex gap-1">
+							<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
+								<Pencil className="h-3.5 w-3.5" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
+								<Trash2 className="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					)}
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -348,6 +384,19 @@ export function VisitorTable() {
 		reorderMutation.mutate(reordered.map((item, index) => ({ id: item.id, display_order: index + 1 })));
 	}
 
+	function moveItem(index: number, direction: "up" | "down") {
+		const newIndex = direction === "up" ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= visitorList.length) return;
+
+		const reordered = arrayMove(visitorList, index, newIndex);
+
+		// 낙관적 업데이트
+		queryClient.setQueryData<VisitorRow[]>(queryKeys.visitors.all, reordered);
+
+		// 서버 동기화
+		reorderMutation.mutate(reordered.map((item, idx) => ({ id: item.id, display_order: idx + 1 })));
+	}
+
 	function handleEdit(item: VisitorRow) {
 		setEditTarget(item);
 		setFormOpen(true);
@@ -410,7 +459,24 @@ export function VisitorTable() {
 									{filteredList.map((item) => {
 										const names = parseVisitorField(item.visitor_name);
 										const titles = parseVisitorField(item.visitor_title);
-										return <MobileVisitorCard key={item.id} item={item} parsedNames={names} parsedTitles={titles} canEdit={canEdit(item)} onEdit={() => handleEdit(item)} onDelete={() => setDeleteTarget(item)} onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })} isTogglePending={togglingId === item.id} />;
+										const fullIndex = visitorList.findIndex((v) => v.id === item.id);
+										return (
+											<MobileVisitorCard
+												key={item.id}
+												item={item}
+												parsedNames={names}
+												parsedTitles={titles}
+												canEdit={canEdit(item)}
+												onEdit={() => handleEdit(item)}
+												onDelete={() => setDeleteTarget(item)}
+												onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
+												isTogglePending={togglingId === item.id}
+												onMoveUp={() => moveItem(fullIndex, "up")}
+												onMoveDown={() => moveItem(fullIndex, "down")}
+												isFirst={fullIndex === 0}
+												isLast={fullIndex === visitorList.length - 1}
+											/>
+										);
 									})}
 								</div>
 
@@ -420,7 +486,7 @@ export function VisitorTable() {
 										<Table>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-8 px-2" />
+													<TableHead className="w-16 md:w-8 px-2" />
 													<TableHead className="hidden sm:table-cell w-[120px]">방문일</TableHead>
 													<TableHead className="min-w-[150px]">방문 목적</TableHead>
 													<TableHead className="hidden sm:table-cell w-[150px]">방문 기관</TableHead>
@@ -434,9 +500,25 @@ export function VisitorTable() {
 											</TableHeader>
 											<SortableContext items={filteredList.map((item) => item.id)} strategy={verticalListSortingStrategy}>
 												<TableBody>
-													{filteredList.map((item) => (
-														<SortableTableRow key={item.id} item={item} canEdit={canEdit(item)} onEdit={() => handleEdit(item)} onDelete={() => setDeleteTarget(item)} onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })} isTogglePending={togglingId === item.id} isDragDisabled={isFiltering} />
-													))}
+													{filteredList.map((item) => {
+														const fullIndex = visitorList.findIndex((v) => v.id === item.id);
+														return (
+															<SortableTableRow
+																key={item.id}
+																item={item}
+																canEdit={canEdit(item)}
+																onEdit={() => handleEdit(item)}
+																onDelete={() => setDeleteTarget(item)}
+																onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
+																isTogglePending={togglingId === item.id}
+																isDragDisabled={isFiltering}
+																onMoveUp={() => moveItem(fullIndex, "up")}
+																onMoveDown={() => moveItem(fullIndex, "down")}
+																isFirst={fullIndex === 0}
+																isLast={fullIndex === visitorList.length - 1}
+															/>
+														);
+													})}
 												</TableBody>
 											</SortableContext>
 										</Table>
