@@ -136,12 +136,12 @@ async function updateGroupOrder(items: { group_key: string; display_order: numbe
 
 async function updateItemOrder(table: string, items: { id: string; display_order: number }[]) {
 	const supabase = createClient();
-	await Promise.all(items.map(({ id, display_order }) => supabase.from(table).update({ display_order }).eq("id", id)));
+	await Promise.all(items.map(({ id, display_order }) => (supabase.from(table as any).update({ display_order } as any) as any).eq("id", id)));
 }
 
 async function toggleItemActive(table: string, id: string, is_active: boolean) {
 	const supabase = createClient();
-	const { error } = await supabase.from(table).update({ is_active }).eq("id", id);
+	const { error } = await (supabase.from(table as any).update({ is_active } as any) as any).eq("id", id);
 	if (error) throw error;
 }
 
@@ -475,7 +475,7 @@ export function DashboardContent() {
 
 	function handleItemReorder(groupKey: GroupKey, newItems: ContentItem[]) {
 		const table = GROUP_TABLE[groupKey];
-		const qk = (queryKeys as Record<string, { all: readonly unknown[] }>)[groupKey === "visitor" ? "visitors" : groupKey === "image" ? "images" : groupKey === "video" ? "videos" : groupKey]?.all;
+		const qk = (queryKeys as any)[groupKey === "visitor" ? "visitors" : groupKey === "image" ? "images" : groupKey === "video" ? "videos" : groupKey]?.all;
 		if (!table || !qk) return;
 
 		const prev = queryClient.getQueryData<ContentItem[]>(qk);
@@ -491,7 +491,7 @@ export function DashboardContent() {
 
 	function handleItemToggle(groupKey: GroupKey, itemId: string, is_active: boolean) {
 		const table = GROUP_TABLE[groupKey];
-		const qk = (queryKeys as Record<string, { all: readonly unknown[] }>)[groupKey === "visitor" ? "visitors" : groupKey === "image" ? "images" : groupKey === "video" ? "videos" : groupKey]?.all;
+		const qk = (queryKeys as any)[groupKey === "visitor" ? "visitors" : groupKey === "image" ? "images" : groupKey === "video" ? "videos" : groupKey]?.all;
 		if (!table || !qk) return;
 
 		queryClient.setQueryData<ContentItem[]>(qk, (prev) => (prev ?? []).map((i) => (i.id === itemId ? { ...i, is_active } : i)));

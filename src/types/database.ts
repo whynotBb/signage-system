@@ -134,6 +134,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          display_order: number
           id: string
           image_url: string
           is_active: boolean
@@ -143,6 +144,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          display_order?: number
           id?: string
           image_url: string
           is_active?: boolean
@@ -152,6 +154,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          display_order?: number
           id?: string
           image_url?: string
           is_active?: boolean
@@ -293,6 +296,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          display_order: number
           id: string
           is_active: boolean
           title: string
@@ -302,6 +306,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          display_order?: number
           id?: string
           is_active?: boolean
           title: string
@@ -311,6 +316,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          display_order?: number
           id?: string
           is_active?: boolean
           title?: string
@@ -385,6 +391,27 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      signage_group_order: {
+        Row: {
+          created_at: string
+          display_order: number
+          group_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          group_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          group_key?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -494,6 +521,7 @@ export type VisitorContent = Database['public']['Tables']['visitor_contents']['R
 export type CompanyIntroConfig = Database['public']['Tables']['company_intro_config']['Row']
 export type VideoContent = Database['public']['Tables']['video_contents']['Row']
 export type ImageContent = Database['public']['Tables']['image_contents']['Row']
+export type SignageGroupOrder = Database['public']['Tables']['signage_group_order']['Row']
 
 // ── 편의 타입 alias — Insert ────────────────────────────────────────────────
 
@@ -506,6 +534,7 @@ export type VisitorContentInsert = Database['public']['Tables']['visitor_content
 export type CompanyIntroConfigInsert = Database['public']['Tables']['company_intro_config']['Insert']
 export type VideoContentInsert = Database['public']['Tables']['video_contents']['Insert']
 export type ImageContentInsert = Database['public']['Tables']['image_contents']['Insert']
+export type SignageGroupOrderInsert = Database['public']['Tables']['signage_group_order']['Insert']
 
 // ── 편의 타입 alias — Update ────────────────────────────────────────────────
 
@@ -518,3 +547,4 @@ export type VisitorContentUpdate = Database['public']['Tables']['visitor_content
 export type CompanyIntroConfigUpdate = Database['public']['Tables']['company_intro_config']['Update']
 export type VideoContentUpdate = Database['public']['Tables']['video_contents']['Update']
 export type ImageContentUpdate = Database['public']['Tables']['image_contents']['Update']
+export type SignageGroupOrderUpdate = Database['public']['Tables']['signage_group_order']['Update']
