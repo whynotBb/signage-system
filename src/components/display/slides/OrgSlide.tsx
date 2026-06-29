@@ -14,9 +14,32 @@ function isNewEmployee(hiredAt: string): boolean {
   return new Date(hiredAt) > threeMonthsAgo
 }
 
-// 아바타 이미지 URL (폴백: 빈 원형)
-function getAvatarUrl(url: string | null): string {
-  return url ?? ''
+// 아바타 이미지 URL (폴백: undefined로 설정하여 src="" 방지)
+function getAvatarUrl(url: string | null | undefined): string | undefined {
+  return url || undefined
+}
+
+interface AvatarImageOrFallbackProps {
+  profileImageUrl: string | null | undefined
+  name: string
+  className?: string
+}
+
+function AvatarImageOrFallback({
+  profileImageUrl,
+  name,
+  className = 'org-member-avatar',
+}: AvatarImageOrFallbackProps) {
+  const url = getAvatarUrl(profileImageUrl)
+  if (url) {
+    return <img className={className} src={url} alt={name} />
+  }
+  const lastName = name.charAt(0)
+  return (
+    <div className={`${className} org-member-avatar-fallback`}>
+      {lastName}
+    </div>
+  )
 }
 
 interface MemberCardProps {
@@ -38,7 +61,7 @@ function MemberCard({ employee, extraClass }: MemberCardProps) {
 
   return (
     <li className={className}>
-      <img className="org-member-avatar" src={getAvatarUrl(employee.profile_image_url)} alt={employee.name} />
+      <AvatarImageOrFallback profileImageUrl={employee.profile_image_url} name={employee.name} />
       <div className="org-member-info">
         <span className="org-member-title">
           {employee.title && employee.position ? employee.title : (employee.position || employee.title || '')}
@@ -72,14 +95,26 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
     const head = directEmps.find((e) => headTitles.includes(e.title)) ?? null
     const directMembers = directEmps.filter((e) => e !== head)
 
-    const hasTeams = divTeams.length > 0
+    // 실장 이외 실직속 직원이 있는 경우 가상의 '실직속' 팀 블록을 첫 번째에 배치
+    const virtualDirectTeam = directMembers.length > 0 ? {
+      id: `virtual-direct:${div.id}`,
+      name: '실직속',
+      division_id: div.id,
+      color: div.color,
+      isVirtual: true,
+      members: directMembers
+    } : null
+
+    const allTeams = virtualDirectTeam ? [virtualDirectTeam, ...divTeams] : divTeams
+    const hasRealTeams = divTeams.length > 0
+    const hasTeams = allTeams.length > 0
     const hasHead = head !== null
 
     return {
       type: 'division' as const,
       id: div.id,
       display_order: div.display_order ?? 0,
-      data: { div, divTeams, head, directMembers, hasTeams, hasHead }
+      data: { div, allTeams, head, hasTeams, hasRealTeams, hasHead }
     }
   })
 
@@ -96,9 +131,46 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
   // 병합 및 정렬
   const mixedBlocks = [...deptData, ...standaloneData].sort((a, b) => a.display_order - b.display_order)
 
+  // 총 열 수 계산 (한 화면에 다 들어가도록 스타일 조절하기 위함)
+  const totalColumns = mixedBlocks.reduce((acc, block) => {
+    if (block.type === 'division') {
+      const { allTeams, hasTeams } = block.data as {
+        div: Division
+        allTeams: any[]
+        head: Employee | null
+        hasTeams: boolean
+        hasHead: boolean
+      }
+      if (hasTeams) {
+        // 팀 개당 열 개수 합산
+        const divTeamsCols = allTeams.reduce((tAcc: number, team: any) => {
+          const teamMembers = team.isVirtual
+            ? team.members
+            : employees.filter(
+                (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
+              )
+          return tAcc + (teamMembers.length >= 10 ? 2 : 1)
+        }, 0)
+        return acc + divTeamsCols
+      } else {
+        return acc + 1 // 멤버도 없고 팀도 없는 경우 실 카드를 위한 1열 확보
+      }
+    } else {
+      // 독립팀: 1열 (10명 이상인 경우 2열)
+      const team = block.data as Team
+      const teamMembers = employees.filter(
+        (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
+      )
+      return acc + (teamMembers.length >= 10 ? 2 : 1)
+    }
+  }, 0)
+
+  // 열 수에 따른 CSS 클래스 매핑
+  const colsClass = `col-${totalColumns}`
+
   return (
     <div className="contents-wrapper">
-      <div className="org-wrapper">
+      <div className={`org-wrapper ${colsClass}`}>
         {/* 상단 헤더: 로고 + 임원 */}
         <div className="org-header">
           <div className="org-logo">
@@ -108,7 +180,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
             {ceo && (
               <li className="org-member org-member-ceo">
                 <div className="org-member-avatar-wrapper">
-                  <img src={getAvatarUrl(ceo.profile_image_url)} alt={ceo.name} />
+                  <AvatarImageOrFallback profileImageUrl={ceo.profile_image_url} name={ceo.name} className="" />
                 </div>
                 <div className="org-member-info">
                   <span className="org-member-title">{ceoTitle}</span>
@@ -118,7 +190,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
             )}
             {vp && (
               <li className="org-member org-member-vp">
-                <img className="org-member-avatar" src={getAvatarUrl(vp.profile_image_url)} alt={vp.name} />
+                <AvatarImageOrFallback profileImageUrl={vp.profile_image_url} name={vp.name} />
                 <div className="org-member-info">
                   <span className="org-member-title">{vpTitle}</span>
                   <span className="org-member-name">{vp.name}</span>
@@ -132,26 +204,26 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
         <div className="org-dept-list">
           {mixedBlocks.map((block) => {
             if (block.type === 'division') {
-              const { div, divTeams, head, directMembers, hasTeams, hasHead } = block.data as {
+              const { div, allTeams, head, hasTeams, hasRealTeams, hasHead } = block.data as {
                 div: Division
-                divTeams: Team[]
+                allTeams: any[]
                 head: Employee | null
-                directMembers: Employee[]
                 hasTeams: boolean
+                hasRealTeams: boolean
                 hasHead: boolean
               }
               const deptClass = [
                 'org-dept',
-                !hasTeams ? 'org-dept-no-teams' : '',
-                !hasHead && hasTeams ? 'org-dept-team-only' : '',
+                !hasRealTeams ? 'org-dept-no-teams' : '',
+                !hasHead && hasRealTeams ? 'org-dept-team-only' : '',
               ]
                 .filter(Boolean)
                 .join(' ')
 
               return (
                 <section key={div.id} className={deptClass} style={{ '--dept-color': div.color } as React.CSSProperties}>
-                  {/* 실 이름 (팀이 없거나 실장이 있을 때 표시) */}
-                  {(!hasTeams || hasHead) && (
+                  {/* 실 이름 (실제 팀이 없거나 실장이 있을 때 표시) */}
+                  {(!hasRealTeams || hasHead) && (
                     <h2 className="org-dept-name">{div.name}</h2>
                   )}
 
@@ -159,7 +231,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
                   {hasHead && head && (
                     <div className="org-dept-head">
                       <div className="org-member">
-                        <img className="org-member-avatar" src={getAvatarUrl(head.profile_image_url)} alt={head.name} />
+                        <AvatarImageOrFallback profileImageUrl={head.profile_image_url} name={head.name} />
                         <div className="org-member-info">
                           <span className="org-member-title">{head.title}</span>
                           <span className="org-member-name">{head.name}</span>
@@ -171,10 +243,12 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
                   {/* 팀 목록 */}
                   {hasTeams && (
                     <div className="org-team-list">
-                      {divTeams.map((team) => {
-                        const teamMembers = employees.filter(
-                          (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
-                        )
+                      {allTeams.map((team) => {
+                        const teamMembers = team.isVirtual
+                          ? team.members
+                          : employees.filter(
+                              (e) => e.team_id === team.id && (e.org_role === 'member' || e.org_role === 'ai'),
+                            )
                         const isWide = teamMembers.length >= 10
                         const teamClass = ['org-team', isWide ? 'org-team-wide' : '']
                           .filter(Boolean)
@@ -185,18 +259,22 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
 
                         return (
                           <div key={team.id} className={teamClass}>
-                            <h3 className="org-team-name">
-                              {parts.length > 1 ? (
-                                <>
-                                  {parts.slice(0, -1).join(' ')}{' '}
-                                  <em>{parts[parts.length - 1]}</em>
-                                </>
-                              ) : (
-                                team.name
-                              )}
-                            </h3>
+                            {team.isVirtual ? (
+                              <div className="org-team-name-spacer" style={{ height: '2.083vw' }} />
+                            ) : (
+                              <h3 className="org-team-name">
+                                {parts.length > 1 ? (
+                                  <>
+                                    {parts.slice(0, -1).join(' ')}{' '}
+                                    <em>{parts[parts.length - 1]}</em>
+                                  </>
+                                ) : (
+                                  team.name
+                                )}
+                              </h3>
+                            )}
                             <ul className="org-member-list">
-                              {teamMembers.map((emp) => (
+                              {teamMembers.map((emp: Employee) => (
                                 <MemberCard key={emp.id} employee={emp} />
                               ))}
                             </ul>
@@ -204,22 +282,6 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
                         )
                       })}
                     </div>
-                  )}
-
-                  {/* 팀이 없고 직속 멤버가 있는 경우 (영업/기획실 등) */}
-                  {!hasTeams && directMembers.length > 0 && (
-                    <ul
-                      className={[
-                        'org-member-list',
-                        directMembers.length >= 10 ? 'org-team-wide' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                    >
-                      {directMembers.map((emp) => (
-                        <MemberCard key={emp.id} employee={emp} />
-                      ))}
-                    </ul>
                   )}
                 </section>
               )
@@ -261,6 +323,10 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
           <li className="org-legend-item">
             <span className="org-legend-item-icon" />
             <span className="org-legend-item-text">파견자</span>
+          </li>
+          <li className="org-legend-item org-legend-item-ai">
+            <span className="org-legend-item-icon" />
+            <span className="org-legend-item-text">AI 에이전트</span>
           </li>
         </ul>
       </div>

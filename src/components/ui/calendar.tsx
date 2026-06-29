@@ -63,7 +63,7 @@ function Calendar({
           defaultClassNames.month_caption
         ),
         caption_label: cn(
-          "select-none text-sm font-semibold",
+          captionLayout === "dropdown" ? "hidden" : "select-none text-sm font-semibold",
           defaultClassNames.caption_label
         ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
@@ -93,8 +93,8 @@ function Calendar({
           defaultClassNames.disabled
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
-        dropdowns: "flex gap-1 items-center justify-center w-full my-1.5",
-        dropdown: "bg-transparent hover:bg-accent hover:text-accent-foreground text-xs font-medium rounded-md border border-input px-2 py-1 focus-visible:outline-none cursor-pointer",
+        dropdowns: "flex gap-1 items-center justify-center w-full",
+        dropdown: "bg-transparent hover:bg-accent hover:text-accent-foreground text-xs font-medium rounded-md border border-input px-2 py-1 focus-visible:outline-none cursor-pointer h-7 flex items-center",
         dropdown_month: "shrink-0",
         dropdown_year: "shrink-0",
         ...classNames,

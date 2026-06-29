@@ -22,6 +22,16 @@ import { TeamFormDialog } from "./team-form-dialog";
 import { EmployeeFormDialog } from "./employee-form-dialog";
 import { DeleteDivisionDialog } from "./delete-division-dialog";
 import { DeleteTeamDialog } from "./delete-team-dialog";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Division, Team, Employee } from "@/types";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
@@ -59,12 +69,6 @@ async function fetchActiveEmployees(): Promise<Employee[]> {
 }
 
 // ── display_order 업데이트 ────────────────────────────────────────────────────
-
-async function updateDivisionOrders(items: Division[]): Promise<void> {
-	const supabase = createClient();
-	const { error } = await supabase.from("divisions").upsert(items.map((item, i) => ({ ...item, display_order: i + 1 })));
-	if (error) throw error;
-}
 
 async function updateTeamOrders(items: Team[]): Promise<void> {
 	const supabase = createClient();
@@ -168,10 +172,30 @@ function SortableEmployeeRow({ employee, containerId, isEditor, onEdit, onDelete
 				</div>
 				{/* 모바일 화살표 */}
 				<div className="flex md:hidden flex-col items-center shrink-0">
-					<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동">
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-5 w-5"
+						disabled={isFirst}
+						onClick={(e) => {
+							e.stopPropagation();
+							onMoveUp?.();
+						}}
+						aria-label="위로 이동"
+					>
 						<ChevronUp className="h-3 w-3" />
 					</Button>
-					<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동">
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-5 w-5"
+						disabled={isLast}
+						onClick={(e) => {
+							e.stopPropagation();
+							onMoveDown?.();
+						}}
+						aria-label="아래로 이동"
+					>
 						<ChevronDown className="h-3 w-3" />
 					</Button>
 				</div>
@@ -211,18 +235,37 @@ function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, 
 	const bgTint = color ? color + "0d" : undefined;
 
 	return (
-		<div
-			className="rounded-md border border-border/60 bg-background/80"
-			style={color ? { borderLeftWidth: 4, borderLeftColor: color, backgroundColor: bgTint } : undefined}
-		>
+		<div className="rounded-md border border-border/60 bg-background/80" style={color ? { borderLeftWidth: 4, borderLeftColor: color, backgroundColor: bgTint } : undefined}>
 			<div className="flex flex-wrap items-center gap-2 px-3 py-2">
 				{/* 독립팀일 때 PC/모바일 화살표 상시 노출 */}
 				{!isEditor && !team.division_id && (
 					<div className="flex flex-col items-center shrink-0">
-						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동" title="위로 이동">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-5 w-5"
+							disabled={isFirst}
+							onClick={(e) => {
+								e.stopPropagation();
+								onMoveUp?.();
+							}}
+							aria-label="위로 이동"
+							title="위로 이동"
+						>
 							<ChevronUp className="h-3 w-3" />
 						</Button>
-						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동" title="아래로 이동">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-5 w-5"
+							disabled={isLast}
+							onClick={(e) => {
+								e.stopPropagation();
+								onMoveDown?.();
+							}}
+							aria-label="아래로 이동"
+							title="아래로 이동"
+						>
 							<ChevronDown className="h-3 w-3" />
 						</Button>
 					</div>
@@ -237,10 +280,30 @@ function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, 
 						</div>
 						{/* 모바일 화살표 */}
 						<div className="flex md:hidden flex-col items-center shrink-0">
-							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-5 w-5"
+								disabled={isFirst}
+								onClick={(e) => {
+									e.stopPropagation();
+									onMoveUp?.();
+								}}
+								aria-label="위로 이동"
+							>
 								<ChevronUp className="h-3 w-3" />
 							</Button>
-							<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-5 w-5"
+								disabled={isLast}
+								onClick={(e) => {
+									e.stopPropagation();
+									onMoveDown?.();
+								}}
+								aria-label="아래로 이동"
+							>
 								<ChevronDown className="h-3 w-3" />
 							</Button>
 						</div>
@@ -277,18 +340,7 @@ function TeamBlockContent({ team, employees, containerId, isEditor, dragHandle, 
 				<div ref={setDropRef} className={cn("min-h-[32px] border-t border-border/40 px-2 py-1 transition-colors", isOver && "bg-primary/5 ring-1 ring-inset ring-primary/30")}>
 					<SortableContext items={employees.map((e) => e.id)} strategy={verticalListSortingStrategy}>
 						{employees.map((employee, index) => (
-							<SortableEmployeeRow
-								key={employee.id}
-								employee={employee}
-								containerId={containerId}
-								isEditor={isEditor}
-								onEdit={onEditEmployee}
-								onDelete={onDeleteEmployee}
-								onMoveUp={() => onMoveEmployee?.(containerId, index, "up")}
-								onMoveDown={() => onMoveEmployee?.(containerId, index, "down")}
-								isFirst={index === 0}
-								isLast={index === employees.length - 1}
-							/>
+							<SortableEmployeeRow key={employee.id} employee={employee} containerId={containerId} isEditor={isEditor} onEdit={onEditEmployee} onDelete={onDeleteEmployee} onMoveUp={() => onMoveEmployee?.(containerId, index, "up")} onMoveDown={() => onMoveEmployee?.(containerId, index, "down")} isFirst={index === 0} isLast={index === employees.length - 1} />
 						))}
 					</SortableContext>
 					{employees.length === 0 && <div className={cn("py-1.5 text-center text-xs text-muted-foreground/50 transition-colors", isOver && "text-primary/60")}>{isOver ? "여기에 드롭" : "직원 없음"}</div>}
@@ -347,7 +399,7 @@ interface DivisionCardProps {
 	isCollapsed?: boolean;
 }
 
-function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeContainers, isDraggingEmployee, onAddTeam, onAddEmployee, onEditDivision, onDeleteDivision, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee, onMoveEmployee, onMoveInnerTeam, onMoveUp, onMoveDown, isFirst, isLast, onSortEmployees, divisionNumber, isCollapsed }: DivisionCardProps) {
+function DivisionCardContent({ division, teams, isEditor, dragHandle: _, employeeContainers, isDraggingEmployee, onAddTeam, onAddEmployee, onEditDivision, onDeleteDivision, onEditTeam, onDeleteTeam, onEditEmployee, onDeleteEmployee, onMoveEmployee, onMoveInnerTeam, onMoveUp, onMoveDown, isFirst, isLast, onSortEmployees, divisionNumber, isCollapsed }: DivisionCardProps) {
 	const directContainerId: ContainerId = `div-direct:${division.id}`;
 	const directEmployees = employeeContainers[directContainerId] ?? [];
 	const { setNodeRef: setDirectDropRef, isOver: isDirectOver } = useDroppable({
@@ -365,10 +417,32 @@ function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeCo
 			<div className="flex flex-wrap items-center gap-2 px-3 py-3">
 				{!isEditor && (
 					<div className="flex flex-col items-center shrink-0">
-						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} aria-label="위로 이동" title="위로 이동">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-5 w-5"
+							disabled={isFirst}
+							onClick={(e) => {
+								e.stopPropagation();
+								onMoveUp?.();
+							}}
+							aria-label="위로 이동"
+							title="위로 이동"
+						>
 							<ChevronUp className="h-3 w-3" />
 						</Button>
-						<Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} aria-label="아래로 이동" title="아래로 이동">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-5 w-5"
+							disabled={isLast}
+							onClick={(e) => {
+								e.stopPropagation();
+								onMoveDown?.();
+							}}
+							aria-label="아래로 이동"
+							title="아래로 이동"
+						>
 							<ChevronDown className="h-3 w-3" />
 						</Button>
 					</div>
@@ -413,18 +487,7 @@ function DivisionCardContent({ division, teams, isEditor, dragHandle, employeeCo
 							<div className="border-t border-border/40 px-2 py-1">
 								<SortableContext items={directEmployees.map((e) => e.id)} strategy={verticalListSortingStrategy}>
 									{directEmployees.map((employee, index) => (
-										<SortableEmployeeRow
-											key={employee.id}
-											employee={employee}
-											containerId={directContainerId}
-											isEditor={isEditor}
-											onEdit={onEditEmployee}
-											onDelete={onDeleteEmployee}
-											onMoveUp={() => onMoveEmployee?.(directContainerId, index, "up")}
-											onMoveDown={() => onMoveEmployee?.(directContainerId, index, "down")}
-											isFirst={index === 0}
-											isLast={index === directEmployees.length - 1}
-										/>
+										<SortableEmployeeRow key={employee.id} employee={employee} containerId={directContainerId} isEditor={isEditor} onEdit={onEditEmployee} onDelete={onDeleteEmployee} onMoveUp={() => onMoveEmployee?.(directContainerId, index, "up")} onMoveDown={() => onMoveEmployee?.(directContainerId, index, "down")} isFirst={index === 0} isLast={index === directEmployees.length - 1} />
 									))}
 								</SortableContext>
 								{directEmployees.length === 0 && <div className={cn("py-1.5 text-center text-xs text-muted-foreground/50 transition-colors", isDirectOver && "text-primary/60")}>{isDirectOver ? "여기에 드롭" : "직원을 드래그해 추가"}</div>}
@@ -606,8 +669,12 @@ export function OrgBoard() {
 	// 서버 데이터로부터 직원 컨테이너 구조 계산 (순수 파생값 — 부수 효과 없음)
 	const baseContainers = useMemo<Record<string, Employee[]>>(() => {
 		const containers: Record<string, Employee[]> = {};
-		teams.forEach((t) => { containers[`team:${t.id}`] = []; });
-		divisions.forEach((d) => { containers[`div-direct:${d.id}`] = []; });
+		teams.forEach((t) => {
+			containers[`team:${t.id}`] = [];
+		});
+		divisions.forEach((d) => {
+			containers[`div-direct:${d.id}`] = [];
+		});
 		employees
 			.filter((e) => e.org_role === "member" || e.org_role === "ai")
 			.forEach((e) => {
@@ -648,6 +715,8 @@ export function OrgBoard() {
 	const [divisionDeleteOpen, setDivisionDeleteOpen] = useState(false);
 	const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
 	const [teamDeleteOpen, setTeamDeleteOpen] = useState(false);
+	const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
+	const [employeeDeleteOpen, setEmployeeDeleteOpen] = useState(false);
 
 	// ── CRUD 핸들러 ──────────────────────────────────────────────────────────
 	function openAddDivision() {
@@ -662,7 +731,49 @@ export function OrgBoard() {
 		setDeletingDivision(division);
 		setDivisionDeleteOpen(true);
 	}
+	// 총 열 수 계산 함수 (14열 제한용)
+	const calculateTotalColumns = () => {
+		const divs = localDivisions.map((d) => ({ type: "DIVISION" as const, id: d.id, display_order: d.display_order ?? 0, item: d }));
+		const indTeams = localTeams.filter((t) => !t.division_id).map((t) => ({ type: "TEAM" as const, id: t.id, display_order: t.display_order ?? 0, item: t }));
+		const mixed = [...divs, ...indTeams].sort((a, b) => a.display_order - b.display_order);
+
+		return mixed.reduce((acc, block) => {
+			if (block.type === "DIVISION") {
+				const division = block.item as Division;
+				const divisionTeams = localTeams.filter((t) => t.division_id === division.id);
+				const directEmps = employees.filter((e) => e.division_id === division.id && !e.team_id && (e.org_role === "member" || e.org_role === "ai"));
+				const hasTeams = divisionTeams.length > 0;
+				// 실장/소장 등 제외한 실 직속 멤버들
+				const headTitles = ["실장", "소장", "연구소장"];
+				const head = directEmps.find((e) => headTitles.includes(e.title)) ?? null;
+				const directMembers = directEmps.filter((e) => e !== head);
+
+				if (hasTeams) {
+					const divTeamsCols = divisionTeams.reduce((tAcc: number, team: Team) => {
+						const teamMembers = employees.filter((e) => e.team_id === team.id && (e.org_role === "member" || e.org_role === "ai"));
+						return tAcc + (teamMembers.length >= 10 ? 2 : 1);
+					}, 0);
+					return acc + divTeamsCols;
+				} else {
+					if (directMembers.length > 0) {
+						return acc + (directMembers.length >= 10 ? 2 : 1);
+					}
+					return acc + 1;
+				}
+			} else {
+				const team = block.item as Team;
+				const teamMembers = employees.filter((e) => e.team_id === team.id && (e.org_role === "member" || e.org_role === "ai"));
+				return acc + (teamMembers.length >= 10 ? 2 : 1);
+			}
+		}, 0);
+	};
+
 	function openAddTeam(divisionId?: string | null) {
+		const totalCols = calculateTotalColumns();
+		if (totalCols >= 12) {
+			toast.error(`12열 이상 조직도를 구성할 수 없습니다. (*1팀당 1열, 10명 이상인 경우 2열로 구성됨) 담당자 문의 : whynot@hubilon.com`);
+			return;
+		}
 		setEditingTeam(null);
 		setTeamDefaultDivisionId(divisionId ?? null);
 		setTeamDialogOpen(true);
@@ -687,6 +798,22 @@ export function OrgBoard() {
 		setEmployeeDefaultDivisionId(null);
 		setEmployeeDefaultTeamId(null);
 		setEmployeeDialogOpen(true);
+	}
+	function openDeleteEmployee(employee: Employee) {
+		setDeletingEmployee(employee);
+		setEmployeeDeleteOpen(true);
+	}
+	async function handleDeleteEmployee() {
+		if (!deletingEmployee) return;
+		const supabase = createClient();
+		const { error } = await supabase.from("employees").update({ is_resigned: true }).eq("id", deletingEmployee.id);
+		if (error) {
+			toast.error("직원 삭제(퇴사 처리)에 실패했습니다.");
+		} else {
+			toast.success(`"${deletingEmployee.name}" 직원이 퇴사(삭제) 처리되었습니다.`);
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+			setEmployeeDeleteOpen(false);
+		}
 	}
 
 	// ── DnD 센서 ─────────────────────────────────────────────────────────────
@@ -764,26 +891,27 @@ export function OrgBoard() {
 
 			setLocalDivisions(updatedDivisions.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)));
 
-			const updatedLocalTeams = [
-				...localTeams.filter((t) => t.division_id !== null),
-				...updatedIndependentTeams
-			];
+			const updatedLocalTeams = [...localTeams.filter((t) => t.division_id !== null), ...updatedIndependentTeams];
 			setLocalTeams(updatedLocalTeams);
 
 			const supabase = createClient();
-			const updatePromises: Promise<any>[] = [];
+			const updatePromises: Promise<void>[] = [];
 
 			if (updatedDivisions.length > 0) {
-				updatePromises.push((async () => {
-					const { error } = await supabase.from("divisions").upsert(updatedDivisions);
-					if (error) throw error;
-				})());
+				updatePromises.push(
+					(async () => {
+						const { error } = await supabase.from("divisions").upsert(updatedDivisions);
+						if (error) throw error;
+					})(),
+				);
 			}
 			if (updatedIndependentTeams.length > 0) {
-				updatePromises.push((async () => {
-					const { error } = await supabase.from("teams").upsert(updatedIndependentTeams);
-					if (error) throw error;
-				})());
+				updatePromises.push(
+					(async () => {
+						const { error } = await supabase.from("teams").upsert(updatedIndependentTeams);
+						if (error) throw error;
+					})(),
+				);
 			}
 
 			Promise.all(updatePromises).then(() => {
@@ -872,26 +1000,27 @@ export function OrgBoard() {
 
 		setLocalDivisions(updatedDivisions.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)));
 
-		const updatedLocalTeams = [
-			...localTeams.filter((t) => t.division_id !== null),
-			...updatedIndependentTeams
-		];
+		const updatedLocalTeams = [...localTeams.filter((t) => t.division_id !== null), ...updatedIndependentTeams];
 		setLocalTeams(updatedLocalTeams);
 
 		const supabase = createClient();
-		const updatePromises: Promise<any>[] = [];
+		const updatePromises: Promise<void>[] = [];
 
 		if (updatedDivisions.length > 0) {
-			updatePromises.push((async () => {
-				const { error } = await supabase.from("divisions").upsert(updatedDivisions);
-				if (error) throw error;
-			})());
+			updatePromises.push(
+				(async () => {
+					const { error } = await supabase.from("divisions").upsert(updatedDivisions);
+					if (error) throw error;
+				})(),
+			);
 		}
 		if (updatedIndependentTeams.length > 0) {
-			updatePromises.push((async () => {
-				const { error } = await supabase.from("teams").upsert(updatedIndependentTeams);
-				if (error) throw error;
-			})());
+			updatePromises.push(
+				(async () => {
+					const { error } = await supabase.from("teams").upsert(updatedIndependentTeams);
+					if (error) throw error;
+				})(),
+			);
 		}
 
 		Promise.all(updatePromises).then(() => {
@@ -926,15 +1055,15 @@ export function OrgBoard() {
 	}
 
 	const POSITION_RANK: Record<string, number> = {
-		"대표이사": 9,
-		"부사장": 8,
-		"이사": 7,
-		"부장": 6,
-		"차장": 5,
-		"과장": 4,
-		"대리": 3,
-		"주임": 2,
-		"사원": 1,
+		대표이사: 9,
+		부사장: 8,
+		이사: 7,
+		부장: 6,
+		차장: 5,
+		과장: 4,
+		대리: 3,
+		주임: 2,
+		사원: 1,
 		"AI 에이전트": 0,
 	};
 	function getPositionRank(pos?: string | null): number {
@@ -985,11 +1114,11 @@ export function OrgBoard() {
 	const representative = employees.find((e) => e.org_role === "representative") ?? null;
 	const viceRepresentative = employees.find((e) => e.org_role === "vice_representative") ?? null;
 	const independentTeams = localTeams.filter((t) => !t.division_id);
-	const topLevelItems = useMemo(() => {
+	const topLevelItems = (() => {
 		const divs = localDivisions.map((d) => ({ type: "DIVISION" as const, id: d.id, display_order: d.display_order ?? 0, item: d }));
 		const indTeams = independentTeams.map((t) => ({ type: "TEAM" as const, id: t.id, display_order: t.display_order ?? 0, item: t }));
 		return [...divs, ...indTeams].sort((a, b) => a.display_order - b.display_order);
-	}, [localDivisions, independentTeams]);
+	})();
 	const isDraggingEmployee = activeItem?.type === "EMPLOYEE";
 
 	if (isLoading) return <OrgBoardSkeleton />;
@@ -1048,102 +1177,102 @@ export function OrgBoard() {
 						</div>
 
 						<DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-						<div className="flex flex-col gap-4">
-							<SortableContext items={topLevelItems.map((x) => x.id)} strategy={verticalListSortingStrategy}>
-								{topLevelItems.map((item) => {
-									const fullIndex = topLevelItems.findIndex((x) => x.id === item.id);
-									const isFirst = fullIndex === 0;
-									const isLast = fullIndex === topLevelItems.length - 1;
+							<div className="flex flex-col gap-4">
+								<SortableContext items={topLevelItems.map((x) => x.id)} strategy={verticalListSortingStrategy}>
+									{topLevelItems.map((item) => {
+										const fullIndex = topLevelItems.findIndex((x) => x.id === item.id);
+										const isFirst = fullIndex === 0;
+										const isLast = fullIndex === topLevelItems.length - 1;
 
-									if (item.type === "DIVISION") {
-										const division = item.item as Division;
-										const divisionTeams = localTeams.filter((t) => t.division_id === division.id);
-										return (
-											<SortableDivisionCard
-												key={division.id}
-												division={division}
-												teams={divisionTeams}
-												isEditor={isEditor}
-												employeeContainers={employeeContainers}
-												isDraggingEmployee={isDraggingEmployee}
-												onAddTeam={(divId) => openAddTeam(divId)}
-												onAddEmployee={(divId, teamId) => openAddEmployee(divId, teamId)}
-												onEditDivision={openEditDivision}
-												onDeleteDivision={openDeleteDivision}
-												onEditTeam={openEditTeam}
-												onDeleteTeam={openDeleteTeam}
-												onEditEmployee={openEditEmployee}
-												onDeleteEmployee={openEditEmployee}
-												onMoveEmployee={moveEmployee}
-												onMoveInnerTeam={moveInnerTeam}
-												onMoveUp={() => moveTopLevelItem(fullIndex, "up")}
-												onMoveDown={() => moveTopLevelItem(fullIndex, "down")}
-												isFirst={isFirst}
-												isLast={isLast}
-												onSortEmployees={sortEmployees}
-												divisionNumber={fullIndex + 1}
-												isCollapsed={isCollapsed}
-											/>
-										);
-									} else {
-										const team = item.item as Team;
-										return (
-											<SortableTeamBlock
-												key={team.id}
-												team={team}
-												employees={employeeContainers[`team:${team.id}`] ?? []}
-												containerId={`team:${team.id}`}
-												isEditor={isEditor}
-												showColor
-												onAddEmployee={(teamId) => openAddEmployee(null, teamId)}
-												onEditTeam={openEditTeam}
-												onDeleteTeam={openDeleteTeam}
-												onEditEmployee={openEditEmployee}
-												onDeleteEmployee={openEditEmployee}
-												onMoveEmployee={moveEmployee}
-												onMoveUp={() => moveTopLevelItem(fullIndex, "up")}
-												onMoveDown={() => moveTopLevelItem(fullIndex, "down")}
-												isFirst={isFirst}
-												isLast={isLast}
-												onSortEmployees={sortEmployees}
-												teamNumber={fullIndex + 1}
-												isCollapsed={isCollapsed}
-											/>
-										);
-									}
-								})}
-							</SortableContext>
-						</div>
+										if (item.type === "DIVISION") {
+											const division = item.item as Division;
+											const divisionTeams = localTeams.filter((t) => t.division_id === division.id);
+											return (
+												<SortableDivisionCard
+													key={division.id}
+													division={division}
+													teams={divisionTeams}
+													isEditor={isEditor}
+													employeeContainers={employeeContainers}
+													isDraggingEmployee={isDraggingEmployee}
+													onAddTeam={(divId) => openAddTeam(divId)}
+													onAddEmployee={(divId, teamId) => openAddEmployee(divId, teamId)}
+													onEditDivision={openEditDivision}
+													onDeleteDivision={openDeleteDivision}
+													onEditTeam={openEditTeam}
+													onDeleteTeam={openDeleteTeam}
+													onEditEmployee={openEditEmployee}
+													onDeleteEmployee={openDeleteEmployee}
+													onMoveEmployee={moveEmployee}
+													onMoveInnerTeam={moveInnerTeam}
+													onMoveUp={() => moveTopLevelItem(fullIndex, "up")}
+													onMoveDown={() => moveTopLevelItem(fullIndex, "down")}
+													isFirst={isFirst}
+													isLast={isLast}
+													onSortEmployees={sortEmployees}
+													divisionNumber={fullIndex + 1}
+													isCollapsed={isCollapsed}
+												/>
+											);
+										} else {
+											const team = item.item as Team;
+											return (
+												<SortableTeamBlock
+													key={team.id}
+													team={team}
+													employees={employeeContainers[`team:${team.id}`] ?? []}
+													containerId={`team:${team.id}`}
+													isEditor={isEditor}
+													showColor
+													onAddEmployee={(teamId) => openAddEmployee(null, teamId)}
+													onEditTeam={openEditTeam}
+													onDeleteTeam={openDeleteTeam}
+													onEditEmployee={openEditEmployee}
+													onDeleteEmployee={openDeleteEmployee}
+													onMoveEmployee={moveEmployee}
+													onMoveUp={() => moveTopLevelItem(fullIndex, "up")}
+													onMoveDown={() => moveTopLevelItem(fullIndex, "down")}
+													isFirst={isFirst}
+													isLast={isLast}
+													onSortEmployees={sortEmployees}
+													teamNumber={fullIndex + 1}
+													isCollapsed={isCollapsed}
+												/>
+											);
+										}
+									})}
+								</SortableContext>
+							</div>
 
-						<DragOverlay dropAnimation={dropAnimation}>
-							{activeItem?.type === "DIVISION" && (
-								<div
-									className="rounded-lg border border-border px-4 py-3 shadow-lg opacity-90"
-									style={{
-										borderLeftWidth: 4,
-										borderLeftColor: activeItem.data.color ?? "#6366f1",
-										backgroundColor: (activeItem.data.color ?? "#6366f1") + "0d",
-									}}
-								>
-									<span className="font-bold">{activeItem.data.name}</span>
-								</div>
-							)}
-							{activeItem?.type === "TEAM" && (
-								<div className="rounded-md border border-border bg-background/95 px-3 py-2 shadow-lg opacity-90">
-									<span className="text-sm font-semibold">{activeItem.data.name}</span>
-								</div>
-							)}
-							{activeItem?.type === "EMPLOYEE" && (
-								<div className="flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 shadow-lg opacity-90">
-									<Avatar className="h-7 w-7 shrink-0">
-										<AvatarImage src={activeItem.data.profile_image_url ?? undefined} alt={activeItem.data.name} />
-										<AvatarFallback className="text-[10px]">{getInitials(activeItem.data.name)}</AvatarFallback>
-									</Avatar>
-									<span className="text-sm font-medium">{activeItem.data.name}</span>
-								</div>
-							)}
-						</DragOverlay>
-					</DndContext>
+							<DragOverlay dropAnimation={dropAnimation}>
+								{activeItem?.type === "DIVISION" && (
+									<div
+										className="rounded-lg border border-border px-4 py-3 shadow-lg opacity-90"
+										style={{
+											borderLeftWidth: 4,
+											borderLeftColor: activeItem.data.color ?? "#6366f1",
+											backgroundColor: (activeItem.data.color ?? "#6366f1") + "0d",
+										}}
+									>
+										<span className="font-bold">{activeItem.data.name}</span>
+									</div>
+								)}
+								{activeItem?.type === "TEAM" && (
+									<div className="rounded-md border border-border bg-background/95 px-3 py-2 shadow-lg opacity-90">
+										<span className="text-sm font-semibold">{activeItem.data.name}</span>
+									</div>
+								)}
+								{activeItem?.type === "EMPLOYEE" && (
+									<div className="flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 shadow-lg opacity-90">
+										<Avatar className="h-7 w-7 shrink-0">
+											<AvatarImage src={activeItem.data.profile_image_url ?? undefined} alt={activeItem.data.name} />
+											<AvatarFallback className="text-[10px]">{getInitials(activeItem.data.name)}</AvatarFallback>
+										</Avatar>
+										<span className="text-sm font-medium">{activeItem.data.name}</span>
+									</div>
+								)}
+							</DragOverlay>
+						</DndContext>
 					</div>
 				)}
 			</div>
@@ -1156,6 +1285,24 @@ export function OrgBoard() {
 			{/* 삭제 다이얼로그 */}
 			<DeleteDivisionDialog open={divisionDeleteOpen} onOpenChange={setDivisionDeleteOpen} division={deletingDivision} affectedEmployees={employees.filter((e) => deletingDivision && e.division_id === deletingDivision.id)} />
 			<DeleteTeamDialog open={teamDeleteOpen} onOpenChange={setTeamDeleteOpen} team={deletingTeam} affectedEmployees={employees.filter((e) => deletingTeam && e.team_id === deletingTeam.id)} />
+
+			{/* 직원 삭제 대화상자 */}
+			<AlertDialog open={employeeDeleteOpen} onOpenChange={setEmployeeDeleteOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>직원을 삭제(퇴사)하시겠습니까?</AlertDialogTitle>
+						<AlertDialogDescription>
+							&quot;{deletingEmployee?.name}&quot; 직원을 퇴사 처리합니다. 이 작업은 되돌릴 수 없으며, 퇴사자 관리 메뉴에서만 조회 및 복구가 가능합니다.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>취소</AlertDialogCancel>
+						<AlertDialogAction onClick={handleDeleteEmployee} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+							삭제
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

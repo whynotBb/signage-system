@@ -477,10 +477,6 @@ body.ai-style-4 {
 	align-items: flex-start;
 }
 
-.org-member-list .org-member {
-	width: 100%;
-}
-
 /* ─ 팀 컨테이너 */
 .org-team {
 	display: flex;
@@ -496,7 +492,8 @@ body.ai-style-4 {
 	flex: 2;
 }
 
-.org-team-wide .org-member-list {
+.org-team-wide .org-member-list,
+.org-member-list.org-team-wide {
 	display: grid;
 	grid-template-columns: repeat(2, 1fr);
 	gap: 0.208vw;
@@ -682,7 +679,7 @@ body.ai-style-4 {
 
 /* ─ CEO 카드 */
 .org-member-ceo {
-	width: 12.5vw;
+	width: 12.5vw !important;
 	height: 4.583vw;
 	display: flex;
 	align-items: center;
@@ -736,7 +733,7 @@ body.ai-style-4 {
 
 /* ─ VP 카드 */
 .org-member-vp {
-	width: 9.375vw;
+	width: 9.375vw !important;
 	height: 3.646vw;
 	display: flex;
 	align-items: center;
@@ -1233,3 +1230,63 @@ body.ai-style-4 {
 	font-size: 1.875vw;
 	margin-top: 1.563vw;
 }
+
+/* 조직도 : 열 추가에 따른 스타일  */
+.col-11 .org-team-name,
+.col-11 .org-member,
+.col-11 .org-dept-name {
+	width: 7.8vw;
+}
+
+.col-12 .org-dept-list {
+	gap: 0.2vw;
+}
+
+.col-12 .org-team-name,
+.col-12 .org-member,
+.col-12 .org-dept-name {
+	width: 7.1vw;
+}
+
+.col-12 .org-dept-name {
+	font-size: 1vw;
+}
+
+/* 조직도 : 프로필 사진 fallback 스타일 */
+.org-member-avatar-fallback {
+	background: #f1f5f9; /* 연한 회색 배경 (Slate-100) */
+	color: #64748b; /* 다크 그레이 텍스트 (Slate-500) */
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 0.938vw; /* 성 글자 크기 */
+	border-radius: 50%;
+	text-transform: uppercase;
+}
+
+/* CEO 전용 fallback */
+.org-member-ceo .org-member-avatar-fallback {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 3.2vw;
+	height: 3.2vw;
+	background: #ffffff; /* 흰색 배경 */
+	color: #4f46e5; /* 남색 텍스트 */
+	font-size: 1.3vw;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* VP 전용 fallback */
+.org-member-vp .org-member-avatar-fallback {
+	font-size: 1.042vw;
+}
+
+/* AI 에이전트 범례 아이콘 그라데이션 */
+.org-legend-item-ai .org-legend-item-icon {
+	background: var(--ai-gradient);
+}
+
+
