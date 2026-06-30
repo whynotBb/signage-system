@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
 import { toast } from 'sonner'
+import { useLogActivity } from '@/hooks/use-log-activity'
 import { LoadingButton } from '@/components/composite/loading-button'
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ export function DeleteVisitorDialog({
   title,
 }: DeleteVisitorDialogProps) {
   const queryClient = useQueryClient()
+  const log = useLogActivity()
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -41,6 +43,8 @@ export function DeleteVisitorDialog({
       queryClient.invalidateQueries({ queryKey: queryKeys.visitors.activeCount() })
       toast.success('방문자 공지가 삭제되었습니다.')
       onOpenChange(false)
+      // 방문자 삭제 이력 기록
+      log({ actionType: 'delete', targetType: 'visitor', targetId: visitorId, targetName: title, description: `방문자 '${title}' 삭제` })
     },
     onError: () => toast.error('방문자 공지 삭제에 실패했습니다.'),
   })

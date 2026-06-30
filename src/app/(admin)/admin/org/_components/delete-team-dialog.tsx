@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
+import { useLogActivity } from '@/hooks/use-log-activity'
 import { AlertTriangle } from 'lucide-react'
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ interface DeleteTeamDialogProps {
   onOpenChange: (open: boolean) => void
   team: Team | null
   affectedEmployees: Employee[]
+  orgChartId: string
 }
 
 export function DeleteTeamDialog({
@@ -36,16 +38,20 @@ export function DeleteTeamDialog({
   onOpenChange,
   team,
   affectedEmployees,
+  orgChartId,
 }: DeleteTeamDialogProps) {
   const queryClient = useQueryClient()
+  const log = useLogActivity()
   const isBlocked = affectedEmployees.length > 0
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteTeam(team!.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all })
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) })
       onOpenChange(false)
+      // 팀 삭제 이력 기록
+      log({ actionType: 'delete', targetType: 'team', targetId: team!.id, targetName: team!.name, description: `팀 '${team!.name}' 삭제` })
     },
   })
 

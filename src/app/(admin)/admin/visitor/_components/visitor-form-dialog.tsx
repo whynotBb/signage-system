@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { queryKeys } from "@/lib/supabase/query-keys";
 import { visitorSchema, type VisitorFormValues } from "@/lib/validations/visitor";
 import { toast } from "sonner";
+import { useLogActivity } from "@/hooks/use-log-activity";
 import { LoadingButton } from "@/components/composite/loading-button";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus } from "lucide-react";
@@ -98,6 +99,7 @@ interface VisitorFormDialogProps {
 
 export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDialogProps) {
 	const queryClient = useQueryClient();
+	const log = useLogActivity();
 	const isEdit = !!visitor;
 
 	const form = useForm<VisitorFormValues>({
@@ -171,22 +173,26 @@ export function VisitorFormDialog({ open, onOpenChange, visitor }: VisitorFormDi
 
 	const insertMutation = useMutation({
 		mutationFn: insertVisitor,
-		onSuccess: () => {
+		onSuccess: (_, values) => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.visitors.all });
 			queryClient.invalidateQueries({ queryKey: queryKeys.visitors.activeCount() });
 			toast.success("방문자 공지가 등록되었습니다.");
 			onOpenChange(false);
+			// 방문자 등록 이력 기록
+			log({ actionType: 'create', targetType: 'visitor', targetName: values.title, description: `방문자 '${values.title}' 등록` });
 		},
 		onError: () => toast.error("방문자 공지 등록에 실패했습니다."),
 	});
 
 	const updateMutation = useMutation({
 		mutationFn: (values: VisitorFormValues) => updateVisitor(visitor!.id, values),
-		onSuccess: () => {
+		onSuccess: (_, values) => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.visitors.all });
 			queryClient.invalidateQueries({ queryKey: queryKeys.visitors.activeCount() });
 			toast.success("방문자 공지가 수정되었습니다.");
 			onOpenChange(false);
+			// 방문자 수정 이력 기록
+			log({ actionType: 'update', targetType: 'visitor', targetId: visitor!.id, targetName: values.title, description: `방문자 '${values.title}' 수정` });
 		},
 		onError: () => toast.error("방문자 공지 수정에 실패했습니다."),
 	});

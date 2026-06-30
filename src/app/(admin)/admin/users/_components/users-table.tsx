@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
 import { useAuthStore } from '@/store/auth-store'
 import { toast } from 'sonner'
+import { useLogActivity } from '@/hooks/use-log-activity'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ async function fetchProfiles(currentUserId: string): Promise<Profile[]> {
 
 export function UsersTable() {
   const queryClient = useQueryClient()
+  const log = useLogActivity()
   const currentUser = useAuthStore((state) => state.user)
   const [tab, setTab] = useState<'all' | 'pending' | 'active'>('all')
 
@@ -58,10 +60,13 @@ export function UsersTable() {
       const { error } = await supabase.from('profiles').update({ is_active: true }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profiles.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.profiles.pendingCount() })
       toast.success('승인 완료', { description: '계정이 활성화되었습니다.' })
+      // 계정 활성화 이력 기록
+      const userName = profiles.find((p) => p.id === id)?.name ?? id
+      log({ actionType: 'update', targetType: 'user', targetId: id, targetName: userName, description: `사용자 '${userName}' 계정 활성화` })
     },
     onError: () => toast.error('승인 실패', { description: '다시 시도해주세요.' }),
   })
@@ -72,9 +77,12 @@ export function UsersTable() {
       const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profiles.all })
       toast.success('비활성화 완료', { description: '계정이 비활성화되었습니다.' })
+      // 계정 비활성화 이력 기록
+      const userName = profiles.find((p) => p.id === id)?.name ?? id
+      log({ actionType: 'update', targetType: 'user', targetId: id, targetName: userName, description: `사용자 '${userName}' 계정 비활성화` })
     },
     onError: () => toast.error('비활성화 실패', { description: '다시 시도해주세요.' }),
   })
@@ -85,9 +93,12 @@ export function UsersTable() {
       const { error } = await supabase.from('profiles').update({ role }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: (_, { id, role }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profiles.all })
       toast.success('역할 변경 완료')
+      // 역할 변경 이력 기록
+      const userName = profiles.find((p) => p.id === id)?.name ?? id
+      log({ actionType: 'update', targetType: 'user', targetId: id, targetName: userName, description: `사용자 '${userName}' 역할 변경 → ${role}` })
     },
     onError: () => toast.error('역할 변경 실패', { description: '다시 시도해주세요.' }),
   })

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { queryKeys } from "@/lib/supabase/query-keys";
 import { toast } from "sonner";
+import { useLogActivity } from "@/hooks/use-log-activity";
 import { PageHeader } from "@/components/composite/page-header";
 import { ConfirmDialog } from "@/components/composite/confirm-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -61,6 +62,7 @@ function ResignedListSkeleton() {
 
 export default function ResignedPage() {
 	const queryClient = useQueryClient();
+	const log = useLogActivity();
 
 	const { data: employees = [], isLoading } = useQuery({
 		queryKey: queryKeys.employees.resigned(),
@@ -69,19 +71,25 @@ export default function ResignedPage() {
 
 	const restoreMutation = useMutation({
 		mutationFn: (id: string) => restoreEmployee(id),
-		onSuccess: () => {
+		onSuccess: (_, id) => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.employees.resigned() });
 			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
 			toast.success("퇴사 처리가 취소되었습니다.");
+			// 직원 복직 이력 기록
+			const empName = employees.find((e) => e.id === id)?.name ?? id;
+			log({ actionType: 'update', targetType: 'employee', targetId: id, targetName: empName, description: `직원 '${empName}' 복직 처리` });
 		},
 		onError: () => toast.error("처리에 실패했습니다."),
 	});
 
 	const deleteMutation = useMutation({
 		mutationFn: (id: string) => deleteEmployee(id),
-		onSuccess: () => {
+		onSuccess: (_, id) => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.employees.resigned() });
 			toast.success("직원이 삭제되었습니다.");
+			// 퇴사자 데이터 삭제 이력 기록
+			const empName = employees.find((e) => e.id === id)?.name ?? id;
+			log({ actionType: 'delete', targetType: 'employee', targetId: id, targetName: empName, description: `직원 '${empName}' 퇴사자 데이터 삭제` });
 		},
 		onError: () => toast.error("삭제에 실패했습니다."),
 	});

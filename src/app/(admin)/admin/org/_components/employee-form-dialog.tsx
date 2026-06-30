@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
+import { useLogActivity } from "@/hooks/use-log-activity";
 import type { Division, Team, Employee } from "@/types";
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -35,16 +36,16 @@ const TITLE_OPTIONS = ["실장", "팀장"] as const;
 
 // ── Supabase 쿼리/뮤테이션 함수 ──────────────────────────────────────────────
 
-async function fetchDivisions(): Promise<Division[]> {
+async function fetchDivisions(orgChartId: string): Promise<Division[]> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("divisions").select("*").order("display_order", { ascending: true });
+	const { data, error } = await supabase.from("divisions").select("*").eq("org_chart_id", orgChartId).order("display_order", { ascending: true });
 	if (error) throw error;
 	return data ?? [];
 }
 
-async function fetchTeams(): Promise<Team[]> {
+async function fetchTeams(orgChartId: string): Promise<Team[]> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("teams").select("*").order("display_order", { ascending: true });
+	const { data, error } = await supabase.from("teams").select("*").eq("org_chart_id", orgChartId).order("display_order", { ascending: true });
 	if (error) throw error;
 	return data ?? [];
 }
@@ -61,8 +62,17 @@ async function uploadProfileImage(employeeId: string, blob: Blob): Promise<strin
 	return `${data.publicUrl}?t=${Date.now()}`;
 }
 
-async function insertEmployee(values: EmployeeFormValues, profileBlob: Blob | null): Promise<void> {
+async function insertEmployee(values: EmployeeFormValues, profileBlob: Blob | null, orgChartId: string): Promise<void> {
 	const supabase = createClient();
+
+	const { data: maxData } = await supabase
+		.from("employees")
+		.select("display_order")
+		.eq("org_chart_id", orgChartId)
+		.order("display_order", { ascending: false })
+		.limit(1)
+		.maybeSingle();
+	const nextOrder = (maxData?.display_order ?? 0) + 1;
 
 	const { data, error } = await supabase
 		.from("employees")
@@ -76,6 +86,8 @@ async function insertEmployee(values: EmployeeFormValues, profileBlob: Blob | nu
 			hired_at: values.hired_at,
 			is_dispatched: values.is_dispatched,
 			is_resigned: values.is_resigned,
+			display_order: nextOrder,
+			org_chart_id: orgChartId,
 		})
 		.select("id")
 		.single();
@@ -130,12 +142,14 @@ interface EmployeeFormDialogProps {
 	defaultDivisionId?: string | null;
 	defaultTeamId?: string | null;
 	allEmployees?: Employee[];
+	orgChartId: string;
 }
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
-export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisionId, defaultTeamId, allEmployees = [] }: EmployeeFormDialogProps) {
+export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisionId, defaultTeamId, allEmployees = [], orgChartId }: EmployeeFormDialogProps) {
 	const queryClient = useQueryClient();
+	const log = useLogActivity();
 	const isEdit = !!employee;
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -145,13 +159,13 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 	const [profileBlob, setProfileBlob] = useState<Blob | null>(null);
 
 	const { data: divisions = [] } = useQuery({
-		queryKey: queryKeys.divisions.all,
-		queryFn: fetchDivisions,
+		queryKey: queryKeys.divisions.byOrgChart(orgChartId),
+		queryFn: () => fetchDivisions(orgChartId),
 	});
 
 	const { data: teams = [] } = useQuery({
-		queryKey: queryKeys.teams.all,
-		queryFn: fetchTeams,
+		queryKey: queryKeys.teams.byOrgChart(orgChartId),
+		queryFn: () => fetchTeams(orgChartId),
 	});
 
 	const form = useForm<EmployeeFormValues>({
@@ -223,11 +237,13 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 	}
 
 	const insertMutation = useMutation({
-		mutationFn: (values: EmployeeFormValues) => insertEmployee(values, profileBlob),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+		mutationFn: (values: EmployeeFormValues) => insertEmployee(values, profileBlob, orgChartId),
+		onSuccess: (_, values) => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) });
 			toast.success("직원이 등록되었습니다.");
 			onOpenChange(false);
+			// 직원 등록 이력 기록
+			log({ actionType: 'create', targetType: 'employee', targetName: values.name, description: `직원 '${values.name}' 등록` });
 		},
 		onError: (err) => {
 			console.error("직원 등록 오류:", err);
@@ -237,10 +253,21 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 
 	const updateMutation = useMutation({
 		mutationFn: (values: EmployeeFormValues) => updateEmployee(employee!.id, values, profileBlob),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+		onSuccess: (_, values) => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) });
+			// 파견/퇴사 여부에 따라 이력 설명 분기
+			const prevDispatched = employee!.is_dispatched;
+			const prevResigned = employee!.is_resigned;
+			let description = `직원 '${values.name}' 정보 수정`;
+			if (!prevDispatched && values.is_dispatched) {
+				description = `직원 '${values.name}' 파견 처리`;
+			} else if (!prevResigned && values.is_resigned) {
+				description = `직원 '${values.name}' 퇴사 처리`;
+			}
 			toast.success("직원 정보가 수정되었습니다.");
 			onOpenChange(false);
+			// 직원 수정 이력 기록
+			log({ actionType: 'update', targetType: 'employee', targetId: employee!.id, targetName: values.name, description });
 		},
 		onError: (err) => {
 			console.error("직원 수정 오류:", err);

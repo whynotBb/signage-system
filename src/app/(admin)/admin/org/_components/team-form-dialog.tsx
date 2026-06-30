@@ -15,25 +15,39 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Shuffle, Trash2 } from "lucide-react";
+import { generateShuffleColor } from "@/lib/color-utils";
+import { useLogActivity } from "@/hooks/use-log-activity";
 import type { Division, Team } from "@/types";
 
 // ── Supabase 쿼리/뮤테이션 함수 ──────────────────────────────────────────────
 
-async function fetchDivisions(): Promise<Division[]> {
+async function fetchDivisions(orgChartId: string): Promise<Division[]> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("divisions").select("*").order("display_order", { ascending: true });
+	const { data, error } = await supabase.from("divisions").select("*").eq("org_chart_id", orgChartId).order("display_order", { ascending: true });
 	if (error) throw error;
 	return data ?? [];
 }
 
-async function insertTeam(values: TeamFormValues): Promise<void> {
+async function insertTeam(values: TeamFormValues, orgChartId: string): Promise<void> {
 	const supabase = createClient();
 	const isIndependent = !values.division_id;
+
+	const { data: maxData } = await supabase
+		.from("teams")
+		.select("display_order")
+		.eq("org_chart_id", orgChartId)
+		.order("display_order", { ascending: false })
+		.limit(1)
+		.maybeSingle();
+	const nextOrder = (maxData?.display_order ?? 0) + 1;
+
 	const { error } = await supabase.from("teams").insert({
 		name: values.name,
 		division_id: values.division_id,
 		color: isIndependent ? values.color : null,
+		display_order: nextOrder,
+		org_chart_id: orgChartId,
 	});
 	if (error) throw error;
 }
@@ -58,17 +72,19 @@ interface TeamFormDialogProps {
 	onOpenChange: (open: boolean) => void;
 	team?: Team | null;
 	defaultDivisionId?: string | null;
+	orgChartId: string;
 }
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
-export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId }: TeamFormDialogProps) {
+export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId, orgChartId }: TeamFormDialogProps) {
 	const queryClient = useQueryClient();
+	const log = useLogActivity();
 	const isEdit = !!team;
 
 	const { data: divisions = [] } = useQuery({
-		queryKey: queryKeys.divisions.all,
-		queryFn: fetchDivisions,
+		queryKey: queryKeys.divisions.byOrgChart(orgChartId),
+		queryFn: () => fetchDivisions(orgChartId),
 	});
 
 	const form = useForm<TeamFormValues>({
@@ -94,21 +110,25 @@ export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId }: 
 	}, [open, team, defaultDivisionId, form]);
 
 	const insertMutation = useMutation({
-		mutationFn: insertTeam,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+		mutationFn: (values: TeamFormValues) => insertTeam(values, orgChartId),
+		onSuccess: (_, values) => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) });
 			toast.success("팀이 생성되었습니다.");
 			onOpenChange(false);
+			// 팀 등록 이력 기록
+			log({ actionType: 'create', targetType: 'team', targetName: values.name, description: `팀 '${values.name}' 등록` });
 		},
 		onError: () => toast.error("팀 생성에 실패했습니다."),
 	});
 
 	const updateMutation = useMutation({
 		mutationFn: (values: TeamFormValues) => updateTeam(team!.id, values),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+		onSuccess: (_, values) => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) });
 			toast.success("팀이 수정되었습니다.");
 			onOpenChange(false);
+			// 팀 수정 이력 기록
+			log({ actionType: 'update', targetType: 'team', targetId: team!.id, targetName: values.name, description: `팀 '${values.name}' 수정` });
 		},
 		onError: () => toast.error("팀 수정에 실패했습니다."),
 	});
@@ -116,10 +136,12 @@ export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId }: 
 	const deleteMutation = useMutation({
 		mutationFn: () => deleteTeam(team!.id),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
-			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) });
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) });
 			toast.success("팀이 삭제되었습니다.");
 			onOpenChange(false);
+			// 팀 삭제 이력 기록
+			log({ actionType: 'delete', targetType: 'team', targetId: team!.id, targetName: team!.name, description: `팀 '${team!.name}' 삭제` });
 		},
 		onError: () => toast.error("팀 삭제에 실패했습니다."),
 	});
@@ -191,12 +213,12 @@ export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId }: 
 									<FormItem>
 										<FormLabel>대표 색상</FormLabel>
 										<FormControl>
-											<div className="flex items-center gap-3">
+											<div className="flex items-center gap-2">
 												<input
 													type="color"
 													value={field.value}
 													onChange={field.onChange}
-													className="h-9 w-14 cursor-pointer rounded-md border border-input bg-transparent p-1"
+													className="h-9 w-14 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-1"
 												/>
 												<Input
 													value={field.value}
@@ -205,6 +227,16 @@ export function TeamFormDialog({ open, onOpenChange, team, defaultDivisionId }: 
 													className="font-mono text-sm"
 													maxLength={7}
 												/>
+												<Button
+													type="button"
+													variant="outline"
+													size="icon"
+													className="h-9 w-9 shrink-0"
+													title="유사한 톤의 색상 랜덤 추천"
+													onClick={() => field.onChange(generateShuffleColor(divisions.map((d) => d.color)))}
+												>
+													<Shuffle className="h-4 w-4" />
+												</Button>
 											</div>
 										</FormControl>
 										<FormMessage />

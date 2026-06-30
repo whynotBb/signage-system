@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
 import { toast } from 'sonner'
+import { useLogActivity } from '@/hooks/use-log-activity'
 import { LoadingButton } from '@/components/composite/loading-button'
 import {
   AlertDialog,
@@ -38,6 +39,7 @@ export function DeleteNewsDialog({
   imageUrl,
 }: DeleteNewsDialogProps) {
   const queryClient = useQueryClient()
+  const log = useLogActivity()
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -58,6 +60,8 @@ export function DeleteNewsDialog({
       queryClient.invalidateQueries({ queryKey: queryKeys.news.activeCount() })
       toast.success('뉴스가 삭제되었습니다.')
       onOpenChange(false)
+      // 뉴스 삭제 이력 기록
+      log({ actionType: 'delete', targetType: 'news', targetId: newsId, targetName: title, description: `뉴스 '${title}' 삭제` })
     },
     onError: () => toast.error('뉴스 삭제에 실패했습니다.'),
   })

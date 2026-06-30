@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
+import { useLogActivity } from '@/hooks/use-log-activity'
 import { AlertTriangle } from 'lucide-react'
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ interface DeleteDivisionDialogProps {
   onOpenChange: (open: boolean) => void
   division: Division | null
   affectedEmployees: Employee[]
+  orgChartId: string
 }
 
 export function DeleteDivisionDialog({
@@ -36,16 +38,20 @@ export function DeleteDivisionDialog({
   onOpenChange,
   division,
   affectedEmployees,
+  orgChartId,
 }: DeleteDivisionDialogProps) {
   const queryClient = useQueryClient()
+  const log = useLogActivity()
   const isBlocked = affectedEmployees.length > 0
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteDivision(division!.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.divisions.all })
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.divisions.byOrgChart(orgChartId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) })
       onOpenChange(false)
+      // 실 삭제 이력 기록
+      log({ actionType: 'delete', targetType: 'division', targetId: division!.id, targetName: division!.name, description: `실 '${division!.name}' 삭제` })
     },
   })
 

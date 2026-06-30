@@ -12,6 +12,7 @@ export type NavIconKey =
   | 'Video'
   | 'Image'
   | 'Shield'
+  | 'History'
 
 export interface NavItem {
   title: string

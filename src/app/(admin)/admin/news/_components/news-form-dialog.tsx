@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/supabase/query-keys'
 import { newsSchema, type NewsFormValues } from '@/lib/validations/news'
 import { toast } from 'sonner'
+import { useLogActivity } from '@/hooks/use-log-activity'
 import { NewsCropDialog } from './news-crop-dialog'
 import { LoadingButton } from '@/components/composite/loading-button'
 import {
@@ -181,6 +182,7 @@ interface NewsFormDialogProps {
 
 export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps) {
   const queryClient = useQueryClient()
+  const log = useLogActivity()
   const isEdit = !!news
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -267,11 +269,13 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
 
   const insertMutation = useMutation({
     mutationFn: (values: NewsFormValues) => insertNews(values, imageBlob),
-    onSuccess: () => {
+    onSuccess: (_, values) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.news.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.news.activeCount() })
       toast.success('뉴스가 등록되었습니다.')
       onOpenChange(false)
+      // 뉴스 등록 이력 기록
+      log({ actionType: 'create', targetType: 'news', targetName: values.title, description: `뉴스 '${values.title}' 등록` })
     },
     onError: () => toast.error('뉴스 등록에 실패했습니다.'),
   })
@@ -279,11 +283,13 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
   const updateMutation = useMutation({
     mutationFn: (values: NewsFormValues) =>
       updateNews(news!.id, values, imageBlob, news?.image_url ?? null),
-    onSuccess: () => {
+    onSuccess: (_, values) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.news.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.news.activeCount() })
       toast.success('뉴스가 수정되었습니다.')
       onOpenChange(false)
+      // 뉴스 수정 이력 기록
+      log({ actionType: 'update', targetType: 'news', targetId: news!.id, targetName: values.title, description: `뉴스 '${values.title}' 수정` })
     },
     onError: () => toast.error('뉴스 수정에 실패했습니다.'),
   })

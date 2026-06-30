@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, UserMinus, Newspaper, UserCheck, Building2, Video, Image, Shield } from "lucide-react";
+import { LayoutDashboard, Users, UserMinus, Newspaper, UserCheck, Building2, Video, Image, Shield, History } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NavMain } from "@/components/nav-main";
@@ -26,6 +26,7 @@ const iconMap: Record<NavIconKey, LucideIcon> = {
 	Video,
 	Image,
 	Shield,
+	History,
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -46,7 +47,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		staleTime: 60_000,
 	});
 
-	const visibleItems = NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role)));
+	const { data: orgCharts = [] } = useQuery({
+		queryKey: queryKeys.orgCharts.all,
+		queryFn: async () => {
+			const supabase = createClient();
+			const { data } = await supabase.from("org_charts").select("id, name").order("display_order", { ascending: true });
+			return data ?? [];
+		},
+		enabled: role === "super_admin" || role === "content_admin",
+		staleTime: 30_000,
+	});
+
+	const visibleItems = NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role)))
+		.map((item) => {
+			if (item.href !== "/admin/org") return item;
+			return {
+				...item,
+				children: [
+					...orgCharts.map((c) => ({ title: c.name, href: `/admin/org/${c.id}`, icon: undefined, roles: undefined })),
+					{ title: "퇴사자 관리", href: "/admin/org/resigned", icon: "UserMinus" as const, roles: ["super_admin", "content_admin"] as ("super_admin" | "content_admin" | "editor")[] },
+				],
+			};
+		});
 
 	// group별로 묶기: group이 없으면 '' 키로
 	const groupMap = visibleItems.reduce<Record<string, typeof visibleItems>>((acc, item) => {
