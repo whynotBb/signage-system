@@ -376,11 +376,13 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 							{orgCharts.length === 0 ? (
 								<div className="px-4 py-3 text-sm text-muted-foreground">등록된 조직도가 없습니다.</div>
 							) : (
-								orgCharts.map((chart) => (
+								orgCharts.map((chart) => {
+									const isActive = chart.is_display_active || orgCharts.length === 1;
+									return (
 									<div key={chart.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-muted/20 transition-colors">
 										<div className="flex-1 min-w-0 flex items-center gap-2">
 											<span className="text-sm font-medium truncate">{chart.name}</span>
-											{chart.is_display_active && (
+											{isActive && (
 												<Badge className="text-xs border-0 bg-primary/10 text-primary font-normal shrink-0">표출 중</Badge>
 											)}
 										</div>
@@ -390,7 +392,7 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 											</Link>
 										</Button>
 									</div>
-								))
+								);})
 							)}
 						</div>
 					)}
@@ -468,7 +470,10 @@ export function DashboardContent() {
 	const { data: companyIntroConfig } = useQuery({ queryKey: queryKeys.companyIntro.config(), queryFn: fetchCompanyIntroConfig });
 	const { data: orgCharts = [] } = useQuery({ queryKey: queryKeys.orgCharts.all, queryFn: fetchOrgCharts });
 
-	const activeOrgChartId = orgCharts.find((c) => c.is_display_active)?.id ?? null;
+	// 1개뿐이면 is_display_active 무관하게 해당 조직도를 활성으로 취급 (org-chart-list 동일 로직)
+	const activeOrgChartId =
+		orgCharts.find((c) => c.is_display_active)?.id ??
+		(orgCharts.length === 1 ? orgCharts[0].id : null);
 
 	const { data: activeEmployeeCount = 0 } = useQuery({
 		queryKey: queryKeys.employees.activeCount(activeOrgChartId),
