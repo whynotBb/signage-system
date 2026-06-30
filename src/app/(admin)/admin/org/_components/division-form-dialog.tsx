@@ -84,7 +84,7 @@ export function DivisionFormDialog({ open, onOpenChange, division, orgChartId }:
 		resolver: zodResolver(divisionSchema),
 		defaultValues: {
 			name: "",
-			color: "#6366f1",
+			color: generateShuffleColor([]),
 		},
 	});
 
@@ -92,10 +92,10 @@ export function DivisionFormDialog({ open, onOpenChange, division, orgChartId }:
 		if (open) {
 			form.reset({
 				name: division?.name ?? "",
-				color: division?.color ?? "#6366f1",
+				color: division?.color ?? generateShuffleColor(divisions.map((d) => d.color)),
 			});
 		}
-	}, [open, division, form]);
+	}, [open, division, form, divisions]);
 
 	const insertMutation = useMutation({
 		mutationFn: (values: DivisionFormValues) => insertDivision(values, orgChartId),
