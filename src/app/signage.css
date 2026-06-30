@@ -1,61 +1,57 @@
 /* ════════════════════════════════════════════════════
-   Reset
+   Reset — .signage-root 범위 내에서만 적용
 ════════════════════════════════════════════════════ */
-*,
-*::before,
-*::after {
+.signage-root *,
+.signage-root *::before,
+.signage-root *::after {
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
 }
 
-html,
-body {
-	width: 100vw;
-	height: 100vh;
+.signage-root {
+	width: 100%;
+	height: 100%;
 	overflow: hidden;
 	background: #050d2a;
-}
-
-body {
 	font-family: "Paperlogy", sans-serif;
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
-img,
-picture,
-video,
-canvas,
-svg {
+.signage-root img,
+.signage-root picture,
+.signage-root video,
+.signage-root canvas,
+.signage-root svg {
 	display: block;
 	max-width: 100%;
 }
 
-input,
-button,
-textarea,
-select {
+.signage-root input,
+.signage-root button,
+.signage-root textarea,
+.signage-root select {
 	font: inherit;
 }
 
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+.signage-root p,
+.signage-root h1,
+.signage-root h2,
+.signage-root h3,
+.signage-root h4,
+.signage-root h5,
+.signage-root h6 {
 	overflow-wrap: break-word;
 }
 
-ul,
-ol {
+.signage-root ul,
+.signage-root ol {
 	list-style: none;
 }
 
-a {
+.signage-root a {
 	text-decoration: none;
 	color: inherit;
 }
@@ -63,9 +59,9 @@ a {
 /* ════════════════════════════════════════════════════
    Swiper 풀화면
 ════════════════════════════════════════════════════ */
-.swiper,
-.swiper-wrapper,
-.swiper-slide {
+.signage-root .swiper,
+.signage-root .swiper-wrapper,
+.signage-root .swiper-slide {
 	width: 100%;
 	height: 100%;
 }
@@ -105,20 +101,20 @@ a {
 	--ai-glow: var(--ai-glow-2);
 }
 
-/* 에이전트 스타일 샘플 클래스 (body에 동적 적용) */
-body.ai-style-1 {
+/* 에이전트 스타일 샘플 클래스 (.signage-root에 동적 적용) */
+.signage-root.ai-style-1 {
 	--ai-gradient: var(--ai-gradient-1);
 	--ai-glow: var(--ai-glow-1);
 }
-body.ai-style-2 {
+.signage-root.ai-style-2 {
 	--ai-gradient: var(--ai-gradient-2);
 	--ai-glow: var(--ai-glow-2);
 }
-body.ai-style-3 {
+.signage-root.ai-style-3 {
 	--ai-gradient: var(--ai-gradient-3);
 	--ai-glow: var(--ai-glow-3);
 }
-body.ai-style-4 {
+.signage-root.ai-style-4 {
 	--ai-gradient: var(--ai-gradient-4);
 	--ai-glow: var(--ai-glow-4);
 }

@@ -57,10 +57,12 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeOnInteractOutside = false,
   onInteractOutside,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  closeOnInteractOutside?: boolean
 }) {
   const childArray = React.Children.toArray(children)
   const headerChildren = childArray.filter(isDialogHeader)
@@ -76,7 +78,7 @@ function DialogContent({
           className
         )}
         onInteractOutside={(e) => {
-          e.preventDefault()
+          if (!closeOnInteractOutside) e.preventDefault()
           onInteractOutside?.(e)
         }}
         {...props}

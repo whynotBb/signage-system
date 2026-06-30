@@ -73,10 +73,11 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 	}, []);
 
 	return (
-		<div className="signage-wrapper">
-			<RealtimeSync />
-			{/* 배경 버블 레이어 */}
-			<div className="deco-bubble-wrapper">
+		<div className="signage-root" style={{ width: "100vw", height: "100vh" }}>
+			<div className="signage-wrapper">
+				<RealtimeSync />
+				{/* 배경 버블 레이어 */}
+				<div className="deco-bubble-wrapper">
 				<div className="deco-bubble blur-blue" />
 				<div className="deco-bubble blur-green" />
 				<div className="deco-bubble blur-blue-lg" />
@@ -126,6 +127,7 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 					))}
 				</div>
 			</div>
+		</div>
 		</div>
 	);
 }
