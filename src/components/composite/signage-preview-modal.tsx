@@ -23,13 +23,14 @@ export function SignagePreviewModal({ open, onOpenChange, title = "미리보기"
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [scale, setScale] = useState(1);
 
+	// Dialog animation transform(zoom-in-95)의 영향을 받지 않도록
+	// offsetWidth(layout 크기)를 기준으로 scale 계산
 	const updateScale = useCallback(() => {
 		const el = containerRef.current;
 		if (!el) return;
-		const rect = el.getBoundingClientRect();
-		const scaleX = rect.width / DESIGN_WIDTH;
-		const scaleY = rect.height / DESIGN_HEIGHT;
-		setScale(Math.min(scaleX, scaleY));
+		const w = el.offsetWidth;
+		if (!w) return;
+		setScale(w / DESIGN_WIDTH);
 	}, []);
 
 	useEffect(() => {
@@ -54,7 +55,7 @@ export function SignagePreviewModal({ open, onOpenChange, title = "미리보기"
 						? "sm:!max-w-[min(70vw,1050px)]"
 						: "sm:!max-w-[min(90vw,1200px)]"
 				)}
-				style={{ maxHeight: "90vh" }}
+				bodyClassName="p-0 gap-0 overflow-hidden"
 				showCloseButton={false}
 				closeOnInteractOutside={true}
 			>
@@ -62,9 +63,9 @@ export function SignagePreviewModal({ open, onOpenChange, title = "미리보기"
 				<DialogTitle className="sr-only">{title}</DialogTitle>
 
 				{/* 헤더 */}
-				<div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background shrink-0">
-					<span className="text-sm font-medium text-foreground">{title}</span>
-					<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onOpenChange(false)} aria-label="닫기">
+				<div className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background shrink-0">
+					<span className="text-sm font-medium text-foreground truncate mr-2">{title}</span>
+					<Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onOpenChange(false)} aria-label="닫기">
 						<X className="h-4 w-4" />
 					</Button>
 				</div>

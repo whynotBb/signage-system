@@ -55,6 +55,7 @@ function isDialogHeader(child: React.ReactNode): boolean {
 
 function DialogContent({
   className,
+  bodyClassName,
   children,
   showCloseButton = true,
   closeOnInteractOutside = false,
@@ -63,6 +64,7 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
   closeOnInteractOutside?: boolean
+  bodyClassName?: string
 }) {
   const childArray = React.Children.toArray(children)
   const headerChildren = childArray.filter(isDialogHeader)
@@ -90,7 +92,7 @@ function DialogContent({
           </div>
         )}
         {/* 스크롤 영역: 헤더 제외 콘텐츠 */}
-        <div className="flex flex-col flex-1 gap-4 overflow-y-auto p-4">
+        <div className={cn("flex flex-col flex-1 gap-4 overflow-y-auto p-4", bodyClassName)}>
           {bodyChildren}
         </div>
         {/* X 버튼: DialogContent 기준 absolute — 스크롤에 영향받지 않음 */}
