@@ -91,7 +91,7 @@ a {
 	--gradient-new: linear-gradient(91deg, #00e1ff 30.64%, #43e000 71.36%);
 	--gradient-pink: linear-gradient(91deg, #c925ff 30.64%, #f048ad 71.36%);
 
-	/* AI 에이전트 카드 그라데이션 샘플들 */
+	/* 에이전트 카드 그라데이션 샘플들 */
 	--ai-gradient-1: linear-gradient(135deg, #7000ff 0%, #ff8500 100%);
 	--ai-glow-1: 0 0 0.833vw rgba(255, 133, 0, 0.6);
 	--ai-gradient-2: linear-gradient(135deg, #ff00c8 0%, #a2ff00 100%);
@@ -105,7 +105,7 @@ a {
 	--ai-glow: var(--ai-glow-2);
 }
 
-/* AI 에이전트 스타일 샘플 클래스 (body에 동적 적용) */
+/* 에이전트 스타일 샘플 클래스 (body에 동적 적용) */
 body.ai-style-1 {
 	--ai-gradient: var(--ai-gradient-1);
 	--ai-glow: var(--ai-glow-1);
@@ -640,7 +640,7 @@ body.ai-style-4 {
 	background: #c925ff;
 }
 
-/* ─ AI 에이전트 */
+/* ─ 에이전트 */
 .org-member.org-member-ai::after {
 	display: none;
 }
@@ -1276,7 +1276,9 @@ body.ai-style-4 {
 	background: #ffffff; /* 흰색 배경 */
 	color: #4f46e5; /* 남색 텍스트 */
 	font-size: 1.3vw;
-	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+	box-shadow:
+		0 4px 6px -1px rgba(0, 0, 0, 0.1),
+		0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* VP 전용 fallback */
@@ -1284,7 +1286,7 @@ body.ai-style-4 {
 	font-size: 1.042vw;
 }
 
-/* AI 에이전트 범례 아이콘 그라데이션 */
+/* 에이전트 범례 아이콘 그라데이션 */
 .org-legend-item-ai .org-legend-item-icon {
 	background: var(--ai-gradient);
 }
@@ -1294,6 +1296,3 @@ body.ai-style-4 {
 	bottom: auto;
 	top: 3.125vw;
 }
-
-
-

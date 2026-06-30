@@ -25,12 +25,12 @@ import type { Division, Team, Employee } from "@/types";
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 
-const POSITION_OPTIONS = ["사원", "주임", "대리", "과장", "차장", "부장", "이사", "대표이사", "부사장", "AI 에이전트"] as const;
+const POSITION_OPTIONS = ["사원", "주임", "대리", "과장", "차장", "부장", "이사", "대표이사", "부사장", "에이전트"] as const;
 const EXECUTIVE_POSITIONS = ["대표이사", "부사장"] as const;
 const POSITION_ORG_ROLE: Record<string, EmployeeFormValues["org_role"]> = {
 	대표이사: "representative",
 	부사장: "vice_representative",
-	"AI 에이전트": "ai",
+	에이전트: "ai",
 };
 const TITLE_OPTIONS = ["실장", "팀장"] as const;
 
@@ -65,13 +65,7 @@ async function uploadProfileImage(employeeId: string, blob: Blob): Promise<strin
 async function insertEmployee(values: EmployeeFormValues, profileBlob: Blob | null, orgChartId: string): Promise<void> {
 	const supabase = createClient();
 
-	const { data: maxData } = await supabase
-		.from("employees")
-		.select("display_order")
-		.eq("org_chart_id", orgChartId)
-		.order("display_order", { ascending: false })
-		.limit(1)
-		.maybeSingle();
+	const { data: maxData } = await supabase.from("employees").select("display_order").eq("org_chart_id", orgChartId).order("display_order", { ascending: false }).limit(1).maybeSingle();
 	const nextOrder = (maxData?.display_order ?? 0) + 1;
 
 	const { data, error } = await supabase
@@ -243,7 +237,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 			toast.success("직원이 등록되었습니다.");
 			onOpenChange(false);
 			// 직원 등록 이력 기록
-			log({ actionType: 'create', targetType: 'employee', targetName: values.name, description: `직원 '${values.name}' 등록` });
+			log({ actionType: "create", targetType: "employee", targetName: values.name, description: `직원 '${values.name}' 등록` });
 		},
 		onError: (err) => {
 			console.error("직원 등록 오류:", err);
@@ -267,7 +261,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 			toast.success("직원 정보가 수정되었습니다.");
 			onOpenChange(false);
 			// 직원 수정 이력 기록
-			log({ actionType: 'update', targetType: 'employee', targetId: employee!.id, targetName: values.name, description });
+			log({ actionType: "update", targetType: "employee", targetId: employee!.id, targetName: values.name, description });
 		},
 		onError: (err) => {
 			console.error("직원 수정 오류:", err);
@@ -318,9 +312,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 										<Upload className="mr-2 h-3 w-3" />
 										사진 업로드
 									</Button>
-									<p className="mt-1 text-xs text-muted-foreground">
-										{isCeo ? "세로형으로 크롭됩니다 (실제 화면 비율)" : "원형으로 크롭됩니다"}
-									</p>
+									<p className="mt-1 text-xs text-muted-foreground">{isCeo ? "세로형으로 크롭됩니다 (실제 화면 비율)" : "원형으로 크롭됩니다"}</p>
 								</div>
 							</div>
 
@@ -369,12 +361,11 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 												</FormControl>
 												<SelectContent>
 													{POSITION_OPTIONS.map((p) => {
-														const disabled =
-															(p === "대표이사" && !!existingRepId) ||
-															(p === "부사장" && !!existingViceRepId);
+														const disabled = (p === "대표이사" && !!existingRepId) || (p === "부사장" && !!existingViceRepId);
 														return (
 															<SelectItem key={p} value={p} disabled={disabled}>
-																{p}{disabled ? " (이미 지정됨)" : ""}
+																{p}
+																{disabled ? " (이미 지정됨)" : ""}
 															</SelectItem>
 														);
 													})}
@@ -433,7 +424,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 
 														return (
 															<SelectItem key={t} value={t} disabled={isDisabled}>
-																{t}{labelSuffix}
+																{t}
+																{labelSuffix}
 															</SelectItem>
 														);
 													})}
@@ -453,11 +445,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 												입사일 <span className="text-destructive">*</span>
 											</FormLabel>
 											<FormControl>
-												<DatePicker
-													value={field.value ?? ""}
-													onChange={(v) => field.onChange(v || "")}
-													placeholder="입사일 선택"
-												/>
+												<DatePicker value={field.value ?? ""} onChange={(v) => field.onChange(v || "")} placeholder="입사일 선택" />
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -570,19 +558,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 				</DialogContent>
 			</Dialog>
 
-			{cropSrc && (
-				<CropDialog
-					open={cropOpen}
-					onOpenChange={setCropOpen}
-					imageSrc={cropSrc}
-					onCropComplete={handleCropComplete}
-					cropShape={isCeo ? "rect" : "round"}
-					aspect={isCeo ? 5.208 / 5.938 : 1}
-					outputWidth={isCeo ? 400 : undefined}
-					outputHeight={isCeo ? 456 : undefined}
-					description={isCeo ? "대표이사 전용 비율입니다. 사이니지 화면에 표시되는 세로형 비율(5:5.7)에 맞게 크롭됩니다." : undefined}
-				/>
-			)}
+			{cropSrc && <CropDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onCropComplete={handleCropComplete} cropShape={isCeo ? "rect" : "round"} aspect={isCeo ? 5.208 / 5.938 : 1} outputWidth={isCeo ? 400 : undefined} outputHeight={isCeo ? 456 : undefined} description={isCeo ? "대표이사 전용 비율입니다. 사이니지 화면에 표시되는 세로형 비율(5:5.7)에 맞게 크롭됩니다." : undefined} />}
 		</>
 	);
 }

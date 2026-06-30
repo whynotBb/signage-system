@@ -22,16 +22,7 @@ import { TeamFormDialog } from "./team-form-dialog";
 import { EmployeeFormDialog } from "./employee-form-dialog";
 import { DeleteDivisionDialog } from "./delete-division-dialog";
 import { DeleteTeamDialog } from "./delete-team-dialog";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Division, Team, Employee } from "@/types";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
@@ -1081,7 +1072,7 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 		대리: 3,
 		주임: 2,
 		사원: 1,
-		"AI 에이전트": 0,
+		에이전트: 0,
 	};
 	function getPositionRank(pos?: string | null): number {
 		if (!pos) return -1;
@@ -1147,9 +1138,7 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 				title={
 					<span className="flex items-center gap-2">
 						{orgChartName}
-						{isDisplayActive && (
-							<Badge className="border-0 bg-primary/10 text-xs text-primary font-normal">표출 중</Badge>
-						)}
+						{isDisplayActive && <Badge className="border-0 bg-primary/10 text-xs text-primary font-normal">표출 중</Badge>}
 					</span>
 				}
 				description="사이니지에 표시할 조직도를 관리합니다."
@@ -1318,9 +1307,7 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>직원을 삭제(퇴사)하시겠습니까?</AlertDialogTitle>
-						<AlertDialogDescription>
-							&quot;{deletingEmployee?.name}&quot; 직원을 퇴사 처리합니다. 이 작업은 되돌릴 수 없으며, 퇴사자 관리 메뉴에서만 조회 및 복구가 가능합니다.
-						</AlertDialogDescription>
+						<AlertDialogDescription>&quot;{deletingEmployee?.name}&quot; 직원을 퇴사 처리합니다. 이 작업은 되돌릴 수 없으며, 퇴사자 관리 메뉴에서만 조회 및 복구가 가능합니다.</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>취소</AlertDialogCancel>

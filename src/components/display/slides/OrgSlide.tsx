@@ -311,7 +311,7 @@ export function OrgSlide({ divisions, teams, employees }: OrgSlideProps) {
 					</li>
 					<li className="org-legend-item org-legend-item-ai">
 						<span className="org-legend-item-icon" />
-						<span className="org-legend-item-text">AI 에이전트</span>
+						<span className="org-legend-item-text">에이전트</span>
 					</li>
 				</ul>
 			</div>
