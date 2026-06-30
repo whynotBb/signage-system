@@ -2,6 +2,9 @@ import './signage.css'
 import { createClient } from '@/lib/supabase/server'
 import { SignageDisplay } from '@/components/display/SignageDisplay'
 
+// Vercel 캐시 우회 — router.refresh() 시 항상 최신 데이터 반환
+export const dynamic = 'force-dynamic'
+
 export default async function DisplayPage() {
   const supabase = await createClient()
   const now = new Date()
