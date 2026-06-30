@@ -20,7 +20,9 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GripVertical, Pencil, Trash2, Plus, Newspaper, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { GripVertical, Pencil, Trash2, Plus, Newspaper, Search, ChevronUp, ChevronDown, Eye } from "lucide-react";
+import { SignagePreviewModal } from "@/components/composite/signage-preview-modal";
+import { NewsSlide } from "@/components/display/slides/NewsSlide";
 import type { NewsContent } from "@/types";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
@@ -108,6 +110,7 @@ async function toggleActive(id: string, is_active: boolean): Promise<void> {
 interface SortableRowProps {
 	item: NewsRow;
 	canEdit: boolean;
+	onPreview: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
 	onToggleActive: (checked: boolean) => void;
@@ -119,7 +122,7 @@ interface SortableRowProps {
 	isLast?: boolean;
 }
 
-function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled, onMoveUp, onMoveDown, isFirst, isLast }: SortableRowProps) {
+function SortableTableRow({ item, canEdit, onPreview, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled, onMoveUp, onMoveDown, isFirst, isLast }: SortableRowProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
 	const style: React.CSSProperties = {
@@ -190,16 +193,21 @@ function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isT
 			<TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{item.profiles?.name ?? "—"}</TableCell>
 
 			<TableCell>
-				{canEdit && (
-					<div className="flex gap-1">
-						<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
-							<Pencil className="h-3.5 w-3.5" />
-						</Button>
-						<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
-							<Trash2 className="h-3.5 w-3.5" />
-						</Button>
-					</div>
-				)}
+				<div className="flex gap-1">
+					<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={onPreview} title="미리보기">
+						<Eye className="h-3.5 w-3.5" />
+					</Button>
+					{canEdit && (
+						<>
+							<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
+								<Pencil className="h-3.5 w-3.5" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
+								<Trash2 className="h-3.5 w-3.5" />
+							</Button>
+						</>
+					)}
+				</div>
 			</TableCell>
 		</TableRow>
 	);
@@ -210,6 +218,7 @@ function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isT
 interface MobileNewsCardProps {
 	item: NewsRow;
 	canEdit: boolean;
+	onPreview: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
 	onToggleActive: (checked: boolean) => void;
@@ -220,7 +229,7 @@ interface MobileNewsCardProps {
 	isLast?: boolean;
 }
 
-function MobileNewsCard({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, onMoveUp, onMoveDown, isFirst, isLast }: MobileNewsCardProps) {
+function MobileNewsCard({ item, canEdit, onPreview, onEdit, onDelete, onToggleActive, isTogglePending, onMoveUp, onMoveDown, isFirst, isLast }: MobileNewsCardProps) {
 	return (
 		<div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
 			<div className="flex items-start justify-between gap-3">
@@ -252,16 +261,21 @@ function MobileNewsCard({ item, canEdit, onEdit, onDelete, onToggleActive, isTog
 							<ChevronDown className="h-3 w-3" />
 						</Button>
 					</div>
-					{canEdit && (
-						<div className="flex gap-1">
-							<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
-								<Pencil className="h-3.5 w-3.5" />
-							</Button>
-							<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
-								<Trash2 className="h-3.5 w-3.5" />
-							</Button>
-						</div>
-					)}
+					<div className="flex gap-1">
+						<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={onPreview} title="미리보기">
+							<Eye className="h-3.5 w-3.5" />
+						</Button>
+						{canEdit && (
+							<>
+								<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
+									<Pencil className="h-3.5 w-3.5" />
+								</Button>
+								<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
+									<Trash2 className="h-3.5 w-3.5" />
+								</Button>
+							</>
+						)}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -277,6 +291,7 @@ export function NewsTable() {
 	const [formOpen, setFormOpen] = useState(false);
 	const [editTarget, setEditTarget] = useState<NewsContent | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<NewsRow | null>(null);
+	const [previewTarget, setPreviewTarget] = useState<NewsRow | null>(null);
 	const [togglingId, setTogglingId] = useState<string | null>(null);
 	const [searchText, setSearchText] = useState("");
 	const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
@@ -420,6 +435,7 @@ export function NewsTable() {
 												key={item.id}
 												item={item}
 												canEdit={canEdit(item)}
+												onPreview={() => setPreviewTarget(item)}
 												onEdit={() => handleEdit(item)}
 												onDelete={() => setDeleteTarget(item)}
 												onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
@@ -457,6 +473,7 @@ export function NewsTable() {
 																key={item.id}
 																item={item}
 																canEdit={canEdit(item)}
+																onPreview={() => setPreviewTarget(item)}
 																onEdit={() => handleEdit(item)}
 																onDelete={() => setDeleteTarget(item)}
 																onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
@@ -500,6 +517,15 @@ export function NewsTable() {
 					imageUrl={deleteTarget.image_url}
 				/>
 			)}
+
+			<SignagePreviewModal
+				open={!!previewTarget}
+				onOpenChange={(v) => { if (!v) setPreviewTarget(null); }}
+				title={previewTarget ? `뉴스 미리보기 — ${previewTarget.title}` : "뉴스 미리보기"}
+				compact
+			>
+				{previewTarget && <NewsSlide news={previewTarget} />}
+			</SignagePreviewModal>
 		</>
 	);
 }

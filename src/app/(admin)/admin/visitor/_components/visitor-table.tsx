@@ -20,7 +20,9 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GripVertical, MapPin, Pencil, Trash2, Plus, UserCheck, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { GripVertical, MapPin, Pencil, Trash2, Plus, UserCheck, Search, ChevronUp, ChevronDown, Eye } from "lucide-react";
+import { SignagePreviewModal } from "@/components/composite/signage-preview-modal";
+import { VisitorSlide } from "@/components/display/slides/VisitorSlide";
 import type { VisitorContent } from "@/types";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
@@ -118,6 +120,7 @@ async function toggleActive(id: string, is_active: boolean): Promise<void> {
 interface SortableRowProps {
 	item: VisitorRow;
 	canEdit: boolean;
+	onPreview: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
 	onToggleActive: (checked: boolean) => void;
@@ -129,7 +132,7 @@ interface SortableRowProps {
 	isLast?: boolean;
 }
 
-function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled, onMoveUp, onMoveDown, isFirst, isLast }: SortableRowProps) {
+function SortableTableRow({ item, canEdit, onPreview, onEdit, onDelete, onToggleActive, isTogglePending, isDragDisabled, onMoveUp, onMoveDown, isFirst, isLast }: SortableRowProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
 	const style: React.CSSProperties = {
@@ -220,16 +223,21 @@ function SortableTableRow({ item, canEdit, onEdit, onDelete, onToggleActive, isT
 			<TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{item.profiles?.name ?? "—"}</TableCell>
 
 			<TableCell>
-				{canEdit && (
-					<div className="flex gap-1">
-						<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
-							<Pencil className="h-3.5 w-3.5" />
-						</Button>
-						<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
-							<Trash2 className="h-3.5 w-3.5" />
-						</Button>
-					</div>
-				)}
+				<div className="flex gap-1">
+					<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={onPreview} title="미리보기">
+						<Eye className="h-3.5 w-3.5" />
+					</Button>
+					{canEdit && (
+						<>
+							<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
+								<Pencil className="h-3.5 w-3.5" />
+							</Button>
+							<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
+								<Trash2 className="h-3.5 w-3.5" />
+							</Button>
+						</>
+					)}
+				</div>
 			</TableCell>
 		</TableRow>
 	);
@@ -242,6 +250,7 @@ interface MobileVisitorCardProps {
 	parsedNames: string[];
 	parsedTitles: string[];
 	canEdit: boolean;
+	onPreview: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
 	onToggleActive: (checked: boolean) => void;
@@ -252,7 +261,7 @@ interface MobileVisitorCardProps {
 	isLast?: boolean;
 }
 
-function MobileVisitorCard({ item, parsedNames, parsedTitles, canEdit, onEdit, onDelete, onToggleActive, isTogglePending, onMoveUp, onMoveDown, isFirst, isLast }: MobileVisitorCardProps) {
+function MobileVisitorCard({ item, parsedNames, parsedTitles, canEdit, onPreview, onEdit, onDelete, onToggleActive, isTogglePending, onMoveUp, onMoveDown, isFirst, isLast }: MobileVisitorCardProps) {
 	return (
 		<div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
 			<div className="flex items-start justify-between gap-3">
@@ -291,16 +300,21 @@ function MobileVisitorCard({ item, parsedNames, parsedTitles, canEdit, onEdit, o
 							<ChevronDown className="h-3 w-3" />
 						</Button>
 					</div>
-					{canEdit && (
-						<div className="flex gap-1">
-							<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
-								<Pencil className="h-3.5 w-3.5" />
-							</Button>
-							<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
-								<Trash2 className="h-3.5 w-3.5" />
-							</Button>
-						</div>
-					)}
+					<div className="flex gap-1">
+						<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={onPreview} title="미리보기">
+							<Eye className="h-3.5 w-3.5" />
+						</Button>
+						{canEdit && (
+							<>
+								<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="수정">
+									<Pencil className="h-3.5 w-3.5" />
+								</Button>
+								<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="삭제">
+									<Trash2 className="h-3.5 w-3.5" />
+								</Button>
+							</>
+						)}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -316,6 +330,7 @@ export function VisitorTable() {
 	const [formOpen, setFormOpen] = useState(false);
 	const [editTarget, setEditTarget] = useState<VisitorContent | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<VisitorRow | null>(null);
+	const [previewTarget, setPreviewTarget] = useState<VisitorRow | null>(null);
 	const [togglingId, setTogglingId] = useState<string | null>(null);
 	const [searchText, setSearchText] = useState("");
 	const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
@@ -467,6 +482,7 @@ export function VisitorTable() {
 												parsedNames={names}
 												parsedTitles={titles}
 												canEdit={canEdit(item)}
+												onPreview={() => setPreviewTarget(item)}
 												onEdit={() => handleEdit(item)}
 												onDelete={() => setDeleteTarget(item)}
 												onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
@@ -507,6 +523,7 @@ export function VisitorTable() {
 																key={item.id}
 																item={item}
 																canEdit={canEdit(item)}
+																onPreview={() => setPreviewTarget(item)}
 																onEdit={() => handleEdit(item)}
 																onDelete={() => setDeleteTarget(item)}
 																onToggleActive={(checked) => toggleActiveMutation.mutate({ id: item.id, is_active: checked })}
@@ -549,6 +566,15 @@ export function VisitorTable() {
 					title={deleteTarget.title}
 				/>
 			)}
+
+			<SignagePreviewModal
+				open={!!previewTarget}
+				onOpenChange={(v) => { if (!v) setPreviewTarget(null); }}
+				title={previewTarget ? `방문자 미리보기 — ${previewTarget.title}` : "방문자 미리보기"}
+				compact
+			>
+				{previewTarget && <VisitorSlide visitor={previewTarget} />}
+			</SignagePreviewModal>
 		</>
 	);
 }

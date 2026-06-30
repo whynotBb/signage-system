@@ -8,7 +8,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "@/lib/supabase/client";
 import { queryKeys } from "@/lib/supabase/query-keys";
 import { useAuthStore } from "@/store/auth-store";
-import { GripVertical, Plus, Trash, Users, ChevronUp, ChevronDown, ArrowDownWideNarrow } from "lucide-react";
+import { GripVertical, Plus, Trash, Users, ChevronUp, ChevronDown, ArrowDownWideNarrow, Eye } from "lucide-react";
+import { OrgPreviewModal } from "./org-preview-modal";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -636,6 +637,7 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 	const user = useAuthStore((s) => s.user);
 	const queryClient = useQueryClient();
 	const isEditor = user?.role === "editor";
+	const [previewOpen, setPreviewOpen] = useState(false);
 
 	const { data: divisions = EMPTY_DIVISIONS, isLoading: divisionsLoading } = useQuery({
 		queryKey: queryKeys.divisions.byOrgChart(orgChartId),
@@ -1136,8 +1138,12 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 			{/* PageHeader */}
 			<PageHeader
 				title={
-					<span className="flex items-center gap-2">
+					<span className="flex items-center gap-2 flex-wrap">
 						{orgChartName}
+						<Button variant="outline" size="sm" className="gap-1.5 font-normal text-xs h-7 px-2" onClick={() => setPreviewOpen(true)}>
+							<Eye className="h-3.5 w-3.5" />
+							미리보기
+						</Button>
 						{isDisplayActive && <Badge className="border-0 bg-primary/10 text-xs text-primary font-normal">표출 중</Badge>}
 					</span>
 				}
@@ -1317,6 +1323,14 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			{/* 조직도 미리보기 모달 */}
+			<OrgPreviewModal
+				open={previewOpen}
+				onOpenChange={setPreviewOpen}
+				orgChartId={orgChartId}
+				orgChartName={orgChartName}
+			/>
 		</div>
 	);
 }

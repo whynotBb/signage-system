@@ -2,22 +2,8 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-	DndContext,
-	PointerSensor,
-	KeyboardSensor,
-	useSensor,
-	useSensors,
-	closestCenter,
-	type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-	SortableContext,
-	verticalListSortingStrategy,
-	useSortable,
-	arrayMove,
-	sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -29,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { GripVertical, ChevronDown, ChevronUp, ExternalLink, Users, Newspaper, UserCheck, Building2, Video, Image, Pencil } from "lucide-react";
+import { GripVertical, ChevronDown, ChevronUp, ExternalLink, Users, Newspaper, UserCheck, Building2, Video, Image, Pencil, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import type { OrgChart } from "@/types";
@@ -115,14 +101,14 @@ async function fetchAllVideos(): Promise<ContentItem[]> {
 	const supabase = createClient();
 	const { data, error } = await supabase.from("video_contents").select("id, title, is_active, display_order").order("display_order").order("created_at");
 	if (error) throw error;
-	return (data ?? []).map((r) => ({ ...r, display_order: (r as Record<string, unknown>)["display_order"] as number ?? 0 })) as ContentItem[];
+	return (data ?? []).map((r) => ({ ...r, display_order: ((r as Record<string, unknown>)["display_order"] as number) ?? 0 })) as ContentItem[];
 }
 
 async function fetchAllImages(): Promise<ContentItem[]> {
 	const supabase = createClient();
 	const { data, error } = await supabase.from("image_contents").select("id, title, is_active, display_order").order("display_order").order("created_at");
 	if (error) throw error;
-	return (data ?? []).map((r) => ({ ...r, display_order: (r as Record<string, unknown>)["display_order"] as number ?? 0 })) as ContentItem[];
+	return (data ?? []).map((r) => ({ ...r, display_order: ((r as Record<string, unknown>)["display_order"] as number) ?? 0 })) as ContentItem[];
 }
 
 async function fetchCompanyIntroConfig(): Promise<{ id: string; safeinsight_enabled: boolean; inguide_enabled: boolean }> {
@@ -132,7 +118,7 @@ async function fetchCompanyIntroConfig(): Promise<{ id: string; safeinsight_enab
 	return data as { id: string; safeinsight_enabled: boolean; inguide_enabled: boolean };
 }
 
-async function fetchOrgCharts(): Promise<Pick<OrgChart, 'id' | 'name' | 'is_display_active'>[]> {
+async function fetchOrgCharts(): Promise<Pick<OrgChart, "id" | "name" | "is_display_active">[]> {
 	const supabase = createClient();
 	const { data, error } = await supabase.from("org_charts").select("id, name, is_display_active").order("display_order", { ascending: true });
 	if (error) throw error;
@@ -237,7 +223,7 @@ interface SortableGroupCardProps {
 	isDragDisabled: boolean;
 	showActiveOnly: boolean;
 	activeEmployeeCount?: number;
-	orgCharts?: Pick<OrgChart, 'id' | 'name' | 'is_display_active'>[];
+	orgCharts?: Pick<OrgChart, "id" | "name" | "is_display_active">[];
 	onItemToggle: (itemId: string, is_active: boolean) => void;
 	onItemReorder: (newItems: ContentItem[]) => void;
 	onSafeInsightToggle?: (v: boolean) => void;
@@ -337,14 +323,15 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 						재직 {activeEmployeeCount ?? 0}명
 					</Badge>
 				)}
-				{isCompanyIntro && (() => {
-					const activeCount = (group.safeinsight_enabled ? 1 : 0) + (group.inguide_enabled ? 1 : 0);
-					return (
-						<Badge variant="outline" className={cn("text-xs ml-1", activeCount > 0 ? "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400" : "")}>
-							활성 {activeCount}/2
-						</Badge>
-					);
-				})()}
+				{isCompanyIntro &&
+					(() => {
+						const activeCount = (group.safeinsight_enabled ? 1 : 0) + (group.inguide_enabled ? 1 : 0);
+						return (
+							<Badge variant="outline" className="text-xs ml-1">
+								활성 {activeCount}/2
+							</Badge>
+						);
+					})()}
 				{hasItems && (
 					<Badge variant="outline" className="text-xs ml-1">
 						활성 {activeCount}/{totalCount}
@@ -379,20 +366,19 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 								orgCharts.map((chart) => {
 									const isActive = chart.is_display_active || orgCharts.length === 1;
 									return (
-									<div key={chart.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-muted/20 transition-colors">
-										<div className="flex-1 min-w-0 flex items-center gap-2">
-											<span className="text-sm font-medium truncate">{chart.name}</span>
-											{isActive && (
-												<Badge className="text-xs border-0 bg-primary/10 text-primary font-normal shrink-0">표출 중</Badge>
-											)}
+										<div key={chart.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-muted/20 transition-colors">
+											<div className="flex-1 min-w-0 flex items-center gap-2">
+												<span className="text-sm font-medium truncate">{chart.name}</span>
+												{isActive && <Badge className="text-xs border-0 bg-primary/10 text-primary font-normal shrink-0">표출 중</Badge>}
+											</div>
+											<Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+												<Link href={`/admin/org/${chart.id}`} aria-label={`${chart.name} 편집`}>
+													<Pencil className="h-3.5 w-3.5" />
+												</Link>
+											</Button>
 										</div>
-										<Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-											<Link href={`/admin/org/${chart.id}`} aria-label={`${chart.name} 편집`}>
-												<Pencil className="h-3.5 w-3.5" />
-											</Link>
-										</Button>
-									</div>
-								);})
+									);
+								})
 							)}
 						</div>
 					)}
@@ -404,24 +390,14 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 									<p className="text-sm font-medium">SafeInsight</p>
 									<p className="text-xs text-muted-foreground">안전보건 정보 슬라이드</p>
 								</div>
-								<Switch
-									checked={group.safeinsight_enabled ?? false}
-									onCheckedChange={onSafeInsightToggle}
-									aria-label="SafeInsight 슬라이드 활성화"
-									className="shrink-0"
-								/>
+								<Switch checked={group.safeinsight_enabled ?? false} onCheckedChange={onSafeInsightToggle} aria-label="SafeInsight 슬라이드 활성화" className="shrink-0" />
 							</div>
 							<div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors">
 								<div className="flex-1 min-w-0">
 									<p className="text-sm font-medium">In-Guide</p>
 									<p className="text-xs text-muted-foreground">사내 가이드 슬라이드</p>
 								</div>
-								<Switch
-									checked={group.inguide_enabled ?? false}
-									onCheckedChange={onInGuideToggle}
-									aria-label="In-Guide 슬라이드 활성화"
-									className="shrink-0"
-								/>
+								<Switch checked={group.inguide_enabled ?? false} onCheckedChange={onInGuideToggle} aria-label="In-Guide 슬라이드 활성화" className="shrink-0" />
 							</div>
 						</div>
 					)}
@@ -434,16 +410,7 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 								<DndContext sensors={itemSensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
 									<SortableContext items={displayItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
 										{displayItems.map((item, idx) => (
-											<SortableItemRow
-												key={item.id}
-												item={item}
-												isDragDisabled={isDragDisabled}
-												isFirst={idx === 0}
-												isLast={idx === displayItems.length - 1}
-												onToggle={(v) => onItemToggle(item.id, v)}
-												onMoveUp={() => handleMoveUp(item)}
-												onMoveDown={() => handleMoveDown(item)}
-											/>
+											<SortableItemRow key={item.id} item={item} isDragDisabled={isDragDisabled} isFirst={idx === 0} isLast={idx === displayItems.length - 1} onToggle={(v) => onItemToggle(item.id, v)} onMoveUp={() => handleMoveUp(item)} onMoveDown={() => handleMoveDown(item)} />
 										))}
 									</SortableContext>
 								</DndContext>
@@ -471,9 +438,7 @@ export function DashboardContent() {
 	const { data: orgCharts = [] } = useQuery({ queryKey: queryKeys.orgCharts.all, queryFn: fetchOrgCharts });
 
 	// 1개뿐이면 is_display_active 무관하게 해당 조직도를 활성으로 취급 (org-chart-list 동일 로직)
-	const activeOrgChartId =
-		orgCharts.find((c) => c.is_display_active)?.id ??
-		(orgCharts.length === 1 ? orgCharts[0].id : null);
+	const activeOrgChartId = orgCharts.find((c) => c.is_display_active)?.id ?? (orgCharts.length === 1 ? orgCharts[0].id : null);
 
 	const { data: activeEmployeeCount = 0 } = useQuery({
 		queryKey: queryKeys.employees.activeCount(activeOrgChartId),
@@ -506,17 +471,10 @@ export function DashboardContent() {
 				if (g.key === "org") return true;
 				if (g.key === "company_intro") return g.safeinsight_enabled || g.inguide_enabled;
 				return g.items.some((i) => i.is_active);
-		  })
+			})
 		: groups;
 
-	const totalActiveSlides =
-		(activeEmployeeCount > 0 ? 1 : 0) +
-		newsItems.filter((i) => i.is_active).length +
-		visitorItems.filter((i) => i.is_active).length +
-		(companyIntroConfig?.safeinsight_enabled ? 1 : 0) +
-		(companyIntroConfig?.inguide_enabled ? 1 : 0) +
-		videoItems.filter((i) => i.is_active).length +
-		imageItems.filter((i) => i.is_active).length;
+	const totalActiveSlides = (activeEmployeeCount > 0 ? 1 : 0) + newsItems.filter((i) => i.is_active).length + visitorItems.filter((i) => i.is_active).length + (companyIntroConfig?.safeinsight_enabled ? 1 : 0) + (companyIntroConfig?.inguide_enabled ? 1 : 0) + videoItems.filter((i) => i.is_active).length + imageItems.filter((i) => i.is_active).length;
 
 	const groupSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
@@ -564,7 +522,10 @@ export function DashboardContent() {
 		const prev = queryClient.getQueryData<ContentItem[]>(qk);
 		queryClient.setQueryData(qk, newItems);
 
-		updateItemOrder(table, newItems.map((item, idx) => ({ id: item.id, display_order: idx + 1 }))).catch(() => {
+		updateItemOrder(
+			table,
+			newItems.map((item, idx) => ({ id: item.id, display_order: idx + 1 })),
+		).catch(() => {
 			if (prev) queryClient.setQueryData(qk, prev);
 			toast.error("순서 저장에 실패했습니다.");
 		});
@@ -620,8 +581,7 @@ export function DashboardContent() {
 	if (groupOrderData.length === 0) {
 		return (
 			<div className="rounded-lg border border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
-				DB 마이그레이션이 필요합니다. Supabase SQL Editor에서{" "}
-				<code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">signage_group_order</code> 테이블 생성 후 새로고침 해주세요.
+				DB 마이그레이션이 필요합니다. Supabase SQL Editor에서 <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">signage_group_order</code> 테이블 생성 후 새로고침 해주세요.
 			</div>
 		);
 	}
@@ -629,9 +589,20 @@ export function DashboardContent() {
 	return (
 		<div className="flex flex-col gap-6">
 			<PageHeader title="대시보드" description={`현재 ${totalActiveSlides}개 슬라이드가 표출 중입니다.`}>
-				<div className="flex items-center gap-2">
-					<span className="text-sm text-muted-foreground whitespace-nowrap">활성 콘텐츠만 보기</span>
-					<Switch checked={showActiveOnly} onCheckedChange={setShowActiveOnly} aria-label="활성 콘텐츠만 보기" />
+				<div className="flex items-center gap-3">
+					<Button
+						variant="outline"
+						size="sm"
+						className="gap-1.5"
+						onClick={() => window.open("/", "_blank", "noopener,noreferrer")}
+					>
+						<Monitor className="h-3.5 w-3.5" />
+						사이니지 보기
+					</Button>
+					<div className="flex items-center gap-2">
+						<span className="text-sm text-muted-foreground whitespace-nowrap">활성 콘텐츠만 보기</span>
+						<Switch checked={showActiveOnly} onCheckedChange={setShowActiveOnly} aria-label="활성 콘텐츠만 보기" />
+					</div>
 				</div>
 			</PageHeader>
 
