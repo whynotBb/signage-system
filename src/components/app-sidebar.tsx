@@ -51,7 +51,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		queryKey: queryKeys.orgCharts.all,
 		queryFn: async () => {
 			const supabase = createClient();
-			const { data } = await supabase.from("org_charts").select("id, name").order("display_order", { ascending: true });
+			const { data } = await supabase.from("org_charts").select("id, name, is_display_active").order("display_order", { ascending: true });
 			return data ?? [];
 		},
 		enabled: role === "super_admin" || role === "content_admin",
