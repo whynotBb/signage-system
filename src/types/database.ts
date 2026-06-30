@@ -16,6 +16,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          id: string
+          actor_id: string | null
+          actor_name: string
+          action_type: 'create' | 'update' | 'delete'
+          target_type: string
+          target_id: string | null
+          target_name: string | null
+          description: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          actor_id?: string | null
+          actor_name: string
+          action_type: 'create' | 'update' | 'delete'
+          target_type: string
+          target_id?: string | null
+          target_name?: string | null
+          description: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          actor_id?: string | null
+          actor_name?: string
+          action_type?: 'create' | 'update' | 'delete'
+          target_type?: string
+          target_id?: string | null
+          target_name?: string | null
+          description?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'activity_logs_actor_id_fkey'
+            columns: ['actor_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       company_intro_config: {
         Row: {
           id: string
@@ -44,6 +88,7 @@ export type Database = {
           display_order: number
           id: string
           name: string
+          org_chart_id: string
           updated_at: string
         }
         Insert: {
@@ -52,6 +97,7 @@ export type Database = {
           display_order?: number
           id?: string
           name: string
+          org_chart_id: string
           updated_at?: string
         }
         Update: {
@@ -60,9 +106,18 @@ export type Database = {
           display_order?: number
           id?: string
           name?: string
+          org_chart_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'divisions_org_chart_id_fkey'
+            columns: ['org_chart_id']
+            isOneToOne: false
+            referencedRelation: 'org_charts'
+            referencedColumns: ['id']
+          },
+        ]
       }
       employees: {
         Row: {
@@ -74,6 +129,7 @@ export type Database = {
           is_dispatched: boolean
           is_resigned: boolean
           name: string
+          org_chart_id: string
           org_role: string
           position: string | null
           profile_image_url: string | null
@@ -90,6 +146,7 @@ export type Database = {
           is_dispatched?: boolean
           is_resigned?: boolean
           name: string
+          org_chart_id: string
           org_role?: string
           position?: string | null
           profile_image_url?: string | null
@@ -106,6 +163,7 @@ export type Database = {
           is_dispatched?: boolean
           is_resigned?: boolean
           name?: string
+          org_chart_id?: string
           org_role?: string
           position?: string | null
           profile_image_url?: string | null
@@ -119,6 +177,13 @@ export type Database = {
             columns: ['division_id']
             isOneToOne: false
             referencedRelation: 'divisions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'employees_org_chart_id_fkey'
+            columns: ['org_chart_id']
+            isOneToOne: false
+            referencedRelation: 'org_charts'
             referencedColumns: ['id']
           },
           {
@@ -170,6 +235,36 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      org_charts: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_display_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_display_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_display_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       news_contents: {
         Row: {
@@ -262,6 +357,7 @@ export type Database = {
           division_id: string | null
           id: string
           name: string
+          org_chart_id: string
           updated_at: string
         }
         Insert: {
@@ -271,6 +367,7 @@ export type Database = {
           division_id?: string | null
           id?: string
           name: string
+          org_chart_id: string
           updated_at?: string
         }
         Update: {
@@ -280,6 +377,7 @@ export type Database = {
           division_id?: string | null
           id?: string
           name?: string
+          org_chart_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -288,6 +386,13 @@ export type Database = {
             columns: ['division_id']
             isOneToOne: false
             referencedRelation: 'divisions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'teams_org_chart_id_fkey'
+            columns: ['org_chart_id']
+            isOneToOne: false
+            referencedRelation: 'org_charts'
             referencedColumns: ['id']
           },
         ]
@@ -419,6 +524,8 @@ export type Database = {
     }
     Functions: {
       current_user_role: { Args: Record<PropertyKey, never>; Returns: string }
+      set_active_org_chart: { Args: { target_id: string }; Returns: void }
+      duplicate_org_chart: { Args: { source_id: string; new_name: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
@@ -513,6 +620,7 @@ export type TablesUpdate<
 // ── 편의 타입 alias — Row ────────────────────────────────────────────────────
 
 export type Profile = Database['public']['Tables']['profiles']['Row']
+export type OrgChart = Database['public']['Tables']['org_charts']['Row']
 export type Division = Database['public']['Tables']['divisions']['Row']
 export type Team = Database['public']['Tables']['teams']['Row']
 export type Employee = Database['public']['Tables']['employees']['Row']
@@ -522,10 +630,12 @@ export type CompanyIntroConfig = Database['public']['Tables']['company_intro_con
 export type VideoContent = Database['public']['Tables']['video_contents']['Row']
 export type ImageContent = Database['public']['Tables']['image_contents']['Row']
 export type SignageGroupOrder = Database['public']['Tables']['signage_group_order']['Row']
+export type ActivityLog = Database['public']['Tables']['activity_logs']['Row']
 
 // ── 편의 타입 alias — Insert ────────────────────────────────────────────────
 
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
+export type OrgChartInsert = Database['public']['Tables']['org_charts']['Insert']
 export type DivisionInsert = Database['public']['Tables']['divisions']['Insert']
 export type TeamInsert = Database['public']['Tables']['teams']['Insert']
 export type EmployeeInsert = Database['public']['Tables']['employees']['Insert']
@@ -535,10 +645,12 @@ export type CompanyIntroConfigInsert = Database['public']['Tables']['company_int
 export type VideoContentInsert = Database['public']['Tables']['video_contents']['Insert']
 export type ImageContentInsert = Database['public']['Tables']['image_contents']['Insert']
 export type SignageGroupOrderInsert = Database['public']['Tables']['signage_group_order']['Insert']
+export type ActivityLogInsert = Database['public']['Tables']['activity_logs']['Insert']
 
 // ── 편의 타입 alias — Update ────────────────────────────────────────────────
 
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
+export type OrgChartUpdate = Database['public']['Tables']['org_charts']['Update']
 export type DivisionUpdate = Database['public']['Tables']['divisions']['Update']
 export type TeamUpdate = Database['public']['Tables']['teams']['Update']
 export type EmployeeUpdate = Database['public']['Tables']['employees']['Update']

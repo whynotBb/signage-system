@@ -6,10 +6,25 @@ export default async function DisplayPage() {
   const supabase = await createClient()
   const now = new Date()
 
+  // 표출 활성화된 조직도 버전 조회
+  const { data: activeChart } = await supabase
+    .from('org_charts')
+    .select('id')
+    .eq('is_display_active', true)
+    .maybeSingle()
+
+  const activeOrgChartId = activeChart?.id ?? null
+
   const [divsRes, teamsRes, empsRes, configRes, newsRes, visitorRes] = await Promise.all([
-    supabase.from('divisions').select('*').order('display_order', { ascending: true }),
-    supabase.from('teams').select('*').order('display_order', { ascending: true }),
-    supabase.from('employees').select('*').eq('is_resigned', false).order('display_order', { ascending: true }),
+    activeOrgChartId
+      ? supabase.from('divisions').select('*').eq('org_chart_id', activeOrgChartId).order('display_order', { ascending: true })
+      : Promise.resolve({ data: [] }),
+    activeOrgChartId
+      ? supabase.from('teams').select('*').eq('org_chart_id', activeOrgChartId).order('display_order', { ascending: true })
+      : Promise.resolve({ data: [] }),
+    activeOrgChartId
+      ? supabase.from('employees').select('*').eq('org_chart_id', activeOrgChartId).eq('is_resigned', false).order('display_order', { ascending: true })
+      : Promise.resolve({ data: [] }),
     supabase.from('company_intro_config').select('*').single(),
     supabase.from('news_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }).order('created_at', { ascending: true }),
     supabase.from('visitor_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }).order('created_at', { ascending: false }),

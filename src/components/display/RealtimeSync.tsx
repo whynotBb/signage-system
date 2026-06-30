@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const WATCHED_TABLES = [
+  'org_charts',
   'divisions',
   'teams',
   'employees',

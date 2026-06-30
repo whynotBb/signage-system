@@ -1,5 +1,13 @@
 import { z } from 'zod'
 
+// 조직도 버전(OrgChart) 폼 유효성 스키마
+export const orgChartSchema = z.object({
+  name: z.string().min(1, '조직도 이름을 입력해주세요').max(50, '50자 이하로 입력해주세요'),
+  description: z.string().max(200, '200자 이하로 입력해주세요').optional(),
+})
+
+export type OrgChartFormValues = z.infer<typeof orgChartSchema>
+
 // 실(Division) 폼 유효성 스키마
 export const divisionSchema = z.object({
   name: z.string().min(1, '실 이름을 입력해주세요').max(50, '50자 이하로 입력해주세요'),

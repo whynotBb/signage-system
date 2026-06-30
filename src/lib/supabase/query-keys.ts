@@ -4,17 +4,24 @@ export const queryKeys = {
     detail: (id: string) => ['profiles', id] as const,
     pendingCount: () => ['profiles', 'pending-count'] as const,
   },
+  orgCharts: {
+    all: ['org_charts'] as const,
+    detail: (id: string) => ['org_charts', id] as const,
+  },
   divisions: {
     all: ['divisions'] as const,
+    byOrgChart: (orgChartId: string) => ['divisions', { orgChartId }] as const,
     detail: (id: string) => ['divisions', id] as const,
   },
   teams: {
     all: ['teams'] as const,
+    byOrgChart: (orgChartId: string) => ['teams', { orgChartId }] as const,
     byDivision: (divisionId: string) => ['teams', { divisionId }] as const,
     detail: (id: string) => ['teams', id] as const,
   },
   employees: {
     all: ['employees'] as const,
+    byOrgChart: (orgChartId: string) => ['employees', { orgChartId }] as const,
     byDivision: (divisionId: string) => ['employees', { divisionId }] as const,
     byTeam: (teamId: string) => ['employees', { teamId }] as const,
     detail: (id: string) => ['employees', id] as const,
@@ -55,5 +62,9 @@ export const queryKeys = {
     detail: (id: string) => ['image_contents', id] as const,
     // 활성 이미지 수
     activeCount: () => ['image_contents', 'count', { is_active: true }] as const,
+  },
+  activityLogs: {
+    all: ['activity_logs'] as const,
+    list: (filters?: Record<string, unknown>) => ['activity_logs', 'list', filters] as const,
   },
 } as const

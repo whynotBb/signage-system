@@ -47,23 +47,23 @@ type DragHandle = {
 
 // ── Supabase 쿼리 ─────────────────────────────────────────────────────────────
 
-async function fetchDivisions(): Promise<Division[]> {
+async function fetchDivisions(orgChartId: string): Promise<Division[]> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("divisions").select("*").order("display_order", { ascending: true });
+	const { data, error } = await supabase.from("divisions").select("*").eq("org_chart_id", orgChartId).order("display_order", { ascending: true });
 	if (error) throw error;
 	return data ?? [];
 }
 
-async function fetchTeams(): Promise<Team[]> {
+async function fetchTeams(orgChartId: string): Promise<Team[]> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("teams").select("*").order("display_order", { ascending: true });
+	const { data, error } = await supabase.from("teams").select("*").eq("org_chart_id", orgChartId).order("display_order", { ascending: true });
 	if (error) throw error;
 	return data ?? [];
 }
 
-async function fetchActiveEmployees(): Promise<Employee[]> {
+async function fetchActiveEmployees(orgChartId: string): Promise<Employee[]> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("employees").select("*").eq("is_resigned", false).order("display_order", { ascending: true });
+	const { data, error } = await supabase.from("employees").select("*").eq("org_chart_id", orgChartId).eq("is_resigned", false).order("display_order", { ascending: true });
 	if (error) throw error;
 	return data ?? [];
 }
@@ -635,22 +635,28 @@ const dropAnimation: DropAnimation = {
 
 // ── OrgBoard 메인 컴포넌트 ───────────────────────────────────────────────────
 
-export function OrgBoard() {
+interface OrgBoardProps {
+	orgChartId: string;
+	orgChartName: string;
+	isDisplayActive: boolean;
+}
+
+export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoardProps) {
 	const user = useAuthStore((s) => s.user);
 	const queryClient = useQueryClient();
 	const isEditor = user?.role === "editor";
 
 	const { data: divisions = EMPTY_DIVISIONS, isLoading: divisionsLoading } = useQuery({
-		queryKey: queryKeys.divisions.all,
-		queryFn: fetchDivisions,
+		queryKey: queryKeys.divisions.byOrgChart(orgChartId),
+		queryFn: () => fetchDivisions(orgChartId),
 	});
 	const { data: teams = EMPTY_TEAMS, isLoading: teamsLoading } = useQuery({
-		queryKey: queryKeys.teams.all,
-		queryFn: fetchTeams,
+		queryKey: queryKeys.teams.byOrgChart(orgChartId),
+		queryFn: () => fetchTeams(orgChartId),
 	});
 	const { data: employees = EMPTY_EMPLOYEES, isLoading: employeesLoading } = useQuery({
-		queryKey: queryKeys.employees.all,
-		queryFn: fetchActiveEmployees,
+		queryKey: queryKeys.employees.byOrgChart(orgChartId),
+		queryFn: () => fetchActiveEmployees(orgChartId),
 	});
 
 	const isLoading = divisionsLoading || teamsLoading || employeesLoading;
@@ -822,7 +828,7 @@ export function OrgBoard() {
 			toast.error("직원 삭제(퇴사 처리)에 실패했습니다.");
 		} else {
 			toast.success(`"${deletingEmployee.name}" 직원이 퇴사(삭제) 처리되었습니다.`);
-			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) });
 			setEmployeeDeleteOpen(false);
 		}
 	}
@@ -926,8 +932,8 @@ export function OrgBoard() {
 			}
 
 			Promise.all(updatePromises).then(() => {
-				queryClient.invalidateQueries({ queryKey: queryKeys.divisions.all });
-				queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+				queryClient.invalidateQueries({ queryKey: queryKeys.divisions.byOrgChart(orgChartId) });
+				queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) });
 			});
 			return;
 		}
@@ -942,7 +948,7 @@ export function OrgBoard() {
 			const updatedLocalTeams = [...localTeams.filter((t) => t.division_id !== divisionId), ...reordered];
 			setLocalTeams(updatedLocalTeams);
 			updateTeamOrders(reordered).then(() => {
-				queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+				queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) });
 			});
 			return;
 		}
@@ -986,7 +992,7 @@ export function OrgBoard() {
 					newDivisionId = toContainer.slice(11);
 				}
 				moveEmployeeToContainer(active.id as string, newTeamId, newDivisionId).then(() => {
-					queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+					queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) });
 				});
 			}
 		}
@@ -1035,8 +1041,8 @@ export function OrgBoard() {
 		}
 
 		Promise.all(updatePromises).then(() => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.divisions.all });
-			queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.divisions.byOrgChart(orgChartId) });
+			queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) });
 		});
 	}
 
@@ -1049,7 +1055,7 @@ export function OrgBoard() {
 		const updatedLocalTeams = [...localTeams.filter((t) => t.division_id !== divisionId), ...reordered];
 		setLocalTeams(updatedLocalTeams);
 		updateTeamOrders(reordered).then(() => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.teams.byOrgChart(orgChartId) });
 		});
 	}
 
@@ -1061,7 +1067,7 @@ export function OrgBoard() {
 		const reordered = arrayMove(containerEmps, index, newIndex);
 		setDndContainers((prev) => ({ ...(prev ?? baseContainers), [containerId]: reordered }));
 		updateEmployeeOrders(reordered).then(() => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) });
 		});
 	}
 
@@ -1116,7 +1122,7 @@ export function OrgBoard() {
 		setDndContainers((prev) => ({ ...(prev ?? baseContainers), [containerId]: sorted }));
 
 		updateEmployeeOrders(sorted).then(() => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.byOrgChart(orgChartId) });
 			toast.success("팀원이 정렬되었습니다.");
 		});
 	}
@@ -1137,7 +1143,17 @@ export function OrgBoard() {
 	return (
 		<div className="flex flex-col gap-6">
 			{/* PageHeader */}
-			<PageHeader title="조직도 관리" description="사이니지에 표시할 조직도를 관리합니다.">
+			<PageHeader
+				title={
+					<span className="flex items-center gap-2">
+						{orgChartName}
+						{isDisplayActive && (
+							<Badge className="border-0 bg-primary/10 text-xs text-primary font-normal">표출 중</Badge>
+						)}
+					</span>
+				}
+				description="사이니지에 표시할 조직도를 관리합니다."
+			>
 				{!isEditor && (
 					<div className="flex items-center gap-2">
 						<Button variant="outline" size="sm" className="gap-1" onClick={openAddDivision}>
@@ -1289,13 +1305,13 @@ export function OrgBoard() {
 			</div>
 
 			{/* CRUD 다이얼로그 */}
-			<DivisionFormDialog open={divisionDialogOpen} onOpenChange={setDivisionDialogOpen} division={editingDivision} />
-			<TeamFormDialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen} team={editingTeam} defaultDivisionId={teamDefaultDivisionId} />
-			<EmployeeFormDialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen} employee={editingEmployee} defaultDivisionId={employeeDefaultDivisionId} defaultTeamId={employeeDefaultTeamId} allEmployees={employees} />
+			<DivisionFormDialog open={divisionDialogOpen} onOpenChange={setDivisionDialogOpen} division={editingDivision} orgChartId={orgChartId} />
+			<TeamFormDialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen} team={editingTeam} defaultDivisionId={teamDefaultDivisionId} orgChartId={orgChartId} />
+			<EmployeeFormDialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen} employee={editingEmployee} defaultDivisionId={employeeDefaultDivisionId} defaultTeamId={employeeDefaultTeamId} allEmployees={employees} orgChartId={orgChartId} />
 
 			{/* 삭제 다이얼로그 */}
-			<DeleteDivisionDialog open={divisionDeleteOpen} onOpenChange={setDivisionDeleteOpen} division={deletingDivision} affectedEmployees={employees.filter((e) => deletingDivision && e.division_id === deletingDivision.id)} />
-			<DeleteTeamDialog open={teamDeleteOpen} onOpenChange={setTeamDeleteOpen} team={deletingTeam} affectedEmployees={employees.filter((e) => deletingTeam && e.team_id === deletingTeam.id)} />
+			<DeleteDivisionDialog open={divisionDeleteOpen} onOpenChange={setDivisionDeleteOpen} division={deletingDivision} affectedEmployees={employees.filter((e) => deletingDivision && e.division_id === deletingDivision.id)} orgChartId={orgChartId} />
+			<DeleteTeamDialog open={teamDeleteOpen} onOpenChange={setTeamDeleteOpen} team={deletingTeam} affectedEmployees={employees.filter((e) => deletingTeam && e.team_id === deletingTeam.id)} orgChartId={orgChartId} />
 
 			{/* 직원 삭제 대화상자 */}
 			<AlertDialog open={employeeDeleteOpen} onOpenChange={setEmployeeDeleteOpen}>
