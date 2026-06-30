@@ -24,20 +24,21 @@ export interface LogActivityParams {
 }
 
 export async function logActivity(params: LogActivityParams): Promise<void> {
-  const supabase = createClient()
-  await supabase
-    .from('activity_logs')
-    .insert({
-      actor_id: params.actorId,
-      actor_name: params.actorName,
-      action_type: params.actionType,
-      target_type: params.targetType,
-      target_id: params.targetId ?? null,
-      target_name: params.targetName ?? null,
-      description: params.description,
-    })
-    .then(({ error }) => {
-      if (error) console.error('[activity-log]', error.message)
-    })
-    .catch(() => {})
+  try {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('activity_logs')
+      .insert({
+        actor_id: params.actorId,
+        actor_name: params.actorName,
+        action_type: params.actionType,
+        target_type: params.targetType,
+        target_id: params.targetId ?? null,
+        target_name: params.targetName ?? null,
+        description: params.description,
+      })
+    if (error) console.error('[activity-log]', error.message)
+  } catch {
+    // 이력 기록 실패는 무시
+  }
 }
