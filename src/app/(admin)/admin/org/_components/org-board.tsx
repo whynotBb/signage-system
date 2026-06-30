@@ -571,10 +571,21 @@ function RepresentativeCard({ employee, label, isEditor, onAssign, onEdit }: { e
 
 	return (
 		<div className="flex w-full sm:max-w-[260px] items-center gap-4 rounded-lg border border-border bg-card p-3 shadow-sm">
-			<Avatar className="h-12 w-12 shrink-0">
-				<AvatarImage src={employee.profile_image_url ?? undefined} alt={employee.name} />
-				<AvatarFallback className="text-base">{getInitials(employee.name)}</AvatarFallback>
-			</Avatar>
+			{isRep ? (
+				<div className="h-[56px] w-[49px] shrink-0 overflow-hidden rounded-md bg-muted border border-border/50 flex items-center justify-center">
+					{employee.profile_image_url ? (
+						// eslint-disable-next-line @next/next/no-img-element
+						<img src={employee.profile_image_url} alt={employee.name} className="h-full w-full object-cover object-top" />
+					) : (
+						<span className="text-sm font-medium text-muted-foreground">{getInitials(employee.name)}</span>
+					)}
+				</div>
+			) : (
+				<Avatar className="h-12 w-12 shrink-0">
+					<AvatarImage src={employee.profile_image_url ?? undefined} alt={employee.name} />
+					<AvatarFallback className="text-base">{getInitials(employee.name)}</AvatarFallback>
+				</Avatar>
+			)}
 			<div className="flex items-center gap-2 flex-1">
 				<div className="flex min-w-0 flex-1 flex-col gap-1">
 					<div className="flex items-center gap-2">

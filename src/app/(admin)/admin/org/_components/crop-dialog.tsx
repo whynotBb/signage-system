@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -19,9 +20,14 @@ interface CropDialogProps {
   onOpenChange: (open: boolean) => void
   imageSrc: string
   onCropComplete: (blob: Blob) => void
+  cropShape?: 'round' | 'rect'
+  aspect?: number
+  outputWidth?: number
+  outputHeight?: number
+  description?: string
 }
 
-export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete }: CropDialogProps) {
+export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete, cropShape = 'round', aspect = 1, outputWidth, outputHeight, description }: CropDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
@@ -35,7 +41,7 @@ export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete }: Cro
     if (!croppedAreaPixels) return
     setIsCropping(true)
     try {
-      const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 400, undefined, undefined, 'image/png')
+      const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 400, outputWidth, outputHeight, 'image/png')
       onCropComplete(blob)
       onOpenChange(false)
     } catch {
@@ -50,6 +56,9 @@ export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete }: Cro
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>프로필 사진 편집</DialogTitle>
+          {description && (
+            <DialogDescription>{description}</DialogDescription>
+          )}
         </DialogHeader>
 
         <div className="relative h-72 w-full overflow-hidden rounded-md bg-black">
@@ -57,8 +66,8 @@ export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete }: Cro
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={1}
-            cropShape="round"
+            aspect={aspect}
+            cropShape={cropShape}
             showGrid={false}
             onCropChange={setCrop}
             onZoomChange={setZoom}

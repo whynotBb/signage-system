@@ -173,7 +173,9 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 	const watchedTeamId = useWatch({ control: form.control, name: "team_id" });
 	const watchedPosition = useWatch({ control: form.control, name: "position" });
 	const watchedTitle = useWatch({ control: form.control, name: "title" });
+	const watchedName = useWatch({ control: form.control, name: "name" });
 	const isExecutive = (EXECUTIVE_POSITIONS as readonly string[]).includes(watchedPosition ?? "");
+	const isCeo = watchedPosition === "대표이사";
 	const isManager = watchedTitle === "실장";
 
 	// 이미 대표/부대표인 직원 존재 여부 (편집 중인 본인은 제외)
@@ -199,6 +201,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 				is_dispatched: employee?.is_dispatched ?? false,
 				is_resigned: employee?.is_resigned ?? false,
 			});
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setPreviewUrl(employee?.profile_image_url ?? null);
 			setProfileBlob(null);
 		}
@@ -267,17 +270,30 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 						<form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
 							{/* 프로필 사진 */}
 							<div className="flex items-center gap-4">
-								<Avatar className="h-16 w-16">
-									<AvatarImage src={previewUrl ?? undefined} />
-									<AvatarFallback className="text-lg">{form.watch("name").slice(0, 2) || "?"}</AvatarFallback>
-								</Avatar>
+								{isCeo ? (
+									<div className="h-[68px] w-[60px] shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center border border-border">
+										{previewUrl ? (
+											// eslint-disable-next-line @next/next/no-img-element
+											<img src={previewUrl} alt="프로필 미리보기" className="h-full w-full object-cover object-top" />
+										) : (
+											<span className="text-sm font-medium text-muted-foreground">{watchedName.slice(0, 1) || "?"}</span>
+										)}
+									</div>
+								) : (
+									<Avatar className="h-16 w-16">
+										<AvatarImage src={previewUrl ?? undefined} />
+										<AvatarFallback className="text-lg">{watchedName.slice(0, 2) || "?"}</AvatarFallback>
+									</Avatar>
+								)}
 								<div>
 									<input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 									<Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
 										<Upload className="mr-2 h-3 w-3" />
 										사진 업로드
 									</Button>
-									<p className="mt-1 text-xs text-muted-foreground">원형으로 크롭됩니다</p>
+									<p className="mt-1 text-xs text-muted-foreground">
+										{isCeo ? "세로형으로 크롭됩니다 (실제 화면 비율)" : "원형으로 크롭됩니다"}
+									</p>
 								</div>
 							</div>
 
@@ -527,7 +543,19 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, defaultDivisi
 				</DialogContent>
 			</Dialog>
 
-			{cropSrc && <CropDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onCropComplete={handleCropComplete} />}
+			{cropSrc && (
+				<CropDialog
+					open={cropOpen}
+					onOpenChange={setCropOpen}
+					imageSrc={cropSrc}
+					onCropComplete={handleCropComplete}
+					cropShape={isCeo ? "rect" : "round"}
+					aspect={isCeo ? 5.208 / 5.938 : 1}
+					outputWidth={isCeo ? 400 : undefined}
+					outputHeight={isCeo ? 456 : undefined}
+					description={isCeo ? "대표이사 전용 비율입니다. 사이니지 화면에 표시되는 세로형 비율(5:5.7)에 맞게 크롭됩니다." : undefined}
+				/>
+			)}
 		</>
 	);
 }
