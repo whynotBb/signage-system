@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import "@/app/signage.css";
 
 interface SignagePreviewModalProps {
@@ -44,13 +45,16 @@ export function SignagePreviewModal({ open, onOpenChange, title = "미리보기"
 		return () => observer.disconnect();
 	}, [open, updateScale]);
 
-	const maxWidth = compact ? "min(70vw, 1050px)" : "min(90vw, 1200px)";
-
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
-				className="w-full p-0 gap-0 overflow-hidden"
-				style={{ maxWidth, maxHeight: "90vh" }}
+				className={cn(
+					"w-full p-0 gap-0 overflow-hidden",
+					compact
+						? "sm:!max-w-[min(70vw,1050px)]"
+						: "sm:!max-w-[min(90vw,1200px)]"
+				)}
+				style={{ maxHeight: "90vh" }}
 				showCloseButton={false}
 				closeOnInteractOutside={true}
 			>

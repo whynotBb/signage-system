@@ -797,10 +797,28 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 		setDeletingTeam(team);
 		setTeamDeleteOpen(true);
 	}
+	const MAX_TEAM_MEMBERS = 19;
+
 	function openAddEmployee(divisionId?: string | null, teamId?: string | null) {
+		const teamMemberCount = employees.filter(
+			(e) => e.org_role !== "representative" && e.org_role !== "vice_representative"
+		).length;
+		if (teamMemberCount >= MAX_TEAM_MEMBERS) {
+			toast.error("팀원 추가 불가", {
+				description: `팀원은 최대 ${MAX_TEAM_MEMBERS}명까지 등록할 수 있습니다. 추가 등록이 필요하시면 whynot@hubilon.com으로 문의해 주세요.`,
+			});
+			return;
+		}
 		setEditingEmployee(null);
 		setEmployeeDefaultDivisionId(divisionId ?? null);
 		setEmployeeDefaultTeamId(teamId ?? null);
+		setEmployeeDialogOpen(true);
+	}
+
+	function openAssignRepresentative() {
+		setEditingEmployee(null);
+		setEmployeeDefaultDivisionId(null);
+		setEmployeeDefaultTeamId(null);
 		setEmployeeDialogOpen(true);
 	}
 	function openEditEmployee(employee: Employee) {
@@ -1169,8 +1187,8 @@ export function OrgBoard({ orgChartId, orgChartName, isDisplayActive }: OrgBoard
 			<div className="rounded-lg border border-border/50 p-4">
 				<p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">대표이사 · 부사장</p>
 				<div className="flex flex-col gap-3 sm:flex-row">
-					<RepresentativeCard employee={representative} label="대표이사" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
-					<RepresentativeCard employee={viceRepresentative} label="부사장" isEditor={isEditor} onAssign={() => openAddEmployee(null, null)} onEdit={openEditEmployee} />
+					<RepresentativeCard employee={representative} label="대표이사" isEditor={isEditor} onAssign={openAssignRepresentative} onEdit={openEditEmployee} />
+					<RepresentativeCard employee={viceRepresentative} label="부사장" isEditor={isEditor} onAssign={openAssignRepresentative} onEdit={openEditEmployee} />
 				</div>
 			</div>
 
