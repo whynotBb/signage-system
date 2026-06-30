@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -69,6 +69,12 @@ const GROUP_QUERY_KEY: Partial<Record<GroupKey, readonly unknown[]>> = {
 };
 
 // ── Supabase 함수 ─────────────────────────────────────────────────────────────
+
+async function setOrgDisplayActive(orgChartId: string): Promise<void> {
+	const supabase = createClient();
+	const { error } = await supabase.rpc("set_active_org_chart", { target_id: orgChartId });
+	if (error) throw error;
+}
 
 async function fetchGroupOrder(): Promise<{ group_key: string; display_order: number }[]> {
 	const supabase = createClient();
@@ -228,13 +234,15 @@ interface SortableGroupCardProps {
 	onItemReorder: (newItems: ContentItem[]) => void;
 	onSafeInsightToggle?: (v: boolean) => void;
 	onInGuideToggle?: (v: boolean) => void;
+	onOrgSelect?: (id: string) => void;
+	isOrgActivating?: boolean;
 	onMoveUp?: () => void;
 	onMoveDown?: () => void;
 	isFirst?: boolean;
 	isLast?: boolean;
 }
 
-function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, orgCharts = [], onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle, onMoveUp, onMoveDown, isFirst, isLast }: SortableGroupCardProps) {
+function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, orgCharts = [], onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle, onOrgSelect, isOrgActivating, onMoveUp, onMoveDown, isFirst, isLast }: SortableGroupCardProps) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.key });
@@ -253,6 +261,11 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 	const isOrg = group.key === "org";
 	const isCompanyIntro = group.key === "company_intro";
 	const hasItems = !isOrg && !isCompanyIntro;
+
+	const isOnlyOneOrg = orgCharts.length === 1;
+	const displayOrgCharts = showActiveOnly
+		? orgCharts.filter((c) => c.is_display_active || isOnlyOneOrg)
+		: orgCharts;
 
 	const displayItems = showActiveOnly ? group.items.filter((i) => i.is_active) : group.items;
 	const activeCount = group.items.filter((i) => i.is_active).length;
@@ -363,10 +376,25 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 							{orgCharts.length === 0 ? (
 								<div className="px-4 py-3 text-sm text-muted-foreground">등록된 조직도가 없습니다.</div>
 							) : (
-								orgCharts.map((chart) => {
-									const isActive = chart.is_display_active || orgCharts.length === 1;
+								displayOrgCharts.map((chart) => {
+									const isActive = chart.is_display_active || isOnlyOneOrg;
 									return (
 										<div key={chart.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-muted/20 transition-colors">
+											{/* 라디오 버튼 (조직도 1개면 비활성 고정) */}
+											<button
+												type="button"
+												className={cn(
+													"h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors",
+													isActive ? "border-primary bg-primary" : "border-muted-foreground/40 hover:border-primary/60",
+													isOnlyOneOrg && "cursor-default pointer-events-none",
+												)}
+												onClick={() => { if (!isActive) onOrgSelect?.(chart.id); }}
+												disabled={isActive || isOrgActivating || isOnlyOneOrg}
+												aria-label={isActive ? "현재 표출 중" : "이 버전으로 표출 전환"}
+											>
+												{isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+											</button>
+
 											<div className="flex-1 min-w-0 flex items-center gap-2">
 												<span className="text-sm font-medium truncate">{chart.name}</span>
 												{isActive && <Badge className="text-xs border-0 bg-primary/10 text-primary font-normal shrink-0">표출 중</Badge>}
@@ -440,6 +468,16 @@ export function DashboardContent() {
 	// 1개뿐이면 is_display_active 무관하게 해당 조직도를 활성으로 취급 (org-chart-list 동일 로직)
 	const activeOrgChartId = orgCharts.find((c) => c.is_display_active)?.id ?? (orgCharts.length === 1 ? orgCharts[0].id : null);
 
+	const activateOrgMutation = useMutation({
+		mutationFn: setOrgDisplayActive,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.orgCharts.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.employees.activeCount(activeOrgChartId) });
+			toast.success("표출 조직도가 변경되었습니다.");
+		},
+		onError: () => toast.error("표출 변경에 실패했습니다."),
+	});
+
 	const { data: activeEmployeeCount = 0 } = useQuery({
 		queryKey: queryKeys.employees.activeCount(activeOrgChartId),
 		queryFn: () => fetchActiveEmployeeCount(activeOrgChartId),
@@ -468,7 +506,7 @@ export function DashboardContent() {
 
 	const visibleGroups = showActiveOnly
 		? groups.filter((g) => {
-				if (g.key === "org") return true;
+				if (g.key === "org") return orgCharts.some((c) => c.is_display_active) || orgCharts.length === 1;
 				if (g.key === "company_intro") return g.safeinsight_enabled || g.inguide_enabled;
 				return g.items.some((i) => i.is_active);
 			})
@@ -623,6 +661,8 @@ export function DashboardContent() {
 									onItemReorder={(newItems) => handleItemReorder(group.key, newItems)}
 									onSafeInsightToggle={group.key === "company_intro" ? handleSafeInsightToggle : undefined}
 									onInGuideToggle={group.key === "company_intro" ? handleInGuideToggle : undefined}
+									onOrgSelect={group.key === "org" ? (id) => activateOrgMutation.mutate(id) : undefined}
+									isOrgActivating={group.key === "org" ? activateOrgMutation.isPending : undefined}
 									onMoveUp={() => moveGroup(fullIndex, "up")}
 									onMoveDown={() => moveGroup(fullIndex, "down")}
 									isFirst={fullIndex === 0}
