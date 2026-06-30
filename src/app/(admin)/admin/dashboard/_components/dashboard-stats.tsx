@@ -34,14 +34,20 @@ const STAT_CARDS = [
 
 // ── Supabase Count 쿼리 함수 ────────────────────────────────────────────────
 
-/** 파견·퇴사 제외 활성 직원 수 조회 */
+/** 표출 활성화된 조직도의 퇴사자 제외 직원 수 조회 */
 async function fetchActiveEmployeesCount(): Promise<number> {
   const supabase = createClient()
+  const { data: activeChart } = await supabase
+    .from('org_charts')
+    .select('id')
+    .eq('is_display_active', true)
+    .maybeSingle()
+  if (!activeChart) return 0
   const { count } = await supabase
     .from('employees')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
+    .eq('org_chart_id', activeChart.id)
     .eq('is_resigned', false)
-    .eq('is_dispatched', false)
   return count ?? 0
 }
 

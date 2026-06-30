@@ -29,9 +29,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { GripVertical, ChevronDown, ChevronUp, ExternalLink, Users, Newspaper, UserCheck, Building2, Video, Image } from "lucide-react";
+import { GripVertical, ChevronDown, ChevronUp, ExternalLink, Users, Newspaper, UserCheck, Building2, Video, Image, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+import type { OrgChart } from "@/types";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -65,11 +66,20 @@ const GROUP_META: Record<GroupKey, { label: string; href: string; icon: LucideIc
 	image: { label: "이미지", href: "/admin/image", icon: Image },
 };
 
-const GROUP_TABLE: Partial<Record<GroupKey, string>> = {
+type ContentTable = "news_contents" | "visitor_contents" | "video_contents" | "image_contents";
+
+const GROUP_TABLE: Partial<Record<GroupKey, ContentTable>> = {
 	news: "news_contents",
 	visitor: "visitor_contents",
 	video: "video_contents",
 	image: "image_contents",
+};
+
+const GROUP_QUERY_KEY: Partial<Record<GroupKey, readonly unknown[]>> = {
+	news: queryKeys.news.all,
+	visitor: queryKeys.visitors.all,
+	video: queryKeys.videos.all,
+	image: queryKeys.images.all,
 };
 
 // ── Supabase 함수 ─────────────────────────────────────────────────────────────
@@ -122,9 +132,17 @@ async function fetchCompanyIntroConfig(): Promise<{ id: string; safeinsight_enab
 	return data as { id: string; safeinsight_enabled: boolean; inguide_enabled: boolean };
 }
 
-async function fetchActiveEmployeeCount(): Promise<number> {
+async function fetchOrgCharts(): Promise<Pick<OrgChart, 'id' | 'name' | 'is_display_active'>[]> {
 	const supabase = createClient();
-	const { count, error } = await supabase.from("employees").select("id", { count: "exact", head: true }).eq("is_resigned", false).eq("is_dispatched", false);
+	const { data, error } = await supabase.from("org_charts").select("id, name, is_display_active").order("display_order", { ascending: true });
+	if (error) throw error;
+	return data ?? [];
+}
+
+async function fetchActiveEmployeeCount(orgChartId: string | null): Promise<number> {
+	if (!orgChartId) return 0;
+	const supabase = createClient();
+	const { count, error } = await supabase.from("employees").select("id", { count: "exact", head: true }).eq("org_chart_id", orgChartId).eq("is_resigned", false);
 	if (error) throw error;
 	return count ?? 0;
 }
@@ -134,14 +152,14 @@ async function updateGroupOrder(items: { group_key: string; display_order: numbe
 	await Promise.all(items.map(({ group_key, display_order }) => supabase.from("signage_group_order").update({ display_order }).eq("group_key", group_key)));
 }
 
-async function updateItemOrder(table: string, items: { id: string; display_order: number }[]) {
+async function updateItemOrder(table: ContentTable, items: { id: string; display_order: number }[]) {
 	const supabase = createClient();
-	await Promise.all(items.map(({ id, display_order }) => (supabase.from(table as any).update({ display_order } as any) as any).eq("id", id)));
+	await Promise.all(items.map(({ id, display_order }) => supabase.from(table).update({ display_order }).eq("id", id)));
 }
 
-async function toggleItemActive(table: string, id: string, is_active: boolean) {
+async function toggleItemActive(table: ContentTable, id: string, is_active: boolean) {
 	const supabase = createClient();
-	const { error } = await (supabase.from(table as any).update({ is_active } as any) as any).eq("id", id);
+	const { error } = await supabase.from(table).update({ is_active }).eq("id", id);
 	if (error) throw error;
 }
 
@@ -219,6 +237,7 @@ interface SortableGroupCardProps {
 	isDragDisabled: boolean;
 	showActiveOnly: boolean;
 	activeEmployeeCount?: number;
+	orgCharts?: Pick<OrgChart, 'id' | 'name' | 'is_display_active'>[];
 	onItemToggle: (itemId: string, is_active: boolean) => void;
 	onItemReorder: (newItems: ContentItem[]) => void;
 	onSafeInsightToggle?: (v: boolean) => void;
@@ -229,7 +248,7 @@ interface SortableGroupCardProps {
 	isLast?: boolean;
 }
 
-function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle, onMoveUp, onMoveDown, isFirst, isLast }: SortableGroupCardProps) {
+function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, orgCharts = [], onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle, onMoveUp, onMoveDown, isFirst, isLast }: SortableGroupCardProps) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.key });
@@ -352,7 +371,29 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 			{/* 그룹 내용 */}
 			{!collapsed && (
 				<>
-					{isOrg && <div className="px-4 py-3 text-sm text-muted-foreground">조직도 슬라이드 1개 · 상세 편집은 <Link href={meta.href} className="underline underline-offset-2 hover:text-foreground transition-colors">조직도 관리</Link>에서</div>}
+					{isOrg && (
+						<div className="divide-y divide-border/50">
+							{orgCharts.length === 0 ? (
+								<div className="px-4 py-3 text-sm text-muted-foreground">등록된 조직도가 없습니다.</div>
+							) : (
+								orgCharts.map((chart) => (
+									<div key={chart.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-muted/20 transition-colors">
+										<div className="flex-1 min-w-0 flex items-center gap-2">
+											<span className="text-sm font-medium truncate">{chart.name}</span>
+											{chart.is_display_active && (
+												<Badge className="text-xs border-0 bg-primary/10 text-primary font-normal shrink-0">표출 중</Badge>
+											)}
+										</div>
+										<Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+											<Link href={`/admin/org/${chart.id}`} aria-label={`${chart.name} 편집`}>
+												<Pencil className="h-3.5 w-3.5" />
+											</Link>
+										</Button>
+									</div>
+								))
+							)}
+						</div>
+					)}
 
 					{isCompanyIntro && (
 						<div className="divide-y divide-border/50">
@@ -425,7 +466,14 @@ export function DashboardContent() {
 	const { data: videoItems = [], isLoading: isLoadingVideos } = useQuery({ queryKey: queryKeys.videos.all, queryFn: fetchAllVideos });
 	const { data: imageItems = [], isLoading: isLoadingImages } = useQuery({ queryKey: queryKeys.images.all, queryFn: fetchAllImages });
 	const { data: companyIntroConfig } = useQuery({ queryKey: queryKeys.companyIntro.config(), queryFn: fetchCompanyIntroConfig });
-	const { data: activeEmployeeCount = 0 } = useQuery({ queryKey: queryKeys.employees.activeCount(), queryFn: fetchActiveEmployeeCount });
+	const { data: orgCharts = [] } = useQuery({ queryKey: queryKeys.orgCharts.all, queryFn: fetchOrgCharts });
+
+	const activeOrgChartId = orgCharts.find((c) => c.is_display_active)?.id ?? null;
+
+	const { data: activeEmployeeCount = 0 } = useQuery({
+		queryKey: queryKeys.employees.activeCount(activeOrgChartId),
+		queryFn: () => fetchActiveEmployeeCount(activeOrgChartId),
+	});
 
 	const isLoading = isLoadingGroups || isLoadingNews || isLoadingVisitors || isLoadingVideos || isLoadingImages;
 
@@ -505,7 +553,7 @@ export function DashboardContent() {
 
 	function handleItemReorder(groupKey: GroupKey, newItems: ContentItem[]) {
 		const table = GROUP_TABLE[groupKey];
-		const qk = (queryKeys as any)[groupKey === "visitor" ? "visitors" : groupKey === "image" ? "images" : groupKey === "video" ? "videos" : groupKey]?.all;
+		const qk = GROUP_QUERY_KEY[groupKey];
 		if (!table || !qk) return;
 
 		const prev = queryClient.getQueryData<ContentItem[]>(qk);
@@ -521,7 +569,7 @@ export function DashboardContent() {
 
 	function handleItemToggle(groupKey: GroupKey, itemId: string, is_active: boolean) {
 		const table = GROUP_TABLE[groupKey];
-		const qk = (queryKeys as any)[groupKey === "visitor" ? "visitors" : groupKey === "image" ? "images" : groupKey === "video" ? "videos" : groupKey]?.all;
+		const qk = GROUP_QUERY_KEY[groupKey];
 		if (!table || !qk) return;
 
 		queryClient.setQueryData<ContentItem[]>(qk, (prev) => (prev ?? []).map((i) => (i.id === itemId ? { ...i, is_active } : i)));
@@ -594,6 +642,7 @@ export function DashboardContent() {
 									isDragDisabled={showActiveOnly}
 									showActiveOnly={showActiveOnly}
 									activeEmployeeCount={group.key === "org" ? activeEmployeeCount : undefined}
+									orgCharts={group.key === "org" ? orgCharts : undefined}
 									onItemToggle={(itemId, v) => handleItemToggle(group.key, itemId, v)}
 									onItemReorder={(newItems) => handleItemReorder(group.key, newItems)}
 									onSafeInsightToggle={group.key === "company_intro" ? handleSafeInsightToggle : undefined}
