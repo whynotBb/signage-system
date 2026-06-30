@@ -78,7 +78,6 @@ export default function LoginPage() {
     setUser(profile)
     toast.success('로그인 성공', { description: `${profile.name}님, 환영합니다` })
     router.push('/admin/dashboard')
-    router.refresh()
   }
 
   return (
