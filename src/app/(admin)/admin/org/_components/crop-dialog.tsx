@@ -14,6 +14,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { LoadingButton } from '@/components/composite/loading-button'
+import { Eraser, RotateCcw, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface CropDialogProps {
   open: boolean
@@ -32,16 +34,39 @@ export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete, cropS
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [isCropping, setIsCropping] = useState(false)
+  const [isRemovingBg, setIsRemovingBg] = useState(false)
+  // forSrc와 함께 저장하여 imageSrc가 바뀌면 자동 무효화
+  const [bgResult, setBgResult] = useState<{ forSrc: string; url: string } | null>(null)
+
+  const bgRemoved = bgResult?.forSrc === imageSrc
+  const currentSrc = bgRemoved ? bgResult!.url : imageSrc
 
   const onCropCompleteCallback = useCallback((_: Area, areaPixels: Area) => {
     setCroppedAreaPixels(areaPixels)
   }, [])
 
+  async function handleRemoveBg() {
+    setIsRemovingBg(true)
+    try {
+      const { removeBackground } = await import('@imgly/background-removal')
+      const blob = await removeBackground(currentSrc)
+      setBgResult({ forSrc: imageSrc, url: URL.createObjectURL(blob) })
+    } catch {
+      toast.error('배경 제거에 실패했습니다.')
+    } finally {
+      setIsRemovingBg(false)
+    }
+  }
+
+  function handleResetBg() {
+    setBgResult(null)
+  }
+
   async function handleConfirm() {
     if (!croppedAreaPixels) return
     setIsCropping(true)
     try {
-      const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 400, outputWidth, outputHeight, 'image/png')
+      const blob = await getCroppedImg(currentSrc, croppedAreaPixels, 400, outputWidth, outputHeight, 'image/png')
       onCropComplete(blob)
       onOpenChange(false)
     } catch {
@@ -61,9 +86,31 @@ export function CropDialog({ open, onOpenChange, imageSrc, onCropComplete, cropS
           )}
         </DialogHeader>
 
-        <div className="relative h-72 w-full overflow-hidden rounded-md bg-black">
+        {/* 배경 제거 액션 */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRemoveBg}
+            disabled={isRemovingBg || bgRemoved}
+          >
+            {isRemovingBg
+              ? <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+              : <Eraser className="mr-2 h-3 w-3" />}
+            {isRemovingBg ? '처리 중...' : '배경 제거'}
+          </Button>
+          {bgRemoved && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleResetBg}>
+              <RotateCcw className="mr-2 h-3 w-3" />
+              원본으로
+            </Button>
+          )}
+        </div>
+
+        <div className="relative h-72 w-full overflow-hidden rounded-md bg-[#e8e8e8]">
           <Cropper
-            image={imageSrc}
+            image={currentSrc}
             crop={crop}
             zoom={zoom}
             aspect={aspect}
