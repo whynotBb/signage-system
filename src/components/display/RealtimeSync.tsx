@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@supabase/supabase-js'
 
 const WATCHED_TABLES = [
   'org_charts',
@@ -21,7 +21,19 @@ export function RealtimeSync() {
   const retryCount = useRef(0)
 
   useEffect(() => {
-    const supabase = createClient()
+    // 사이니지는 인증 불필요 — @supabase/supabase-js 표준 클라이언트로 직접 생성하여
+    // SSR 래퍼의 세션 복원/갱신 시도를 완전히 우회한다
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      }
+    )
     let channel: ReturnType<typeof supabase.channel>
 
     const scheduleRefresh = () => {
