@@ -173,22 +173,22 @@ export function ActivityLogList() {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead className="w-px whitespace-nowrap">일시</TableHead>
+									<TableHead className="hidden md:table-cell w-px whitespace-nowrap">일시</TableHead>
 									<TableHead className="whitespace-nowrap">작업자</TableHead>
 									<TableHead className="whitespace-nowrap">작업</TableHead>
-									<TableHead className="whitespace-nowrap">대상</TableHead>
+									<TableHead className="hidden lg:table-cell whitespace-nowrap">대상</TableHead>
 									<TableHead>내용</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{data.data.map((log) => (
 									<TableRow key={log.id}>
-										<TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">{formatDate(log.created_at)}</TableCell>
+										<TableCell className="hidden md:table-cell whitespace-nowrap text-muted-foreground tabular-nums">{formatDate(log.created_at)}</TableCell>
 										<TableCell className="whitespace-nowrap font-medium">{log.actor_name}</TableCell>
 										<TableCell className="whitespace-nowrap">
 											<ActionBadge type={log.action_type} />
 										</TableCell>
-										<TableCell className="whitespace-nowrap text-muted-foreground">{TARGET_TYPE_LABEL[log.target_type] ?? log.target_type}</TableCell>
+										<TableCell className="hidden lg:table-cell whitespace-nowrap text-muted-foreground">{TARGET_TYPE_LABEL[log.target_type] ?? log.target_type}</TableCell>
 										<TableCell>{log.description}</TableCell>
 									</TableRow>
 								))}

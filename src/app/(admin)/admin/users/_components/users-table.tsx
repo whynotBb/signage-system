@@ -144,14 +144,14 @@ export function UsersTable() {
             </p>
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>이름</TableHead>
-                  <TableHead>이메일</TableHead>
+                  <TableHead className="hidden md:table-cell">이메일</TableHead>
                   <TableHead>역할</TableHead>
-                  <TableHead>가입일</TableHead>
+                  <TableHead className="hidden lg:table-cell">가입일</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead className="text-right">액션</TableHead>
                 </TableRow>
@@ -160,7 +160,7 @@ export function UsersTable() {
                 {displayList.map((profile) => (
                   <TableRow key={profile.id}>
                     <TableCell className="font-medium">{profile.name || '—'}</TableCell>
-                    <TableCell className="text-muted-foreground">{profile.email}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">{profile.email}</TableCell>
                     <TableCell>
                       <Select
                         value={profile.role}
@@ -179,7 +179,7 @@ export function UsersTable() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden lg:table-cell text-muted-foreground">
                       {formatDate(profile.created_at)}
                     </TableCell>
                     <TableCell>
@@ -193,7 +193,7 @@ export function UsersTable() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       {!profile.is_active ? (
                         <Button
                           size="sm"
