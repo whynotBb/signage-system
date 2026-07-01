@@ -190,6 +190,10 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [cropOpen, setCropOpen] = useState(false)
   const [imageBlob, setImageBlob] = useState<Blob | null>(null)
+  // 상시 표시 여부 — DB 컬럼이 아니라 게시 시작/종료가 둘 다 null이면 상시로 간주하는 UI 전용 상태
+  const [isAlways, setIsAlways] = useState(false)
+  // 게시 시작/종료 중 하나만 입력된 상태로 제출을 시도했는지 — 인라인 에러 표시 트리거
+  const [periodTouched, setPeriodTouched] = useState(false)
 
   const form = useForm<NewsFormValues>({
     resolver: zodResolver(newsSchema),
@@ -207,7 +211,9 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
   const titleValue = form.watch('title') ?? ''
   const subtitleValue = form.watch('subtitle') ?? ''
   const scheduledStartAt = form.watch('scheduled_start_at')
+  const scheduledEndAt = form.watch('scheduled_end_at')
   const hasImage = !!previewUrl
+  const periodMismatch = !isAlways && !!scheduledStartAt !== !!scheduledEndAt
 
   // 이미지 유무 · 부제목 유무에 따른 제목 최대 글자수
   const titleMax = hasImage
@@ -240,8 +246,10 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
       })
       setPreviewUrl(news?.image_url ?? null)
       setImageBlob(null)
+      setIsAlways(isEdit ? !news?.scheduled_start_at && !news?.scheduled_end_at : true)
+      setPeriodTouched(false)
     }
-  }, [open, news, form])
+  }, [open, news, isEdit, form])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -296,11 +304,27 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
 
   const isPending = insertMutation.isPending || updateMutation.isPending
 
+  function handleIsAlwaysChange(checked: boolean) {
+    setIsAlways(checked)
+    if (checked) {
+      form.setValue('scheduled_start_at', null)
+      form.setValue('scheduled_end_at', null)
+      setPeriodTouched(false)
+    }
+  }
+
   function onSubmit(values: NewsFormValues) {
+    if (!isAlways && !!values.scheduled_start_at !== !!values.scheduled_end_at) {
+      setPeriodTouched(true)
+      return
+    }
+    const finalValues = isAlways
+      ? { ...values, scheduled_start_at: null, scheduled_end_at: null }
+      : values
     if (isEdit) {
-      updateMutation.mutate(values)
+      updateMutation.mutate(finalValues)
     } else {
-      insertMutation.mutate(values)
+      insertMutation.mutate(finalValues)
     }
   }
 
@@ -447,48 +471,70 @@ export function NewsFormDialog({ open, onOpenChange, news }: NewsFormDialogProps
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="scheduled_start_at"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        게시 시작{' '}
-                        <span className="font-normal text-muted-foreground">(선택)</span>
-                      </FormLabel>
-                      <FormControl>
-                        <DateTimePicker
-                          value={field.value ?? ''}
-                          onChange={(v) => field.onChange(v || null)}
-                          placeholder="시작 일시 선택"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="scheduled_end_at"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        게시 종료{' '}
-                        <span className="font-normal text-muted-foreground">(선택)</span>
-                      </FormLabel>
-                      <FormControl>
-                        <DateTimePicker
-                          value={field.value ?? ''}
-                          onChange={(v) => field.onChange(v || null)}
-                          min={scheduledStartAt || undefined}
-                          placeholder="종료 일시 선택"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="flex flex-col gap-3 rounded-md border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">게시 기간</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="news-is-always" className="cursor-pointer text-sm text-muted-foreground">
+                      상시
+                    </Label>
+                    <Switch id="news-is-always" checked={isAlways} onCheckedChange={handleIsAlwaysChange} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="scheduled_start_at"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          시작</FormLabel>
+                        <FormControl>
+                          <DateTimePicker
+                            value={field.value ?? ''}
+                            onChange={(v) => {
+                              field.onChange(v || null)
+                              if (v) setIsAlways(false)
+                            }}
+                            placeholder="시작 일시 선택"
+                            className="text-xs"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="scheduled_end_at"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          종료</FormLabel>
+                        <FormControl>
+                          <DateTimePicker
+                            value={field.value ?? ''}
+                            onChange={(v) => {
+                              field.onChange(v || null)
+                              if (v) setIsAlways(false)
+                            }}
+                            min={scheduledStartAt || undefined}
+                            placeholder="종료 일시 선택"
+                            className="text-xs"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {periodTouched && periodMismatch && (
+                  <p className="text-sm text-destructive">
+                    게시 시작과 종료를 모두 입력하거나, 둘 다 비워두세요.
+                  </p>
+                )}
               </div>
 
               <FormField
