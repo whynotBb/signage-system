@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/composite/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { GripVertical, ChevronDown, ChevronUp, ExternalLink, Users, Newspaper, UserCheck, Building2, Video, Image, Pencil, Monitor } from "lucide-react";
@@ -118,11 +119,11 @@ async function fetchAllImages(): Promise<ContentItem[]> {
 	return (data ?? []).map((r) => ({ ...r, display_order: ((r as Record<string, unknown>)["display_order"] as number) ?? 0 })) as ContentItem[];
 }
 
-async function fetchCompanyIntroConfig(): Promise<{ id: string; safeinsight_enabled: boolean; inguide_enabled: boolean }> {
+async function fetchCompanyIntroConfig(): Promise<{ id: string; safeinsight_enabled: boolean; inguide_enabled: boolean; autoplay_delay_ms: number }> {
 	const supabase = createClient();
-	const { data, error } = await supabase.from("company_intro_config").select("id, safeinsight_enabled, inguide_enabled").single();
+	const { data, error } = await supabase.from("company_intro_config").select("id, safeinsight_enabled, inguide_enabled, autoplay_delay_ms").single();
 	if (error) throw error;
-	return data as { id: string; safeinsight_enabled: boolean; inguide_enabled: boolean };
+	return data as { id: string; safeinsight_enabled: boolean; inguide_enabled: boolean; autoplay_delay_ms: number };
 }
 
 async function fetchOrgCharts(): Promise<Pick<OrgChart, "id" | "name" | "is_display_active">[]> {
@@ -168,6 +169,12 @@ async function toggleInGuide(id: string, inguide_enabled: boolean) {
 	if (error) throw error;
 }
 
+async function updateAutoplayDelay(id: string, autoplay_delay_ms: number) {
+	const supabase = createClient();
+	const { error } = await supabase.from("company_intro_config").update({ autoplay_delay_ms }).eq("id", id);
+	if (error) throw error;
+}
+
 // ── SortableItemRow ───────────────────────────────────────────────────────────
 
 interface SortableItemRowProps {
@@ -209,14 +216,16 @@ function SortableItemRow({ item, isDragDisabled, canManage, isFirst, isLast, onT
 			</div>
 
 			{/* 위아래 이동 버튼 — 모바일 전용 */}
-			<div className="sm:hidden flex flex-col shrink-0">
-				<Button variant="ghost" size="icon" className="h-5 w-5" onClick={onMoveUp} disabled={isFirst || isDragDisabled} aria-label="위로 이동">
-					<ChevronUp className="h-3 w-3" />
-				</Button>
-				<Button variant="ghost" size="icon" className="h-5 w-5" onClick={onMoveDown} disabled={isLast || isDragDisabled} aria-label="아래로 이동">
-					<ChevronDown className="h-3 w-3" />
-				</Button>
-			</div>
+			{!isDragDisabled && (
+				<div className="sm:hidden flex flex-col shrink-0">
+					<Button variant="ghost" size="icon" className="h-5 w-5" onClick={onMoveUp} disabled={isFirst} aria-label="위로 이동">
+						<ChevronUp className="h-3 w-3" />
+					</Button>
+					<Button variant="ghost" size="icon" className="h-5 w-5" onClick={onMoveDown} disabled={isLast} aria-label="아래로 이동">
+						<ChevronDown className="h-3 w-3" />
+					</Button>
+				</div>
+			)}
 
 			{/* 활성 토글 */}
 			{canManage ? (
@@ -316,7 +325,7 @@ function SortableGroupCard({ group, isDragDisabled, canManage, showActiveOnly, a
 								<GripVertical className="h-5 w-5" />
 							</span>
 						</TooltipTrigger>
-						<TooltipContent side="right">순서 변경은 전체 보기 상태에서만 가능합니다</TooltipContent>
+						<TooltipContent side="right">{!canManage ? "권한이 없어 순서를 변경할 수 없습니다" : "순서 변경은 전체 보기 상태에서만 가능합니다"}</TooltipContent>
 					</Tooltip>
 				) : (
 					<div className="flex items-center gap-1 shrink-0">
@@ -633,6 +642,15 @@ export function DashboardContent() {
 		});
 	}
 
+	function handleAutoplayDelayChange(autoplay_delay_ms: number) {
+		if (!companyIntroConfig) return;
+		queryClient.setQueryData(queryKeys.companyIntro.config(), { ...companyIntroConfig, autoplay_delay_ms });
+		updateAutoplayDelay(companyIntroConfig.id, autoplay_delay_ms).catch(() => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.companyIntro.config() });
+			toast.error("전환 속도 변경에 실패했습니다.");
+		});
+	}
+
 	// ── 로딩 ──
 
 	if (isLoading) {
@@ -672,9 +690,34 @@ export function DashboardContent() {
 				}
 				description={`현재 ${totalActiveSlides}개 슬라이드가 표출 중입니다.`}
 			>
-				<div className="flex items-center gap-2">
-					<span className="text-sm text-muted-foreground whitespace-nowrap">활성 콘텐츠만 보기</span>
-					<Switch checked={showActiveOnly} onCheckedChange={setShowActiveOnly} aria-label="활성 콘텐츠만 보기" />
+				<div className="flex flex-col items-end gap-2">
+					<div className="flex items-center gap-2">
+						<span className="text-sm text-muted-foreground whitespace-nowrap">전환 속도</span>
+						{canManage ? (
+							<Select
+								value={String(companyIntroConfig?.autoplay_delay_ms ?? 10000)}
+								onValueChange={(v) => handleAutoplayDelayChange(Number(v))}
+							>
+								<SelectTrigger className="w-[90px]" aria-label="전환 속도">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="3000">3초</SelectItem>
+									<SelectItem value="5000">5초</SelectItem>
+									<SelectItem value="10000">10초</SelectItem>
+									<SelectItem value="15000">15초</SelectItem>
+								</SelectContent>
+							</Select>
+						) : (
+							<Badge variant="outline" className="text-xs">
+								{(companyIntroConfig?.autoplay_delay_ms ?? 10000) / 1000}초
+							</Badge>
+						)}
+					</div>
+					<div className="flex items-center gap-2">
+						<span className="text-sm text-muted-foreground whitespace-nowrap">활성 콘텐츠만 보기</span>
+						<Switch checked={showActiveOnly} onCheckedChange={setShowActiveOnly} aria-label="활성 콘텐츠만 보기" />
+					</div>
 				</div>
 			</PageHeader>
 
@@ -687,7 +730,7 @@ export function DashboardContent() {
 								<SortableGroupCard
 									key={group.key}
 									group={group}
-									isDragDisabled={showActiveOnly}
+									isDragDisabled={showActiveOnly || !canManage}
 									canManage={canManage}
 									showActiveOnly={showActiveOnly}
 									activeEmployeeCount={group.key === "org" ? activeEmployeeCount : undefined}

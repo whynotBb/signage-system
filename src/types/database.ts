@@ -59,18 +59,21 @@ export type Database = {
 					id: string;
 					safeinsight_enabled: boolean;
 					inguide_enabled: boolean;
+					autoplay_delay_ms: number;
 					updated_at: string;
 				};
 				Insert: {
 					id?: string;
 					safeinsight_enabled?: boolean;
 					inguide_enabled?: boolean;
+					autoplay_delay_ms?: number;
 					updated_at?: string;
 				};
 				Update: {
 					id?: string;
 					safeinsight_enabled?: boolean;
 					inguide_enabled?: boolean;
+					autoplay_delay_ms?: number;
 					updated_at?: string;
 				};
 				Relationships: [];

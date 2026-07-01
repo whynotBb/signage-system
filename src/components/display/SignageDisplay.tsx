@@ -25,9 +25,10 @@ interface SignageDisplayProps {
 	visitorItems: VisitorContent[];
 	videoItems: VideoContent[];
 	imageItems: ImageContent[];
+	autoplayDelayMs: number;
 }
 
-export function SignageDisplay({ divisions, teams, employees, showSafeInsight, showInGuide, newsItems, visitorItems, videoItems, imageItems }: SignageDisplayProps) {
+export function SignageDisplay({ divisions, teams, employees, showSafeInsight, showInGuide, newsItems, visitorItems, videoItems, imageItems, autoplayDelayMs }: SignageDisplayProps) {
 	const swiperRef = useRef<Swiper | null>(null);
 
 	useEffect(() => {
@@ -62,10 +63,10 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 			speed: 800,
 			keyboard: { enabled: true },
 			mousewheel: { enabled: true },
-			// autoplay: {
-			// 	delay: 10000,
-			// 	disableOnInteraction: false,
-			// },
+			autoplay: {
+				delay: autoplayDelayMs,
+				disableOnInteraction: false,
+			},
 			observer: true,
 			observeParents: true,
 			observeSlideChildren: true,
@@ -89,7 +90,17 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 			}
 			swiperRef.current = null;
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Swiper 인스턴스는 마운트 시 1회만 생성. 속도 변경은 아래 별도 effect에서 imperatively 반영한다
 	}, []);
+
+	// autoplayDelayMs가 바뀌면(예: 관리자 대시보드에서 속도 변경 → Realtime → router.refresh) 기존 Swiper 인스턴스를 파괴하지 않고 delay만 갱신
+	useEffect(() => {
+		const swiper = swiperRef.current;
+		if (!swiper || typeof swiper.params.autoplay !== "object") return;
+		swiper.params.autoplay.delay = autoplayDelayMs;
+		swiper.autoplay.stop();
+		swiper.autoplay.start();
+	}, [autoplayDelayMs]);
 
 	return (
 		<div className="signage-root" style={{ width: "100vw", height: "100vh" }}>

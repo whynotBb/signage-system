@@ -55,6 +55,7 @@ export default async function DisplayPage() {
       employees={empsRes.data ?? []}
       showSafeInsight={configRes.data?.safeinsight_enabled ?? true}
       showInGuide={configRes.data?.inguide_enabled ?? true}
+      autoplayDelayMs={configRes.data?.autoplay_delay_ms ?? 10000}
       newsItems={activeNews}
       visitorItems={activeVisitors}
       videoItems={videoRes.data ?? []}
