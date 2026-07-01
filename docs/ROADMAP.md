@@ -324,30 +324,30 @@
 
 **완료 기준**: 관리자 앱이 PC/태블릿/모바일 브레이크포인트에서 정상 동작하고, 전체 사용자 플로우 E2E 테스트를 통과하며, Vercel 프로덕션 배포가 완료된다.
 
-- [ ] **TASK-025: 반응형 UI 및 접근성 마무리** (F002~F024)
-  - [ ] PC(1025px↑) 고정 사이드바 + 넓은 테이블 레이아웃 검증
-  - [ ] 태블릿(769~1024px) 접이식 사이드바(아이콘) 검증
-  - [ ] 모바일(~768px) 햄버거 메뉴 + 테이블→카드형 전환 검증
-  - [ ] 다크모드/라이트모드 전 페이지 일관성 점검
-  - [ ] **테스트 체크리스트**: 3개 브레이크포인트별 주요 페이지 레이아웃 검증 (Playwright MCP viewport)
+- [x] **TASK-025: 반응형 UI 및 접근성 마무리** ✅ - 완료 (F002~F024)
+  - [x] PC(1025px↑) 고정 사이드바 + 넓은 테이블 레이아웃 검증
+  - [x] 태블릿(769~1024px) 접이식 사이드바(아이콘) 검증 — `app-sidebar.tsx`에 `collapsible="icon"` 누락 발견 및 수정
+  - [x] 모바일(~768px) 햄버거 메뉴 + 테이블→카드형 전환 검증 — users/logs 테이블 컬럼 우선순위 결함 발견 및 수정
+  - [x] 다크모드/라이트모드 전 페이지 일관성 점검 — 10개 화면 검증, 결함 없음
+  - [x] **테스트 체크리스트**: 3개 브레이크포인트별 주요 페이지 레이아웃 검증 (Playwright MCP viewport)
 
-- [ ] **TASK-026: 전체 통합 E2E 테스트 및 엣지 케이스 검증** (F001~F035)
-  - [ ] 회원가입→인증→로그인→콘텐츠 등록→디스플레이 반영 전 플로우 E2E (Playwright MCP)
-  - [ ] 역할별 접근 매트릭스 통합 검증
-  - [ ] 에러 핸들링(네트워크 오류, 업로드 실패, 빈 데이터, 권한 오류) 엣지 케이스
-  - [ ] Realtime 동시성 및 다중 클라이언트 시나리오 검증
+- [x] **TASK-026: 전체 통합 E2E 테스트 및 엣지 케이스 검증** ✅ - 완료 (F001~F035)
+  - [x] 회원가입→인증→로그인→콘텐츠 등록→디스플레이 반영 전 플로우 E2E (Playwright MCP) — 가입 시 profiles 중복 insert 버그 발견 및 수정
+  - [x] 역할별 접근 매트릭스 통합 검증 — 3역할 × 5경로 전부 proxy.ts 정의와 일치
+  - [x] 에러 핸들링(네트워크 오류, 업로드 실패, 빈 데이터, 권한 오류) 엣지 케이스
+  - [x] Realtime 동시성 및 다중 클라이언트 시나리오 검증
 
-- [ ] **TASK-027: 성능 최적화** (F028~F035)
-  - [ ] 디스플레이 화면 장시간 구동(메모리 누수, Realtime 구독 정리) 최적화
-  - [ ] 이미지/동영상 로딩 최적화 (next/image, 프리로드, 캐싱)
-  - [ ] TanStack Query 캐싱 전략 및 staleTime 튜닝
-  - [ ] 번들 사이즈 및 초기 로딩 성능 점검
+- [ ] **TASK-027: 성능 최적화** (F028~F035) — 부분 완료
+  - [x] 디스플레이 화면 장시간 구동(메모리 누수, Realtime 구독 정리) 최적화 — 15분 구동 후 heap 안정, DOM 노드 수 복귀 확인
+  - [ ] 이미지/동영상 로딩 최적화 (next/image, 프리로드, 캐싱) — 관리자 이미지 목록 썸네일(`image-table.tsx`)만 next/image 전환 완료. 디스플레이 슬라이드(OrgSlide/NewsSlide/InGuideSlide/SafeInsightSlide/ImageSlide)는 고정 vw 기반 키오스크 레이아웃 회귀 위험으로 보류 — 별도 후속 검토 필요
+  - [x] TanStack Query 캐싱 전략 및 staleTime 튜닝
+  - [x] 번들 사이즈 및 초기 로딩 성능 점검 — 라우트별 First Load JS 확인, 비정상 라우트 없음
 
-- [ ] **TASK-028: Vercel 배포 및 운영 환경 구성**
-  - [ ] Vercel 프로젝트 연결 및 환경 변수(Supabase 키) 설정
-  - [ ] Supabase 프로덕션 인스턴스 마이그레이션 및 Storage 버킷 구성
+- [ ] **TASK-028: Vercel 배포 및 운영 환경 구성** — 사용자 지시로 범위 축소(프로덕션 빌드 검증만 진행, 나머지 취소)
+  - [x] Vercel 프로젝트 연결 및 환경 변수(Supabase 키) 설정 — 이미 완료, signage-system-rho.vercel.app에서 운영 중
+  - [ ] Supabase 프로덕션 인스턴스 마이그레이션 및 Storage 버킷 구성 — 단일 인스턴스 유지로 보류(사용자 결정)
   - [ ] Supabase Auth 이메일 인증 콜백 URL 설정 — Supabase 대시보드 > Authentication > URL Configuration > Redirect URLs에 `https://your-domain.com/admin/auth/callback` 추가 (개발 환경: `http://localhost:3000/admin/auth/callback`은 이미 추가 필요)
-  - [ ] 프로덕션 빌드 검증 및 배포, 디스플레이 화면 키오스크 URL 고정 가이드
+  - [x] 프로덕션 빌드 검증 — `npm run build` 성공 확인 (배포 자체 및 키오스크 URL 가이드는 사용자 지시로 범위 제외)
 
 ---
 
