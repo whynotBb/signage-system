@@ -56,7 +56,7 @@
 
 ---
 
-## 현재 상태 요약 (2026-06-26 기준)
+## 현재 상태 요약 (2026-07-01 기준)
 
 - ✅ **프로젝트 스캐폴딩 완료**: 라우트 그룹 구조, 빈 페이지 껍데기, 공통 레이아웃, shadcn/ui + composite 컴포넌트, Zustand 스토어, 인증 폼 검증 스키마
 - ✅ **도메인 타입 정의 완료**: 9개 Supabase 테이블 TypeScript 타입(Row/Insert/Update), Database 네임스페이스, `@/types` 일괄 export, auth-store Profile 타입 통합
@@ -79,7 +79,8 @@
 - ✅ **TASK-022 완료**: 뉴스·방문자 슬라이드 — 활성 콘텐츠 순환, 스케줄 필터링, Playwright E2E 검증
 - ✅ **TASK-023 (회사소개) 완료**: SafeInsight·InGuide 슬라이드 safeinsight_enabled/inguide_enabled on/off 연동, Playwright E2E 검증 — 이미지·동영상 슬라이드는 관리자 서비스 준비 중 보류
 - ✅ **TASK-024 완료**: Supabase Realtime 연동 — RealtimeSync 컴포넌트 신규 생성(6개 테이블 구독, 300ms debounce, 지수 백오프 재연결, visibilitychange 탭 복구), Swiper observer 옵션 추가, Playwright E2E 검증(INSERT→슬라이드 자동 추가, DELETE→제거)
-- ⬜ **미완료**: TASK-015 이후 — 회사소개·동영상·이미지 관리 CRUD, 이미지·동영상 슬라이드(TASK-023 미완)
+- ✅ **TASK-016~017 완료**: 동영상·이미지 관리 CRUD + 디스플레이 슬라이드 연동 — `video_contents`/`image_contents` 2단계 insert(메타데이터 생성 후 Storage 업로드 → URL 갱신) 패턴 적용 중 DB 컬럼 NOT NULL 제약 충돌 버그 발견 및 수정(마이그레이션으로 nullable 전환), Playwright E2E로 등록/업로드/삭제/디스플레이 렌더링 전체 검증
+- ⬜ **미완료**: TASK-015 (회사소개 On/Off 토글)
 
 ---
 
@@ -233,19 +234,23 @@
   - [ ] 페이지 접근 제어: super_admin, content_admin만
   - [ ] **테스트 체크리스트**: 토글 상태 저장 및 재진입 시 유지, 권한 없는 역할 접근 차단 (Playwright MCP)
 
-- [ ] **TASK-016: 동영상 관리 구현** (F018, F019)
-  - [ ] 동영상 목록 카드/테이블 조회 — 제목, 활성 상태 (F018)
-  - [ ] 동영상 등록 폼 — 제목 입력, 동영상 파일 업로드(Supabase Storage) (F018)
-  - [ ] 동영상 삭제 확인 모달 — Storage 파일 동시 삭제 (F019)
-  - [ ] 페이지 접근 제어: super_admin, content_admin만
-  - [ ] **테스트 체크리스트**: 동영상 업로드/삭제, 대용량 파일 처리, Storage 정합성 (Playwright MCP)
+- [x] **TASK-016: 동영상 관리 구현** ✅ (F018, F019) — 완료 (2026-07-01)
+  - [x] 동영상 목록 테이블 조회 — 제목, 파일명, 활성 상태, 등록자 (F018) — `video-table.tsx` TanStack Query 연동, 검색/필터, @dnd-kit 순서 변경, 인라인 Switch 토글, 모바일 카드 뷰
+  - [x] 동영상 등록 폼 — 제목 입력, 동영상 파일 업로드(Supabase Storage) (F018) — `video-form-dialog.tsx` (최대 100MB, mp4/webm/quicktime), 2단계 insert(메타데이터 → 업로드 → URL 갱신) 패턴
+  - [x] 동영상 삭제 확인 모달 — Storage 파일 동시 삭제 (F019) — `delete-video-dialog.tsx`
+  - [x] 페이지 접근 제어: super_admin, content_admin만 — `middleware.ts` ROLE_GUARDS + `constants.ts` NAV_ITEMS roles
+  - [x] 미리보기 모달 연동 — `SignagePreviewModal` + `VideoSlide` 컴포넌트 재사용
+  - [x] **[버그 수정]** `video_contents.video_url` DB 컬럼이 NOT NULL이라 2단계 insert(메타데이터 먼저 생성 후 업로드) 패턴에서 1차 insert가 항상 실패하던 문제 — 마이그레이션으로 nullable 전환, `database.ts`/`VideoSlide.tsx`(null 가드) 동기화, 디스플레이 쿼리에 `.not('video_url','is',null)` 필터 추가
+  - [x] **테스트 체크리스트**: 동영상 등록(파일 미첨부/첨부 양쪽 경로) → Storage 업로드 → 수정 → 삭제(Storage 동시 삭제) E2E 통과, 디스플레이 화면 슬라이드 렌더링 및 콘솔 에러 없음 확인 (Playwright MCP)
 
-- [ ] **TASK-017: 이미지 관리 구현** (F020, F021)
-  - [ ] 이미지 목록 그리드/테이블 조회 — 썸네일, 제목, 활성 상태 (F020)
-  - [ ] 이미지 등록 폼 — 제목 입력, 이미지 파일 업로드(Supabase Storage) (F020)
-  - [ ] 이미지 삭제 확인 모달 — Storage 파일 동시 삭제 (F021)
-  - [ ] 페이지 접근 제어: super_admin, content_admin만
-  - [ ] **테스트 체크리스트**: 이미지 업로드/삭제, 썸네일 렌더링, Storage 정합성 (Playwright MCP)
+- [x] **TASK-017: 이미지 관리 구현** ✅ (F020, F021) — 완료 (2026-07-01)
+  - [x] 이미지 목록 테이블 조회 — 썸네일, 제목, 활성 상태, 등록자 (F020) — `image-table.tsx` TanStack Query 연동, 검색/필터, @dnd-kit 순서 변경, 인라인 Switch 토글, 모바일 카드 뷰
+  - [x] 이미지 등록 폼 — 제목 입력, 이미지 파일 업로드(Supabase Storage) (F020) — `image-form-dialog.tsx` (최대 10MB) + `image-crop-dialog.tsx`(react-easy-crop 16:9 크롭)
+  - [x] 이미지 삭제 확인 모달 — Storage 파일 동시 삭제 (F021) — `delete-image-dialog.tsx`
+  - [x] 페이지 접근 제어: super_admin, content_admin만 — `middleware.ts` ROLE_GUARDS + `constants.ts` NAV_ITEMS roles
+  - [x] 미리보기 모달 연동 — `SignagePreviewModal` + `ImageSlide` 컴포넌트 재사용
+  - [x] **[버그 수정]** `image_contents.image_url` DB 컬럼 NOT NULL 문제 — TASK-016과 동일한 원인으로 동일 마이그레이션에서 함께 수정
+  - [x] **테스트 체크리스트**: 이미지 등록(파일 미첨부/첨부 양쪽 경로) → 크롭 → Storage 업로드 → 썸네일 렌더링 → 삭제(Storage 동시 삭제) E2E 통과, 디스플레이 화면 슬라이드 렌더링 및 콘솔 에러 없음 확인 (Playwright MCP)
 
 ---
 
