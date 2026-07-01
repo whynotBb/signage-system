@@ -35,6 +35,9 @@ export const queryKeys = {
     detail: (id: string) => ['news_contents', id] as const,
     // 활성 뉴스 수
     activeCount: () => ['news_contents', 'count', { is_active: true }] as const,
+    // 대시보드 전용 요약 조회 — news-table.tsx의 all(전체 컬럼) 키와 겹치면
+    // select 컬럼이 다른 두 쿼리가 캐시를 공유해 날짜/등록자 등이 빠진 얕은 데이터로 덮여버림
+    summary: () => ['news_contents', 'summary'] as const,
   },
   visitors: {
     all: ['visitor_contents'] as const,
@@ -42,6 +45,8 @@ export const queryKeys = {
     detail: (id: string) => ['visitor_contents', id] as const,
     // 활성 방문자 공지 수
     activeCount: () => ['visitor_contents', 'count', { is_active: true }] as const,
+    // 대시보드 전용 요약 조회 (news.summary와 동일한 이유)
+    summary: () => ['visitor_contents', 'summary'] as const,
   },
   companyIntro: {
     config: () => ['company_intro_config'] as const,
@@ -55,6 +60,8 @@ export const queryKeys = {
     detail: (id: string) => ['video_contents', id] as const,
     // 활성 동영상 수
     activeCount: () => ['video_contents', 'count', { is_active: true }] as const,
+    // 대시보드 전용 요약 조회 (news.summary와 동일한 이유)
+    summary: () => ['video_contents', 'summary'] as const,
   },
   images: {
     all: ['image_contents'] as const,
@@ -62,6 +69,8 @@ export const queryKeys = {
     detail: (id: string) => ['image_contents', id] as const,
     // 활성 이미지 수
     activeCount: () => ['image_contents', 'count', { is_active: true }] as const,
+    // 대시보드 전용 요약 조회 (news.summary와 동일한 이유)
+    summary: () => ['image_contents', 'summary'] as const,
   },
   activityLogs: {
     all: ['activity_logs'] as const,

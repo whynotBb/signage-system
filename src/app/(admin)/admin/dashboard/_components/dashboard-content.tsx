@@ -63,7 +63,18 @@ const GROUP_TABLE: Partial<Record<GroupKey, ContentTable>> = {
 	image: "image_contents",
 };
 
+// 대시보드 자체 요약 목록 캐시 키 — 각 관리 페이지의 전체 컬럼 조회(all)와는 별도 키를 써서
+// select 컬럼이 다른 두 쿼리가 캐시를 공유해 날짜/등록자 등이 빠진 얕은 데이터로 덮이는 것을 방지한다
 const GROUP_QUERY_KEY: Partial<Record<GroupKey, readonly unknown[]>> = {
+	news: queryKeys.news.summary(),
+	visitor: queryKeys.visitors.summary(),
+	video: queryKeys.videos.summary(),
+	image: queryKeys.images.summary(),
+};
+
+// 대시보드에서 토글/순서 변경 시, 해당 콘텐츠 관리 페이지가 들고 있는 전체 컬럼 캐시도 같이 무효화해
+// 관리 페이지로 이동했을 때 최신 상태가 보이도록 한다
+const GROUP_FULL_QUERY_KEY: Partial<Record<GroupKey, readonly unknown[]>> = {
 	news: queryKeys.news.all,
 	visitor: queryKeys.visitors.all,
 	video: queryKeys.videos.all,
@@ -496,10 +507,10 @@ export function DashboardContent() {
 	const [showActiveOnly, setShowActiveOnly] = useState(false);
 
 	const { data: groupOrderData = [], isLoading: isLoadingGroups } = useQuery({ queryKey: queryKeys.signageGroupOrder.all, queryFn: fetchGroupOrder });
-	const { data: newsItems = [], isLoading: isLoadingNews } = useQuery({ queryKey: queryKeys.news.all, queryFn: fetchAllNews });
-	const { data: visitorItems = [], isLoading: isLoadingVisitors } = useQuery({ queryKey: queryKeys.visitors.all, queryFn: fetchAllVisitors });
-	const { data: videoItems = [], isLoading: isLoadingVideos } = useQuery({ queryKey: queryKeys.videos.all, queryFn: fetchAllVideos });
-	const { data: imageItems = [], isLoading: isLoadingImages } = useQuery({ queryKey: queryKeys.images.all, queryFn: fetchAllImages });
+	const { data: newsItems = [], isLoading: isLoadingNews } = useQuery({ queryKey: queryKeys.news.summary(), queryFn: fetchAllNews });
+	const { data: visitorItems = [], isLoading: isLoadingVisitors } = useQuery({ queryKey: queryKeys.visitors.summary(), queryFn: fetchAllVisitors });
+	const { data: videoItems = [], isLoading: isLoadingVideos } = useQuery({ queryKey: queryKeys.videos.summary(), queryFn: fetchAllVideos });
+	const { data: imageItems = [], isLoading: isLoadingImages } = useQuery({ queryKey: queryKeys.images.summary(), queryFn: fetchAllImages });
 	const { data: companyIntroConfig } = useQuery({ queryKey: queryKeys.companyIntro.config(), queryFn: fetchCompanyIntroConfig });
 	const { data: orgCharts = [] } = useQuery({ queryKey: queryKeys.orgCharts.all, queryFn: fetchOrgCharts });
 
@@ -601,7 +612,10 @@ export function DashboardContent() {
 		updateItemOrder(
 			table,
 			newItems.map((item, idx) => ({ id: item.id, display_order: idx + 1 })),
-		).catch(() => {
+		).then(() => {
+			const fullKey = GROUP_FULL_QUERY_KEY[groupKey];
+			if (fullKey) queryClient.invalidateQueries({ queryKey: fullKey });
+		}).catch(() => {
 			if (prev) queryClient.setQueryData(qk, prev);
 			toast.error("순서 저장에 실패했습니다.");
 		});
@@ -616,7 +630,10 @@ export function DashboardContent() {
 
 		queryClient.setQueryData<ContentItem[]>(qk, (prev) => (prev ?? []).map((i) => (i.id === itemId ? { ...i, is_active } : i)));
 
-		toggleItemActive(table, itemId, is_active).catch(() => {
+		toggleItemActive(table, itemId, is_active).then(() => {
+			const fullKey = GROUP_FULL_QUERY_KEY[groupKey];
+			if (fullKey) queryClient.invalidateQueries({ queryKey: fullKey });
+		}).catch(() => {
 			queryClient.invalidateQueries({ queryKey: qk });
 			toast.error("상태 변경에 실패했습니다.");
 		});
