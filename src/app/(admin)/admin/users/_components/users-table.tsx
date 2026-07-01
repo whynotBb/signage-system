@@ -120,19 +120,19 @@ export function UsersTable() {
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
       <TabsList>
-        <TabsTrigger value="all">전체 {profiles.length}</TabsTrigger>
-        <TabsTrigger value="pending" className="relative">
+        <TabsTrigger value="all" className="px-4">전체 {profiles.length}</TabsTrigger>
+        <TabsTrigger value="pending" className="relative px-4">
           승인 대기
           {pending.length > 0 && (
             <Badge
-              variant="destructive"
-              className="ml-1.5 h-4 min-w-4 px-1 text-[10px] leading-none"
+              variant="outline"
+              className="ml-1.5 h-4 min-w-4 px-1 text-[10px] leading-none text-amber-600 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800/40 dark:bg-amber-950/30"
             >
               {pending.length}
             </Badge>
           )}
         </TabsTrigger>
-        <TabsTrigger value="active">활성 {active.length}</TabsTrigger>
+        <TabsTrigger value="active" className="px-4">활성 {active.length}</TabsTrigger>
       </TabsList>
 
       <TabsContent value={tab} className="mt-4">
