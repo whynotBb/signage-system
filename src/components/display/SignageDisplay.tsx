@@ -5,12 +5,14 @@ import Swiper from "swiper";
 import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
-import type { Division, Team, Employee, NewsContent, VisitorContent } from "@/types";
+import type { Division, Team, Employee, NewsContent, VisitorContent, VideoContent, ImageContent } from "@/types";
 import { OrgSlide } from "./slides/OrgSlide";
 import { SafeInsightSlide } from "./slides/SafeInsightSlide";
 import { InGuideSlide } from "./slides/InGuideSlide";
 import { NewsSlide } from "./slides/NewsSlide";
 import { VisitorSlide } from "./slides/VisitorSlide";
+import { VideoSlide } from "./slides/VideoSlide";
+import { ImageSlide } from "./slides/ImageSlide";
 import { RealtimeSync } from "./RealtimeSync";
 
 interface SignageDisplayProps {
@@ -21,9 +23,11 @@ interface SignageDisplayProps {
 	showInGuide: boolean;
 	newsItems: NewsContent[];
 	visitorItems: VisitorContent[];
+	videoItems: VideoContent[];
+	imageItems: ImageContent[];
 }
 
-export function SignageDisplay({ divisions, teams, employees, showSafeInsight, showInGuide, newsItems, visitorItems }: SignageDisplayProps) {
+export function SignageDisplay({ divisions, teams, employees, showSafeInsight, showInGuide, newsItems, visitorItems, videoItems, imageItems }: SignageDisplayProps) {
 	const swiperRef = useRef<Swiper | null>(null);
 
 	useEffect(() => {
@@ -35,6 +39,19 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 			const activeSlide = s.slides[s.activeIndex];
 			const isActive = activeSlide?.classList.contains("bubble_st") ?? false;
 			colorBubbles.forEach((el) => el.classList.toggle("on", isActive));
+		};
+
+		const syncActiveVideo = (s: Swiper) => {
+			if (!s || !s.slides) return;
+			const activeSlide = s.slides[s.activeIndex];
+			document.querySelectorAll<HTMLVideoElement>(".swiper-slide video").forEach((videoEl) => {
+				if (videoEl === activeSlide?.querySelector("video")) {
+					videoEl.currentTime = 0;
+					videoEl.play().catch(() => {});
+				} else {
+					videoEl.pause();
+				}
+			});
 		};
 
 		const swiper = new SwiperClass(".swiper", {
@@ -55,9 +72,11 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 			on: {
 				init: function (s: Swiper) {
 					updateColorBubbles(s);
+					syncActiveVideo(s);
 				},
 				slideChange: function (s: Swiper) {
 					updateColorBubbles(s);
+					syncActiveVideo(s);
 				},
 			},
 		});
@@ -123,6 +142,20 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 					{visitorItems.map((visitor) => (
 						<div key={visitor.id} className="swiper-slide bubble_st">
 							<VisitorSlide visitor={visitor} />
+						</div>
+					))}
+
+					{/* 동영상 슬라이드 (활성 콘텐츠 순환) */}
+					{videoItems.map((video) => (
+						<div key={video.id} className="swiper-slide">
+							<VideoSlide video={video} />
+						</div>
+					))}
+
+					{/* 이미지 슬라이드 (활성 콘텐츠 순환) */}
+					{imageItems.map((image) => (
+						<div key={image.id} className="swiper-slide">
+							<ImageSlide image={image} />
 						</div>
 					))}
 				</div>

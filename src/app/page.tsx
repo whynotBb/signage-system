@@ -18,7 +18,7 @@ export default async function DisplayPage() {
 
   const activeOrgChartId = activeChart?.id ?? null
 
-  const [divsRes, teamsRes, empsRes, configRes, newsRes, visitorRes] = await Promise.all([
+  const [divsRes, teamsRes, empsRes, configRes, newsRes, visitorRes, videoRes, imageRes] = await Promise.all([
     activeOrgChartId
       ? supabase.from('divisions').select('*').eq('org_chart_id', activeOrgChartId).order('display_order', { ascending: true })
       : Promise.resolve({ data: [] }),
@@ -31,6 +31,8 @@ export default async function DisplayPage() {
     supabase.from('company_intro_config').select('*').single(),
     supabase.from('news_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }).order('created_at', { ascending: true }),
     supabase.from('visitor_contents').select('*').eq('is_active', true).order('display_order', { ascending: true }).order('created_at', { ascending: false }),
+    supabase.from('video_contents').select('*').eq('is_active', true).not('video_url', 'is', null).order('display_order', { ascending: true }),
+    supabase.from('image_contents').select('*').eq('is_active', true).not('image_url', 'is', null).order('display_order', { ascending: true }),
   ])
 
   // 게시 스케줄 필터링 (null이면 상시 표시)
@@ -55,6 +57,8 @@ export default async function DisplayPage() {
       showInGuide={configRes.data?.inguide_enabled ?? true}
       newsItems={activeNews}
       visitorItems={activeVisitors}
+      videoItems={videoRes.data ?? []}
+      imageItems={imageRes.data ?? []}
     />
   )
 }

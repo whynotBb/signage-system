@@ -195,7 +195,7 @@ export type Database = {
 					created_by: string;
 					display_order: number;
 					id: string;
-					image_url: string;
+					image_url: string | null;
 					is_active: boolean;
 					title: string;
 					updated_at: string;
@@ -205,7 +205,7 @@ export type Database = {
 					created_by: string;
 					display_order?: number;
 					id?: string;
-					image_url: string;
+					image_url?: string | null;
 					is_active?: boolean;
 					title: string;
 					updated_at?: string;
@@ -215,7 +215,7 @@ export type Database = {
 					created_by?: string;
 					display_order?: number;
 					id?: string;
-					image_url?: string;
+					image_url?: string | null;
 					is_active?: boolean;
 					title?: string;
 					updated_at?: string;
@@ -400,7 +400,7 @@ export type Database = {
 					is_active: boolean;
 					title: string;
 					updated_at: string;
-					video_url: string;
+					video_url: string | null;
 				};
 				Insert: {
 					created_at?: string;
@@ -410,7 +410,7 @@ export type Database = {
 					is_active?: boolean;
 					title: string;
 					updated_at?: string;
-					video_url: string;
+					video_url?: string | null;
 				};
 				Update: {
 					created_at?: string;
@@ -420,7 +420,7 @@ export type Database = {
 					is_active?: boolean;
 					title?: string;
 					updated_at?: string;
-					video_url?: string;
+					video_url?: string | null;
 				};
 				Relationships: [
 					{

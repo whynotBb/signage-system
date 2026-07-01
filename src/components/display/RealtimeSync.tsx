@@ -12,6 +12,8 @@ const WATCHED_TABLES = [
   'company_intro_config',
   'news_contents',
   'visitor_contents',
+  'video_contents',
+  'image_contents',
 ]
 
 export function RealtimeSync() {
