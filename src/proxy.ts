@@ -22,7 +22,7 @@ const ROLE_GUARDS: { prefix: string; allowed: string[] }[] = [
   { prefix: '/admin/image', allowed: ['super_admin', 'content_admin'] },
 ]
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   // Supabase SSR 클라이언트 생성 (쿠키 기반)

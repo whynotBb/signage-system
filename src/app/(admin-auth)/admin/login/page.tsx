@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -23,7 +23,6 @@ import { Separator } from '@/components/ui/separator'
 import { LoadingButton } from '@/components/composite/loading-button'
 
 export default function LoginPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const setUser = useAuthStore((state) => state.setUser)
 
@@ -77,7 +76,19 @@ export default function LoginPage() {
 
     setUser(profile)
     toast.success('로그인 성공', { description: `${profile.name}님, 환영합니다` })
-    router.push('/admin/dashboard')
+
+    // 브라우저 Supabase 클라이언트가 document.cookie로 세션을 기록한 직후,
+    // router.push()의 클라이언트 사이드(RSC) 네비게이션을 사용하면
+    // 프록시(구 middleware)가 이 요청을 처리하는 시점에 방금 쓰여진 쿠키가
+    // 아직 반영되지 않을 수 있음 — 로컬은 지연이 거의 없어 재현되지 않지만,
+    // Vercel 엣지 환경의 실제 네트워크 왕복 지연에서는 이 쿠키 커밋 타이밍과
+    // 경쟁하면서 프록시가 미인증으로 판단해 /admin/login으로 되돌리는
+    // 간헐적 리다이렉트 실패가 발생한다.
+    // 완전한 브라우저 네비게이션을 강제하면 새 요청이 항상 Cookie 헤더를 통해
+    // 최신 세션을 서버로 전달하므로 이 경쟁을 원천 차단한다.
+    // (location.href = ... 대신 location.assign을 사용 — react-hooks/immutability
+    // 규칙이 외부 값에 대한 대입 표현식을 금지하므로 함수 호출 형태로 작성)
+    window.location.assign('/admin/dashboard')
   }
 
   return (
