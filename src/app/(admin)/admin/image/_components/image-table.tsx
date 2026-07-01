@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
@@ -106,9 +106,11 @@ function SortableTableRow({ item, canEdit, onPreview, onEdit, onDelete, onToggle
 			{/* 썸네일 */}
 			<TableCell className="hidden sm:table-cell w-[80px] px-2">
 				{item.image_url ? (
-					<img
+					<Image
 						src={item.image_url}
 						alt={item.title}
+						width={64}
+						height={40}
 						className="h-10 w-16 rounded object-cover border border-border"
 					/>
 				) : (
@@ -173,7 +175,7 @@ function MobileImageCard({ item, canEdit, onPreview, onEdit, onDelete, onToggleA
 			<div className="flex items-start justify-between gap-3">
 				<div className="flex items-center gap-3 flex-1 min-w-0">
 					{item.image_url ? (
-						<img src={item.image_url} alt={item.title} className="h-10 w-16 rounded object-cover border border-border shrink-0" />
+						<Image src={item.image_url} alt={item.title} width={64} height={40} className="h-10 w-16 rounded object-cover border border-border shrink-0" />
 					) : (
 						<div className="h-10 w-16 rounded bg-muted flex items-center justify-center shrink-0">
 							<ImageIcon className="h-4 w-4 text-muted-foreground" />
