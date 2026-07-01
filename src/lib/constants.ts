@@ -15,7 +15,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { title: '뉴스 관리', href: '/admin/news', icon: 'Newspaper', group: '콘텐츠 관리' },
   { title: '방문자 관리', href: '/admin/visitor', icon: 'UserCheck', group: '콘텐츠 관리' },
-  { title: '회사소개 관리', href: '/admin/company-intro', icon: 'Building2', group: '콘텐츠 관리', roles: ['super_admin', 'content_admin'] },
+  // 회사소개 관리: 별도 관리 페이지는 보류, 대시보드 카드에서만 on/off 관리 (사이드바 메뉴 숨김)
   { title: '동영상 관리', href: '/admin/video', icon: 'Video', group: '콘텐츠 관리', roles: ['super_admin', 'content_admin'] },
   { title: '이미지 관리', href: '/admin/image', icon: 'Image', group: '콘텐츠 관리', roles: ['super_admin', 'content_admin'] },
   // 시스템 관리 그룹

@@ -8,6 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { queryKeys } from "@/lib/supabase/query-keys";
+import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/composite/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -172,6 +173,7 @@ async function toggleInGuide(id: string, inguide_enabled: boolean) {
 interface SortableItemRowProps {
 	item: ContentItem;
 	isDragDisabled: boolean;
+	canManage: boolean;
 	isFirst: boolean;
 	isLast: boolean;
 	onToggle: (is_active: boolean) => void;
@@ -179,7 +181,7 @@ interface SortableItemRowProps {
 	onMoveDown: () => void;
 }
 
-function SortableItemRow({ item, isDragDisabled, isFirst, isLast, onToggle, onMoveUp, onMoveDown }: SortableItemRowProps) {
+function SortableItemRow({ item, isDragDisabled, canManage, isFirst, isLast, onToggle, onMoveUp, onMoveDown }: SortableItemRowProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
 	const style: React.CSSProperties = {
@@ -217,7 +219,13 @@ function SortableItemRow({ item, isDragDisabled, isFirst, isLast, onToggle, onMo
 			</div>
 
 			{/* 활성 토글 */}
-			<Switch checked={item.is_active} onCheckedChange={onToggle} aria-label={item.is_active ? "활성" : "비활성"} className="shrink-0" />
+			{canManage ? (
+				<Switch checked={item.is_active} onCheckedChange={onToggle} aria-label={item.is_active ? "활성" : "비활성"} className="shrink-0" />
+			) : (
+				<Badge variant="outline" className={cn("text-xs shrink-0", item.is_active ? "text-emerald-600" : "text-muted-foreground")}>
+					{item.is_active ? "활성" : "비활성"}
+				</Badge>
+			)}
 		</div>
 	);
 }
@@ -227,6 +235,7 @@ function SortableItemRow({ item, isDragDisabled, isFirst, isLast, onToggle, onMo
 interface SortableGroupCardProps {
 	group: SlideGroup;
 	isDragDisabled: boolean;
+	canManage: boolean;
 	showActiveOnly: boolean;
 	activeEmployeeCount?: number;
 	orgCharts?: Pick<OrgChart, "id" | "name" | "is_display_active">[];
@@ -242,7 +251,7 @@ interface SortableGroupCardProps {
 	isLast?: boolean;
 }
 
-function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmployeeCount, orgCharts = [], onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle, onOrgSelect, isOrgActivating, onMoveUp, onMoveDown, isFirst, isLast }: SortableGroupCardProps) {
+function SortableGroupCard({ group, isDragDisabled, canManage, showActiveOnly, activeEmployeeCount, orgCharts = [], onItemToggle, onItemReorder, onSafeInsightToggle, onInGuideToggle, onOrgSelect, isOrgActivating, onMoveUp, onMoveDown, isFirst, isLast }: SortableGroupCardProps) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.key });
@@ -380,30 +389,36 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 									const isActive = chart.is_display_active || isOnlyOneOrg;
 									return (
 										<div key={chart.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-muted/20 transition-colors">
-											{/* 라디오 버튼 (조직도 1개면 비활성 고정) */}
-											<button
-												type="button"
-												className={cn(
-													"h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors",
-													isActive ? "border-primary bg-primary" : "border-muted-foreground/40 hover:border-primary/60",
-													isOnlyOneOrg && "cursor-default pointer-events-none",
-												)}
-												onClick={() => { if (!isActive) onOrgSelect?.(chart.id); }}
-												disabled={isActive || isOrgActivating || isOnlyOneOrg}
-												aria-label={isActive ? "현재 표출 중" : "이 버전으로 표출 전환"}
-											>
-												{isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-											</button>
+											{/* 라디오 버튼 (조직도 1개면 비활성 고정, editor는 노출 안 함) */}
+											{canManage ? (
+												<button
+													type="button"
+													className={cn(
+														"h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors",
+														isActive ? "border-primary bg-primary" : "border-muted-foreground/40 hover:border-primary/60",
+														isOnlyOneOrg && "cursor-default pointer-events-none",
+													)}
+													onClick={() => { if (!isActive) onOrgSelect?.(chart.id); }}
+													disabled={isActive || isOrgActivating || isOnlyOneOrg}
+													aria-label={isActive ? "현재 표출 중" : "이 버전으로 표출 전환"}
+												>
+													{isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+												</button>
+											) : (
+												<span className="block h-4 w-4 shrink-0" />
+											)}
 
 											<div className="flex-1 min-w-0 flex items-center gap-2">
 												<span className="text-sm font-medium truncate">{chart.name}</span>
 												{isActive && <Badge className="text-xs border-0 bg-primary/10 text-primary font-normal shrink-0">표출 중</Badge>}
 											</div>
-											<Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-												<Link href={`/admin/org/${chart.id}`} aria-label={`${chart.name} 편집`}>
-													<Pencil className="h-3.5 w-3.5" />
-												</Link>
-											</Button>
+											{canManage && (
+												<Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+													<Link href={`/admin/org/${chart.id}`} aria-label={`${chart.name} 편집`}>
+														<Pencil className="h-3.5 w-3.5" />
+													</Link>
+												</Button>
+											)}
 										</div>
 									);
 								})
@@ -418,14 +433,26 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 									<p className="text-sm font-medium">SafeInsight</p>
 									<p className="text-xs text-muted-foreground">안전보건 정보 슬라이드</p>
 								</div>
-								<Switch checked={group.safeinsight_enabled ?? false} onCheckedChange={onSafeInsightToggle} aria-label="SafeInsight 슬라이드 활성화" className="shrink-0" />
+								{canManage ? (
+									<Switch checked={group.safeinsight_enabled ?? false} onCheckedChange={onSafeInsightToggle} aria-label="SafeInsight 슬라이드 활성화" className="shrink-0" />
+								) : (
+									<Badge variant="outline" className={cn("text-xs shrink-0", group.safeinsight_enabled ? "text-emerald-600" : "text-muted-foreground")}>
+										{group.safeinsight_enabled ? "사용" : "미사용"}
+									</Badge>
+								)}
 							</div>
 							<div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors">
 								<div className="flex-1 min-w-0">
 									<p className="text-sm font-medium">In-Guide</p>
 									<p className="text-xs text-muted-foreground">사내 가이드 슬라이드</p>
 								</div>
-								<Switch checked={group.inguide_enabled ?? false} onCheckedChange={onInGuideToggle} aria-label="In-Guide 슬라이드 활성화" className="shrink-0" />
+								{canManage ? (
+									<Switch checked={group.inguide_enabled ?? false} onCheckedChange={onInGuideToggle} aria-label="In-Guide 슬라이드 활성화" className="shrink-0" />
+								) : (
+									<Badge variant="outline" className={cn("text-xs shrink-0", group.inguide_enabled ? "text-emerald-600" : "text-muted-foreground")}>
+										{group.inguide_enabled ? "사용" : "미사용"}
+									</Badge>
+								)}
 							</div>
 						</div>
 					)}
@@ -438,7 +465,7 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 								<DndContext sensors={itemSensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
 									<SortableContext items={displayItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
 										{displayItems.map((item, idx) => (
-											<SortableItemRow key={item.id} item={item} isDragDisabled={isDragDisabled} isFirst={idx === 0} isLast={idx === displayItems.length - 1} onToggle={(v) => onItemToggle(item.id, v)} onMoveUp={() => handleMoveUp(item)} onMoveDown={() => handleMoveDown(item)} />
+											<SortableItemRow key={item.id} item={item} isDragDisabled={isDragDisabled} canManage={canManage} isFirst={idx === 0} isLast={idx === displayItems.length - 1} onToggle={(v) => onItemToggle(item.id, v)} onMoveUp={() => handleMoveUp(item)} onMoveDown={() => handleMoveDown(item)} />
 										))}
 									</SortableContext>
 								</DndContext>
@@ -455,6 +482,8 @@ function SortableGroupCard({ group, isDragDisabled, showActiveOnly, activeEmploy
 
 export function DashboardContent() {
 	const queryClient = useQueryClient();
+	const user = useAuthStore((s) => s.user);
+	const canManage = user?.role !== "editor";
 	const [showActiveOnly, setShowActiveOnly] = useState(false);
 
 	const { data: groupOrderData = [], isLoading: isLoadingGroups } = useQuery({ queryKey: queryKeys.signageGroupOrder.all, queryFn: fetchGroupOrder });
@@ -626,21 +655,26 @@ export function DashboardContent() {
 
 	return (
 		<div className="flex flex-col gap-6">
-			<PageHeader title="대시보드" description={`현재 ${totalActiveSlides}개 슬라이드가 표출 중입니다.`}>
-				<div className="flex items-center gap-3">
-					<Button
-						variant="outline"
-						size="sm"
-						className="gap-1.5"
-						onClick={() => window.open("/", "_blank", "noopener,noreferrer")}
-					>
-						<Monitor className="h-3.5 w-3.5" />
-						사이니지 보기
-					</Button>
-					<div className="flex items-center gap-2">
-						<span className="text-sm text-muted-foreground whitespace-nowrap">활성 콘텐츠만 보기</span>
-						<Switch checked={showActiveOnly} onCheckedChange={setShowActiveOnly} aria-label="활성 콘텐츠만 보기" />
+			<PageHeader
+				title={
+					<div className="flex items-center gap-3">
+						<span>대시보드</span>
+						<Button
+							variant="outline"
+							size="sm"
+							className="gap-1.5"
+							onClick={() => window.open("/", "_blank", "noopener,noreferrer")}
+						>
+							<Monitor className="h-3.5 w-3.5" />
+							사이니지 보기
+						</Button>
 					</div>
+				}
+				description={`현재 ${totalActiveSlides}개 슬라이드가 표출 중입니다.`}
+			>
+				<div className="flex items-center gap-2">
+					<span className="text-sm text-muted-foreground whitespace-nowrap">활성 콘텐츠만 보기</span>
+					<Switch checked={showActiveOnly} onCheckedChange={setShowActiveOnly} aria-label="활성 콘텐츠만 보기" />
 				</div>
 			</PageHeader>
 
@@ -654,6 +688,7 @@ export function DashboardContent() {
 									key={group.key}
 									group={group}
 									isDragDisabled={showActiveOnly}
+									canManage={canManage}
 									showActiveOnly={showActiveOnly}
 									activeEmployeeCount={group.key === "org" ? activeEmployeeCount : undefined}
 									orgCharts={group.key === "org" ? orgCharts : undefined}
