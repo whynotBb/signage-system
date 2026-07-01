@@ -30,27 +30,52 @@ interface SignageDisplayProps {
 
 export function SignageDisplay({ divisions, teams, employees, showSafeInsight, showInGuide, newsItems, visitorItems, videoItems, imageItems, autoplayDelayMs }: SignageDisplayProps) {
 	const swiperRef = useRef<Swiper | null>(null);
+	const wrapperRef = useRef<HTMLDivElement | null>(null);
 
-	// 실제 렌더링되는 슬라이드 "구성"을 나타내는 안정적인 서명(signature).
-	// 단순 개수(length)가 아니라 어떤 옵션 슬라이드가 켜져 있는지 + 각 콘텐츠 목록의 순서/ID까지 포함해야
-	// "내용은 바뀌었지만 개수는 같은" 경우도 놓치지 않는다(우선순위는 낮지만 향후 확장을 고려해 미리 포함).
+	// 실제 렌더링되는 슬라이드 "구성"과 순서를 나타내는 배열(각 슬라이드의 고유 id).
+	// JSX에서 렌더링하는 순서(조직도 → SafeInsight → In-Guide → 뉴스 → 방문자 → 동영상 → 이미지)와
+	// 항상 정확히 동일해야 한다 — 아래 mount effect가 Swiper 재생성 직전 DOM 순서를 이 배열대로 강제 정렬한다.
+	const slideOrderIds = useMemo(() => {
+		const ids = ["org"];
+		if (showSafeInsight) ids.push("safeinsight");
+		if (showInGuide) ids.push("inguide");
+		newsItems.forEach((n) => ids.push(`news:${n.id}`));
+		visitorItems.forEach((v) => ids.push(`visitor:${v.id}`));
+		videoItems.forEach((v) => ids.push(`video:${v.id}`));
+		imageItems.forEach((i) => ids.push(`image:${i.id}`));
+		return ids;
+	}, [showSafeInsight, showInGuide, newsItems, visitorItems, videoItems, imageItems]);
+
+	// 매 렌더마다 최신 순서를 ref에 반영 — mount effect의 deps 배열 크기(길이 1)를 바꾸지 않기 위해
+	// slideOrderIds를 effect의 의존성으로 직접 넣지 않고 별도의 작은 effect로 ref에 동기화한다.
+	// (mount effect보다 먼저 선언되어 있어 같은 커밋에서 항상 먼저 실행된다.)
+	const slideOrderRef = useRef(slideOrderIds);
+	useEffect(() => {
+		slideOrderRef.current = slideOrderIds;
+	}, [slideOrderIds]);
+
 	// 이 값이 바뀔 때만 Swiper를 destroy 후 재생성한다 — Swiper의 observer 기반 증분 업데이트는
 	// loop:true + effect:'fade' 조합에서 슬라이드 개수가 바뀌는 상황을 신뢰성 있게 처리하지 못하기 때문.
-	const slideCompositionSignature = useMemo(() => {
-		const parts = [
-			showSafeInsight ? "safeinsight" : "",
-			showInGuide ? "inguide" : "",
-			`news:${newsItems.map((n) => n.id).join(",")}`,
-			`visitor:${visitorItems.map((v) => v.id).join(",")}`,
-			`video:${videoItems.map((v) => v.id).join(",")}`,
-			`image:${imageItems.map((i) => i.id).join(",")}`,
-		];
-		return parts.join("|");
-	}, [showSafeInsight, showInGuide, newsItems, visitorItems, videoItems, imageItems]);
+	const slideCompositionSignature = useMemo(() => slideOrderIds.join("|"), [slideOrderIds]);
 
 	useEffect(() => {
 		const SwiperClass = (Swiper as unknown as { default?: typeof Swiper }).default || Swiper;
 		const colorBubbles = document.querySelectorAll<HTMLElement>(".color-bubble");
+
+		// Swiper의 loop:true는 무한 순환을 위해 "실제" 슬라이드 DOM 노드를 직접 append/prepend로
+		// 옮긴다(클론이 아님). destroy() 시 자기가 알던 슬라이드만 원래 순서로 되돌리기 때문에,
+		// 그 사이 React가 새로 삽입한 슬라이드(예: 신규 뉴스)는 복원 대상에서 빠져 엉뚱한 자리에
+		// 남는다. 새 Swiper를 만들기 직전, React가 렌더링한 순서(slideOrderRef)대로 DOM 자식을
+		// 명시적으로 재정렬해 이 문제를 근본적으로 차단한다.
+		const wrapperEl = wrapperRef.current;
+		if (wrapperEl) {
+			const slideEls = Array.from(wrapperEl.querySelectorAll<HTMLElement>(".swiper-slide"));
+			const slideMap = new Map(slideEls.map((el) => [el.dataset.slideId, el]));
+			slideOrderRef.current.forEach((id) => {
+				const slideEl = slideMap.get(id);
+				if (slideEl) wrapperEl.appendChild(slideEl);
+			});
+		}
 
 		const updateColorBubbles = (s: Swiper) => {
 			if (!s || !s.slides) return;
@@ -75,6 +100,8 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 		const swiper = new SwiperClass(".swiper", {
 			modules: [Autoplay, EffectFade],
 			loop: true,
+			// 변경 감지 시 항상 0번(조직도) 슬라이드부터 새로 시작한다 — 재생 중 위치를 이어가려 하지 않는다.
+			initialSlide: 0,
 			effect: "fade",
 			fadeEffect: { crossFade: true },
 			speed: 800,
@@ -121,7 +148,7 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 	// autoplayDelayMs가 바뀌면(예: 관리자 대시보드에서 속도 변경 → Realtime → router.refresh) 기존 Swiper 인스턴스를 파괴하지 않고 delay만 갱신
 	useEffect(() => {
 		const swiper = swiperRef.current;
-		if (!swiper || typeof swiper.params.autoplay !== "object") return;
+		if (!swiper || swiper.destroyed || typeof swiper.params?.autoplay !== "object") return;
 		swiper.params.autoplay.delay = autoplayDelayMs;
 		swiper.autoplay.stop();
 		swiper.autoplay.start();
@@ -147,50 +174,50 @@ export function SignageDisplay({ divisions, teams, employees, showSafeInsight, s
 
 			{/* Swiper */}
 			<div className="swiper">
-				<div className="swiper-wrapper">
+				<div className="swiper-wrapper" ref={wrapperRef}>
 					{/* 슬라이드 1: 조직도 */}
-					<div className="swiper-slide">
+					<div className="swiper-slide" data-slide-id="org">
 						<OrgSlide divisions={divisions} teams={teams} employees={employees} />
 					</div>
 
 					{/* SafeInsight (활성화된 경우) */}
 					{showSafeInsight && (
-						<div className="swiper-slide">
+						<div className="swiper-slide" data-slide-id="safeinsight">
 							<SafeInsightSlide />
 						</div>
 					)}
 
 					{/* In-Guide (활성화된 경우) */}
 					{showInGuide && (
-						<div className="swiper-slide">
+						<div className="swiper-slide" data-slide-id="inguide">
 							<InGuideSlide />
 						</div>
 					)}
 
 					{/* 뉴스 슬라이드 (활성 콘텐츠 순환) */}
 					{newsItems.map((news) => (
-						<div key={news.id} className="swiper-slide bubble_st">
+						<div key={news.id} className="swiper-slide bubble_st" data-slide-id={`news:${news.id}`}>
 							<NewsSlide news={news} />
 						</div>
 					))}
 
 					{/* 방문자 슬라이드 (활성 콘텐츠 순환) */}
 					{visitorItems.map((visitor) => (
-						<div key={visitor.id} className="swiper-slide bubble_st">
+						<div key={visitor.id} className="swiper-slide bubble_st" data-slide-id={`visitor:${visitor.id}`}>
 							<VisitorSlide visitor={visitor} />
 						</div>
 					))}
 
 					{/* 동영상 슬라이드 (활성 콘텐츠 순환) */}
 					{videoItems.map((video) => (
-						<div key={video.id} className="swiper-slide">
+						<div key={video.id} className="swiper-slide" data-slide-id={`video:${video.id}`}>
 							<VideoSlide video={video} />
 						</div>
 					))}
 
 					{/* 이미지 슬라이드 (활성 콘텐츠 순환) */}
 					{imageItems.map((image) => (
-						<div key={image.id} className="swiper-slide">
+						<div key={image.id} className="swiper-slide" data-slide-id={`image:${image.id}`}>
 							<ImageSlide image={image} />
 						</div>
 					))}
