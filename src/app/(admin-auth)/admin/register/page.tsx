@@ -33,7 +33,7 @@ export default function RegisterPage() {
   async function onSubmit(values: RegisterFormValues) {
     const supabase = createClient()
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -46,15 +46,9 @@ export default function RegisterPage() {
       return
     }
 
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: values.email,
-        name: values.name,
-        is_active: false,
-        role: 'editor',
-      })
-    }
+    // profiles row는 DB 트리거(on_auth_user_created → handle_new_user)가
+    // auth.users insert 시점에 자동 생성한다. 여기서 다시 insert하면
+    // 트리거가 이미 만든 row와 충돌해 매번 409 에러가 발생하므로 제거함.
 
     setSubmittedEmail(values.email)
     setSubmitted(true)
